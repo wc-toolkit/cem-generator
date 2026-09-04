@@ -1,0 +1,16 @@
+node_modules/
+**/node_modules/
+
+dist/
+**/dist/
+
+*.tsbuildinfo
+**/*.tsbuildinfo
+
+.DS_Store
+**/.DS_Store
+
+custom-elements.json
+examples/custom-elements.json
+packages/core/demo/custom-elements.json
+packages/plugins/lit/demo/custom-elements.json

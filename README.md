@@ -1,0 +1,126 @@
+# cem-gen (working prototype)
+
+A lightweight, plugin-extensible Custom Elements Manifest generator — an
+alternative core to `@custom-elements-manifest/analyzer`, built around a
+handful of deliberate departures from it.
+
+## Design decisions
+
+- **Disjoint plugins by default, no dependency graph.** A `DetectorPlugin`
+  implements `claims(sourceText)` + `onFile(context)` and returns an
+  isolated fragment; core merges by class name. No shared mutable
+  `context` object, no plugin-to-plugin dependency declarations. This was
+  chosen over a wireit-style task graph specifically to avoid making every
+  plugin author reason about ordering/coupling for the sake of a minority
+  enrichment use case.
+- **A separate, additive-only `AnnotatorPlugin` hook** covers the
+  enrichment case instead: `afterManifest(manifest)` runs once, read-only,
+  after every detector has run, and may only add new fields — the pipeline
+  throws if an annotator tries to overwrite a field a detector already set.
+- **Vanilla `HTMLElement` detection is built into core, not a plugin.**
+  Every project has vanilla components even if it also uses a framework —
+  requiring an install for the baseline case added friction with no
+  payoff, so `runPipeline` always runs it, prepended to whatever plugins
+  are supplied. Framework-specific detection (Lit, Stencil, ...) stays
+  plugin-based, since those genuinely are opt-in per project.
+- **One shared `ts.Program`** built from the project's own `tsconfig.json`
+  (respecting `paths`, `include`/`exclude`), reused across every plugin's
+  analysis for a run rather than each plugin/file constructing its own.
+- **`claims()` is a cheap text check**, not an AST check — it runs before a
+  file is even parsed for that plugin, so a project with several installed
+  framework plugins doesn't pay full traversal cost per plugin per file.
+- **Inheritance resolution is memoized recursion in `afterAllFiles`
+  timing, not a dependency graph.** See `packages/core-utils/src/inheritance.ts`
+  — a plugin records an unresolved `superclass` reference during `onFile`;
+  a shared utility resolves the chain once the full manifest exists,
+  correctly handling multi-level inheritance and throwing on circular
+  references.
+- **Shared logic (JSDoc extraction, inheritance resolution) lives in
+  `@cem-generator/core-utils`**, not duplicated per framework plugin — this was
+  a specific pain point in the original tool's built-in framework handlers.
+- **Library/framework support ships as separate packages**
+  (`@cem-generator/plugin-vanilla`, `@cem-generator/plugin-lit`, ...), not bundled into
+  core, so a project only installs what it needs.
+
+## What's implemented in this prototype
+
+- `packages/core` — types, `ts.Program` construction, the pipeline
+  orchestrator (detector execution + merge + annotator pass), and
+  **built-in vanilla detection**: `class X extends HTMLElement`,
+  `observedAttributes` (both `static get` and `static` field forms),
+  `customElements.define()` tag-name mapping, public members, `@fires`
+  JSDoc events
+- `packages/core-utils` — JSDoc extraction, inheritance resolution
+- `packages/plugin-lit` — the one example framework plugin, kept as a
+  demonstration of the extension point. Per current direction, no
+  further plugins are being built right now — focus is on core.
+- `examples/` — two fixture components (one vanilla, one Lit) and a
+  runnable script showing vanilla resolving with zero plugins passed,
+  plus Lit opted in via `plugins: [litPlugin()]`
+
+Run it:
+
+```sh
+pnpm install
+pnpm build
+pnpm example
+```
+
+This writes a manifest file to `examples/custom-elements.json`.
+
+Example fixture highlights:
+
+- `examples/fixtures/my-button.ts` demonstrates Lit CSS extraction rules:
+  - `@property --token { syntax; initial-value; }` support
+  - `:host { --token: value; }` declaration capture
+  - no auto-capture for `var(--token)` usage-only references
+  - `part="..."` markup discovery for CSS shadow parts
+- `examples/fixtures/my-card.ts` demonstrates additional part docs behavior:
+  - template comment before `part="container"` becomes fallback part description
+  - `@csspart title - ...` overrides fallback when both exist
+
+## Package demos
+
+Each package now has an independent `demo/` directory so behavior can be
+evaluated in isolation.
+
+- Core demo (vanilla only): `pnpm demo:core`
+- Core utils demo (parser output): `pnpm demo:core-utils`
+- Lit plugin demo: `pnpm demo:lit`
+- Run all package demos: `pnpm demo:all`
+
+Integration demo remains in `examples/` and runs with `pnpm example`.
+
+## Deliberately not in this prototype
+
+These were discussed and deferred, not forgotten:
+
+- **CEM analyzer plugin compat adapter** — feasible (see conversation), but
+  a v2 migration ramp, not a v1 dependency.
+- **Emitter plugins** (manifest → `custom-data.json`, `web-types.json`,
+  framework wrapper types) — a third plugin category, orthogonal to
+  detectors/annotators.
+- **Manifest diffing / breaking-change detection**, **monorepo manifest
+  merging**, **plugin testing utilities**, **schema validation + vendor
+  extension namespace**.
+- **Caching/incrementality** (`ts.createIncrementalProgram` / watch APIs) —
+  matters for real-scale watch-mode use, not needed to validate the plugin
+  contract itself.
+- **CSS parts/states inheritance** — deliberately NOT auto-resolved the
+  same way as members/attributes, since it isn't guaranteed by the
+  prototype chain the way real inheritance is (a subclass that overrides
+  `render()` may not actually retain a base class's parts). Left to
+  explicit JSDoc (`@part`, `@cssprop`) rather than inferred.
+
+## Known rough edges in this prototype specifically
+
+- Fragment merging in `pipeline.ts` is last-plugin-wins per top-level key
+  on conflict — fine for two non-overlapping plugins, but a real v1 needs
+  an explicit conflict policy (likely: throw, like the annotator does)
+  once more plugins are involved.
+- `plugin-vanilla`'s `customElements.define()` detection only handles
+  same-file registration; cross-file registration (a separate `index.js`
+  that imports and defines components) needs an `afterAllFiles`-level
+  pass, not per-file detection.
+- No incremental Program reuse yet — every run does a full `ts.Program`
+  construction and full traversal.

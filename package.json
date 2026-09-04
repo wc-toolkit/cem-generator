@@ -1,0 +1,25 @@
+{
+  "name": "cem-gen-workspace",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "packages/*/*"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "example": "tsx examples/run.ts",
+    "demo:core": "pnpm --filter @cem-generator/core demo",
+    "demo:core-utils": "pnpm --filter @cem-generator/core-utils demo",
+    "demo:lit": "pnpm --filter @cem-generator/plugin-lit demo",
+    "demo:all": "pnpm -r --filter './packages/**' --if-present demo",
+    "test": "pnpm build && pnpm -r --filter './packages/**' --if-present test"
+  },
+  "devDependencies": {
+    "@types/node": "^26.4.1",
+    "ajv": "^8.20.0",
+    "custom-elements-manifest": "^2.1.0",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.23.13",
+    "typescript": "^5.9.0"
+  }
+}

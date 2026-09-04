@@ -1,0 +1,16 @@
+{
+  "name": "@cem-generator/plugin-lit",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "test": "node --test tests/*.test.mjs",
+    "demo": "tsx demo/run.ts"
+  },
+  "dependencies": {
+    "@cem-generator/core": "workspace:*",
+    "@cem-generator/core-utils": "workspace:*",
+    "typescript": "^5.9.0"
+  }
+}

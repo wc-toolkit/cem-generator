@@ -1,0 +1,9 @@
+{
+  "extends": "./tsconfig.base.json",
+  "references": [
+    { "path": "packages/core-utils" },
+    { "path": "packages/core" },
+    { "path": "packages/plugins/lit" }
+  ],
+  "files": []
+}
