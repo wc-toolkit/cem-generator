@@ -14,6 +14,11 @@
  * @fires custom-event - emitted when work is done
  * @event {Event} typed-event - typed event example
  * @prop {string} externalTitle - property from JSDoc only
+ * @since 2.0.0
+ * @license MIT
+ * @status beta - not ready for production
+ * @dependency icon
+ * @dependency button
  */
 export class StandardTagsElement extends HTMLElement {
   static get observedAttributes() {
@@ -30,6 +35,7 @@ export class StandardTagsElement extends HTMLElement {
   /**
    * @summary Runs action
    * @deprecated Use runV2 instead.
+   * @group actions
    */
   doWork(input, ...rest) {
     return input + String(rest.length);

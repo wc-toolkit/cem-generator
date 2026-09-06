@@ -18,6 +18,7 @@ export interface ParsedJSDocMemberInfo {
   default?: string;
   summary?: string;
   deprecated?: boolean | string;
+  customJsDocTags?: Array<{ name: string; text: string }>;
 }
 
 export interface ParsedJSDocClassInfo {
@@ -40,6 +41,7 @@ export interface ParsedJSDocClassInfo {
     slots?: string[];
     events?: string[];
   };
+  customJsDocTags?: Array<{ name: string; text: string }>;
 }
 
 /**
@@ -69,6 +71,56 @@ export function getJSDocInfo(node: ts.Node): JSDocInfo {
 /** Convenience: find every tag of a given name (e.g. all `@fires` tags). */
 export function getJSDocTagsNamed(node: ts.Node, tagName: string): JSDocTagInfo[] {
   return getJSDocInfo(node).tags.filter((t) => t.tagName === tagName);
+}
+
+/**
+ * Tags that already map to dedicated manifest fields (or the leading
+ * description). Any other tag is preserved as-is so devs can attach custom
+ * metadata without writing a plugin.
+ */
+const RESERVED_JSDOC_TAGS = new Set([
+  "attribute",
+  "attrs",
+  "comment",
+  "csspart",
+  "cssproperty",
+  "cssprop",
+  "cssState",
+  "default",
+  "deprecated",
+  "description",
+  "event",
+  "fires",
+  "ignore",
+  "internal",
+  "omit",
+  "omit-attr",
+  "omit-attribute",
+  "omit-csspart",
+  "omit-cssproperty",
+  "omit-cssprop",
+  "omit-cssState",
+  "omit-cssstate",
+  "omit-event",
+  "omit-method",
+  "omit-part",
+  "omit-slot",
+  "part",
+  "property",
+  "prop",
+  "reflect",
+  "slot",
+  "summary",
+  "tag",
+  "tagname",
+]);
+
+/** Collects tags that don't map to a built-in manifest field. */
+function collectCustomJsDocTags(node: ts.Node): Array<{ name: string; text: string }> | undefined {
+  const custom = getJSDocInfo(node).tags
+    .filter((t) => !RESERVED_JSDOC_TAGS.has(t.tagName))
+    .map((t) => ({ name: t.tagName, text: t.text }));
+  return custom.length ? custom : undefined;
 }
 
 export function parseCemClassTags(node: ts.Node): ParsedJSDocClassInfo {
@@ -123,6 +175,7 @@ export function parseCemClassTags(node: ts.Node): ParsedJSDocClassInfo {
     cssStates: cssStates.length ? cssStates : undefined,
     events: events.length ? events : undefined,
     omitInherited,
+    customJsDocTags: collectCustomJsDocTags(node),
   };
 }
 
@@ -145,6 +198,7 @@ export function parseCemMemberTags(node: ts.Node): ParsedJSDocMemberInfo {
     default: defaultTag || undefined,
     summary: firstTagValue(tags, ["summary"]),
     deprecated: readDeprecatedTag(tags),
+    customJsDocTags: collectCustomJsDocTags(node),
   };
 }
 
@@ -182,6 +236,44 @@ function parseNamedTag(rawText: string): { name?: string; description?: string }
 
   const [name, ...rest] = text.split(/\s+/);
   return name ? { name, description: rest.join(" ") || undefined } : undefined;
+}
+
+/**
+ * Parses the value of a custom JSDoc tag into structured metadata:
+ * `{Type} name - description`, `[name=default] - description`, or a bare value.
+ * Used for preserved custom tags so `@status beta - not ready for production`
+ * becomes `{ name: "beta", description: "not ready for production" }`.
+ */
+export function parseCustomTagValue(rawText: string):
+  | { name?: string; description?: string; default?: string; type?: string }
+  | undefined {
+  const { type, rest } = readLeadingType(rawText);
+  const text = rest.trim();
+  if (!text) return type ? { type } : undefined;
+
+  if (text.startsWith("[")) {
+    const end = text.indexOf("]");
+    if (end > 1) {
+      const bracket = text.slice(1, end);
+      const eq = bracket.indexOf("=");
+      const name = (eq >= 0 ? bracket.slice(0, eq) : bracket).trim();
+      const defaultValue = eq >= 0 ? bracket.slice(eq + 1).trim() : undefined;
+      const description = text.slice(end + 1).replace(/^\s*-\s*/, "").trim();
+      return {
+        name: name || undefined,
+        default: defaultValue || undefined,
+        description: description || undefined,
+        type,
+      };
+    }
+  }
+
+  const named = parseNamedTag(text);
+  return {
+    name: named?.name,
+    description: named?.description,
+    type,
+  };
 }
 
 function parseTypedNamedTag(

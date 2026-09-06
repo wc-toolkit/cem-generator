@@ -52,6 +52,7 @@ export function vanillaBuiltin(): DetectorPlugin {
             cssParts: mergeCssParts(discoverCssPartsFromNode(context.sourceFile, node), classDoc.cssParts),
             cssStates: mergeCssStates(discoverCssStatesFromClass(node), classDoc.cssStates),
             omitInherited: classDoc.omitInherited,
+            customJsDocTags: classDoc.customJsDocTags,
             events: classDoc.events?.map((event) => ({
               ...event,
               parsedType: resolveParsedTypeFromText(event.type, context.sourceFile, context.checker),
@@ -197,6 +198,7 @@ function getPublicMembers(node: ts.ClassDeclaration, context: FileContext): Clas
         default:
           memberDoc.default ??
           (ts.isPropertyDeclaration(member) ? member.initializer?.getText() : undefined),
+        customJsDocTags: memberDoc.customJsDocTags,
       });
     } else if (ts.isMethodDeclaration(member) && !existing) {
       byName.set(nameText, {
@@ -209,6 +211,7 @@ function getPublicMembers(node: ts.ClassDeclaration, context: FileContext): Clas
         static: isStatic(modifiers),
         parameters: getMethodParameters(member, context),
         return: getMethodReturn(member, context),
+        customJsDocTags: memberDoc.customJsDocTags,
       });
     }
   }

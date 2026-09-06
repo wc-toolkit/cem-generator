@@ -22,6 +22,7 @@ export default defineConfig({
           label: "Features",
           items: [
             { label: "Vanilla Detection", link: "/guide/features/vanilla-detection/" },
+            { label: "JSDoc Tags", link: "/guide/features/jsdoc-tags/" },
             { label: "Alphabetical Sorting", link: "/guide/features/sorting/" },
             { label: "Type Parsing", link: "/guide/features/type-parsing/" },
             { label: "Inheritance", link: "/guide/features/inheritance/" },

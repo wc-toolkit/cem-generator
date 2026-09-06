@@ -15,7 +15,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const fixturesTsConfig = path.resolve(__dirname, "fixtures/tsconfig.json");
 
 test("supports standard component API JSDoc tags", () => {
-  const manifest = generateCem({ tsConfigPath: fixturesTsConfig });
+  const manifest = generateCem({ tsConfigPath: fixturesTsConfig, customJsDocTags: true });
 
   const ajv = new Ajv({ strict: false });
   const validate = ajv.compile(cemSchema);
@@ -41,6 +41,17 @@ test("supports standard component API JSDoc tags", () => {
   assert.ok(decl.cssProperties?.some((p) => p.name === "--background-color"));
   assert.ok(decl.cssParts?.some((p) => p.name === "bar"));
   assert.ok(decl.cssStates?.some((s) => s.name === "open"));
+
+  assert.deepEqual(decl.since, { name: "2.0.0" }, "Expected structured @since metadata on the declaration");
+  assert.deepEqual(decl.license, { name: "MIT" }, "Expected structured @license metadata on the declaration");
+  assert.deepEqual(decl.status, { name: "beta", description: "not ready for production" });
+  assert.deepEqual(decl.dependency, [{ name: "icon" }, { name: "button" }]);
+  assert.equal(decl.customJsDocTags, undefined, "No customJsDocTags array should be emitted");
+
+  assert.equal(manifest.since, undefined, "Expected @since to remain declaration-scoped");
+  assert.equal(manifest.license, undefined, "Expected @license to remain declaration-scoped");
+  assert.equal(manifest.group, undefined, "Expected member-scoped @group to remain out of the root");
+  assert.equal(decl.group, undefined, "Expected @group only on the member, not the declaration");
 
   const externalTitle = decl.members?.find((m) => m.name === "externalTitle");
   assert.ok(externalTitle, "Expected @prop member to be included");
@@ -77,6 +88,11 @@ test("supports standard component API JSDoc tags", () => {
   assert.equal(doWork.parameters?.[1]?.rest, true);
   assert.ok(doWork.return?.type?.text);
 
+  const groupTag = doWork.group;
+  assert.ok(groupTag, "Expected @group custom tag on member as inline property");
+  assert.deepEqual(groupTag, { name: "actions" });
+  assert.equal(doWork.customJsDocTags, undefined, "No customJsDocTags array should be emitted on members");
+
   const internalCount = decl.members?.find((m) => m.name === "#internalCount");
   assert.ok(internalCount, "Expected #-prefixed private member to be included");
   assert.equal(internalCount.privacy, "private");
@@ -98,6 +114,34 @@ test("supports standard component API JSDoc tags", () => {
   const label = decl.members?.find((m) => m.name === "label");
   assert.ok(label, "Expected label member");
   assert.equal(label.default, "'primary'");
+});
+
+test("maps custom tags and preserves configured single values as arrays", () => {
+  const manifest = generateCem({
+    tsConfigPath: fixturesTsConfig,
+      customJsDocTags: {
+      dependency: { mappedName: "dependencies", isArray: true },
+    },
+  });
+
+  const decl = manifest.modules
+    .flatMap((m) => m.declarations)
+    .find((d) => d.name === "StandardTagsElement");
+
+  assert.ok(decl, "Expected StandardTagsElement declaration");
+  assert.deepEqual(decl.dependencies, [{ name: "icon" }, { name: "button" }]);
+  assert.equal(decl.dependency, undefined);
+});
+
+test("does not emit custom JSDoc tags unless enabled", () => {
+  const manifest = generateCem({ tsConfigPath: fixturesTsConfig });
+  const decl = manifest.modules
+    .flatMap((m) => m.declarations)
+    .find((d) => d.name === "StandardTagsElement");
+
+  assert.ok(decl, "Expected StandardTagsElement declaration");
+  assert.equal(decl.since, undefined);
+  assert.equal(decl.license, undefined);
 });
 
 test("auto-discovers slots from slot elements in template literals", () => {

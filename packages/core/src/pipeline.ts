@@ -1,5 +1,6 @@
 import ts from "typescript";
 import path from "node:path";
+import { parseCustomTagValue } from "@cem-generator/core-utils";
 import {
   ClassFragment,
   InternalManifest,
@@ -37,6 +38,15 @@ import {
 export const TARGET_CEM_SCHEMA_VERSION = "2.1.0";
 
 const DEFAULT_TS_CONFIG_PATH = "./tsconfig.json";
+
+export interface CustomTagOptions {
+  [tagName: string]: {
+    /** Emit the tag's value under a different property name. */
+    mappedName?: string;
+    /** Always collect the tag's values into an array, even a single one. */
+    isArray?: boolean;
+  };
+}
 
 export interface RunOptions {
   /** Additional plugins beyond the built-in vanilla detector. */
@@ -79,6 +89,23 @@ export interface RunOptions {
    * @default false
    */
   deprecatedLast?: boolean;
+  /**
+   * Preserve custom JSDoc tags (tags the generator doesn't map to a dedicated
+   * manifest field) in the output:
+   *
+   * - `true` preserves every custom tag automatically.
+   * - A map lets you configure per-tag behavior for otherwise-automatic tags:
+   *   `mappedName` emits the value under a different property name, and
+   *   `isArray` always collects values into an array.
+   *
+   * Each tag's value is parsed into structured metadata
+   * (`{Type} name - description`, `[name=default] - description`, or a bare
+   * value) and emitted as a property matching its tag name directly on the
+   * class declaration or individual member where it was documented. No
+   * `customJsDocTags` array is emitted.
+   * @default false
+   */
+  customJsDocTags?: boolean | CustomTagOptions;
 }
 
 export function generateCem(options: RunOptions = {}): CemPackage {
@@ -91,7 +118,15 @@ const {
     exclude,
     sort = true,
     deprecatedLast = true,
+    customJsDocTags = false,
   } = options;
+
+  const customJsDocTagsConfig: CustomTagOptions | undefined =
+    typeof customJsDocTags === "object" && customJsDocTags !== null
+      ? customJsDocTags
+      : customJsDocTags
+        ? {}
+        : undefined;
 
   const configFilePath = tsConfigPath ?? DEFAULT_TS_CONFIG_PATH;
   const resolvedPath = path.resolve(configFilePath);
@@ -116,7 +151,7 @@ const {
   applyBuiltInInheritance(manifest, inheritance);
   applyAnnotators(manifest, annotators);
 
-  return toCemPackage(manifest, { sort, deprecatedLast });
+  return toCemPackage(manifest, { sort, deprecatedLast, customJsDocTags: customJsDocTagsConfig });
 }
 
 function createProgramResult(configFilePath: string): ProgramResult {
@@ -546,13 +581,58 @@ function sortManifest(
   });
 }
 
+/** Parses a custom tag's raw text into structured metadata for emission. */
+function toCustomTagValue(text: string): Record<string, unknown> {
+  const parsed = parseCustomTagValue(text);
+  const out: Record<string, unknown> = {};
+  if (parsed?.name !== undefined) out.name = parsed.name;
+  if (parsed?.description !== undefined) out.description = parsed.description;
+  if (parsed?.default !== undefined) out.default = parsed.default;
+  if (parsed?.type !== undefined) out.type = { text: parsed.type };
+  return out;
+}
+
+/**
+ * Groups custom tags by their output property name (honoring `mappedName`),
+ * collecting repeated tags into an array (honoring `isArray` and repeat
+ * occurrences). Keys that collide with fields already present in `existing`
+ * are skipped.
+ */
+function toCustomTagFields(
+  customJsDocTags: Array<{ name: string; text: string }> | undefined,
+  config: CustomTagOptions,
+  existing?: object
+): Record<string, unknown> {
+  const grouped = new Map<string, unknown>();
+
+  for (const tag of customJsDocTags ?? []) {
+    const option = config[tag.name];
+    const key = option?.mappedName ?? tag.name;
+    if (!key) continue;
+    if (existing && Object.prototype.hasOwnProperty.call(existing, key)) continue;
+
+    const value = toCustomTagValue(tag.text);
+    const current = grouped.get(key);
+    if (current === undefined) {
+      grouped.set(key, option?.isArray ? [value] : value);
+    } else {
+      grouped.set(key, [...(Array.isArray(current) ? current : [current]), value]);
+    }
+  }
+
+  return Object.fromEntries(grouped);
+}
+
 function toCemPackage(
   internal: InternalManifest,
-  sortOptions: { sort: boolean; deprecatedLast: boolean } = { sort: false, deprecatedLast: false }
+  options: { sort: boolean; deprecatedLast: boolean; customJsDocTags?: CustomTagOptions } = {
+    sort: false,
+    deprecatedLast: false,
+  }
 ): CemPackage {
   let modules: JavaScriptModule[] = internal.modules.map((mod) => {
     const declarations: CustomElementDeclaration[] = mod.declarations.map((decl) =>
-      toCustomElementDeclaration(decl)
+      toCustomElementDeclaration(decl, options.customJsDocTags)
     );
     const jsExports: JavaScriptExport[] = mod.declarations
       .filter((decl) => !!asString(decl.exportName))
@@ -579,17 +659,20 @@ function toCemPackage(
     };
   });
 
-  if (sortOptions.sort) {
-    modules = sortManifest(modules, sortOptions.deprecatedLast);
+  if (options.sort) {
+    modules = sortManifest(modules, options.deprecatedLast);
   }
 
   return {
     schemaVersion: TARGET_CEM_SCHEMA_VERSION,
     modules,
-  };
+  } as CemPackage;
 }
 
-function toCustomElementDeclaration(fragment: ClassFragment): CustomElementDeclaration {
+function toCustomElementDeclaration(
+  fragment: ClassFragment,
+  customJsDocTagsConfig?: CustomTagOptions
+): CustomElementDeclaration {
   const known = {
     kind: "class",
     customElement: true,
@@ -604,7 +687,7 @@ function toCustomElementDeclaration(fragment: ClassFragment): CustomElementDecla
           module: asString(fragment.superclass.module),
         }
       : undefined,
-    members: toMembers(fragment),
+    members: toMembers(fragment, customJsDocTagsConfig),
     attributes: toAttributes(fragment.attributes),
     events: toEvents(fragment.events),
     slots: toSlots(fragment.slots),
@@ -632,20 +715,37 @@ function toCustomElementDeclaration(fragment: ClassFragment): CustomElementDecla
           "slots",
           "events",
           "description",
+          "customJsDocTags",
+          "omitInherited",
         ].includes(key)
     )
   );
 
-  return { ...(known as Record<string, unknown>), ...extraFields } as unknown as CustomElementDeclaration;
+  const customTagFields = customJsDocTagsConfig
+    ? toCustomTagFields(
+        (fragment as { customJsDocTags?: Array<{ name: string; text: string }> }).customJsDocTags,
+        customJsDocTagsConfig,
+        { ...(known as Record<string, unknown>), ...extraFields }
+      )
+    : {};
+
+  return {
+    ...(known as Record<string, unknown>),
+    ...extraFields,
+    ...customTagFields,
+  } as unknown as CustomElementDeclaration;
 }
 
-function toMembers(fragment: ClassFragment): Array<ClassField | ClassMethod> | undefined {
+function toMembers(
+  fragment: ClassFragment,
+  customJsDocTagsConfig?: CustomTagOptions
+): Array<ClassField | ClassMethod> | undefined {
   if (!fragment.members?.length) return undefined;
   const converted = fragment.members
     .map((member) => {
       const kind = asString(member.kind) === "method" ? "method" : "field";
       if (kind === "method") {
-        const method: ClassMethod = {
+        const method = {
           kind: "method",
           name: member.name,
           description: asString(member.description),
@@ -660,11 +760,21 @@ function toMembers(fragment: ClassFragment): Array<ClassField | ClassMethod> | u
                 "parsedType": toType((member as Record<string, unknown>).parsedType),
               }
             : {}),
-        };
+        } as unknown as ClassMethod;
+        if (customJsDocTagsConfig) {
+          Object.assign(
+            method as unknown as Record<string, unknown>,
+            toCustomTagFields(
+              member.customJsDocTags as Array<{ name: string; text: string }> | undefined,
+              customJsDocTagsConfig,
+              method
+            )
+          );
+        }
         return method;
       }
 
-      const field: ClassField = {
+      const field = {
         kind: "field",
         name: member.name,
         description: asString(member.description),
@@ -680,7 +790,17 @@ function toMembers(fragment: ClassFragment): Array<ClassField | ClassMethod> | u
               "parsedType": toType((member as Record<string, unknown>).parsedType),
             }
           : {}),
-      };
+      } as unknown as ClassField;
+      if (customJsDocTagsConfig) {
+        Object.assign(
+          field as unknown as Record<string, unknown>,
+          toCustomTagFields(
+            member.customJsDocTags as Array<{ name: string; text: string }> | undefined,
+            customJsDocTagsConfig,
+            field
+          )
+        );
+      }
       return field;
     })
     .filter(Boolean);

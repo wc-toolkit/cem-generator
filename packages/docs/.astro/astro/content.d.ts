@@ -215,6 +215,13 @@ declare module 'astro:content' {
   collection: "docs";
   data: InferEntrySchema<"docs">
 } & { render(): Render[".md"] };
+"guide/features/jsdoc-tags.md": {
+	id: "guide/features/jsdoc-tags.md";
+  slug: "guide/features/jsdoc-tags";
+  body: string;
+  collection: "docs";
+  data: InferEntrySchema<"docs">
+} & { render(): Render[".md"] };
 "guide/features/options.md": {
 	id: "guide/features/options.md";
   slug: "guide/features/options";
