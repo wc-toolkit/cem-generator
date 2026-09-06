@@ -1,12 +1,12 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { createProgramFromTsConfig, runPipeline } from "../src/index.ts";
+import { generateCem } from "@cem-generator/core";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const tsConfigPath = path.join(__dirname, "tsconfig.json");
 
-const manifest = runPipeline(createProgramFromTsConfig(tsConfigPath));
+const manifest = generateCem({ tsConfigPath });
 const outputPath = path.join(__dirname, "custom-elements.json");
 
 fs.writeFileSync(outputPath, `${JSON.stringify(manifest, null, 2)}\n`, "utf-8");

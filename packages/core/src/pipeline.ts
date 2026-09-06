@@ -1,4 +1,5 @@
-import type ts from "typescript";
+import ts from "typescript";
+import path from "node:path";
 import {
   ClassFragment,
   InternalManifest,
@@ -27,8 +28,15 @@ import type {
   Parameter,
   Type as CemType,
 } from "custom-elements-manifest/schema";
+import {
+  buildInheritancePatch,
+  extractExternalModules,
+  type InheritancePluginOptions,
+} from "./inheritance-plugin.js";
 
 export const TARGET_CEM_SCHEMA_VERSION = "2.1.0";
+
+const DEFAULT_TS_CONFIG_PATH = "./tsconfig.json";
 
 export interface RunOptions {
   /** Additional plugins beyond the built-in vanilla detector. */
@@ -40,23 +48,64 @@ export interface RunOptions {
    * - last-wins: preserve previous behavior
    */
   detectorConflictPolicy?: "throw" | "last-wins";
+  /** Built-in inheritance materialization; set false to disable. */
+  inheritance?: false | InheritancePluginOptions;
+  /** Path to tsconfig.json. Defaults to ./tsconfig.json. */
+  tsConfigPath?: string;
+  /**
+   * Glob patterns limiting which program files are analyzed for declarations.
+   * If omitted or empty, every non-declaration, non-`node_modules` file in
+   * the program is analyzed.
+   *
+   * Patterns are matched against the absolute file path, the path relative
+   * to `process.cwd()`, the path relative to the tsconfig directory, and
+   * the basename. Supports `*`, `**`, `?`, `{a,b}`, and `[...]`.
+   * A pattern without glob characters acts as an exact-or-directory-prefix
+   * match (so `"src/components"` covers everything under that directory).
+   */
+  include?: string[];
+  /**
+   * Glob patterns removing files from analysis. Matched the same way as
+   * `include`. Exclude wins over include.
+   */
+  exclude?: string[];
+  /**
+   * Sort manifest entries alphabetically (modules, declarations, members, attributes, etc.).
+   * @default true
+   */
+  sort?: boolean;
+  /**
+   * When sorting, move deprecated items to the end of their lists.
+   * @default false
+   */
+  deprecatedLast?: boolean;
 }
 
-export function runPipeline(
-  { program, checker, sourceFiles }: ProgramResult,
-  { plugins = [], detectorConflictPolicy = "throw" }: RunOptions = {}
-): CemPackage {
-  // Vanilla HTMLElement detection is core functionality, not a plugin —
-  // every project has vanilla components even if it also uses a framework,
-  // so this always runs rather than requiring an install/opt-in.
-  const allPlugins: Plugin[] = [vanillaBuiltin(), ...plugins];
+export function generateCem(options: RunOptions = {}): CemPackage {
+const {
+    plugins = [],
+    detectorConflictPolicy = "throw",
+    inheritance = {},
+    tsConfigPath,
+    include,
+    exclude,
+    sort = true,
+    deprecatedLast = true,
+  } = options;
 
+  const configFilePath = tsConfigPath ?? DEFAULT_TS_CONFIG_PATH;
+  const resolvedPath = path.resolve(configFilePath);
+  const programResult = createProgramResult(resolvedPath);
+  const { program, checker, sourceFiles } = programResult;
+  const filteredFiles = filterSourceFiles(sourceFiles, include, exclude, path.dirname(resolvedPath));
+
+  const allPlugins: Plugin[] = [vanillaBuiltin(), ...plugins];
   const detectors = allPlugins.filter(isDetectorPlugin);
   const annotators = allPlugins.filter(isAnnotatorPlugin);
 
   const manifest: InternalManifest = { schemaVersion: TARGET_CEM_SCHEMA_VERSION, modules: [] };
 
-  for (const sourceFile of sourceFiles) {
+  for (const sourceFile of filteredFiles) {
     const moduleDeclarations = analyzeFile(sourceFile, checker, detectors, detectorConflictPolicy);
     if (moduleDeclarations.length > 0) {
       manifest.modules.push({ path: sourceFile.fileName, declarations: moduleDeclarations });
@@ -64,10 +113,195 @@ export function runPipeline(
   }
 
   applyDetectorAfterAllFiles(manifest, detectors);
-
+  applyBuiltInInheritance(manifest, inheritance);
   applyAnnotators(manifest, annotators);
 
-  return toCemPackage(manifest);
+  return toCemPackage(manifest, { sort, deprecatedLast });
+}
+
+function createProgramResult(configFilePath: string): ProgramResult {
+  const configFile = ts.readConfigFile(configFilePath, ts.sys.readFile);
+  if (configFile.error) {
+    const fallback = createDefaultProgram(path.dirname(configFilePath));
+    return fallback;
+  }
+
+  const parsed = ts.parseJsonConfigFileContent(configFile.config, ts.sys, path.dirname(configFilePath));
+  const options: ts.CompilerOptions = { ...parsed.options, allowJs: true, checkJs: parsed.options.checkJs ?? false };
+  const program = ts.createProgram({ rootNames: parsed.fileNames, options });
+  const checker = program.getTypeChecker();
+  const sourceFiles = program.getSourceFiles().filter((sf) => !sf.isDeclarationFile && !sf.fileName.includes("node_modules"));
+  return { program, checker, sourceFiles };
+}
+
+function createDefaultProgram(projectDir: string): ProgramResult {
+  const configPath = path.join(projectDir, "tsconfig.json");
+  const configFile = ts.readConfigFile(configPath, ts.sys.readFile);
+  if (!configFile.error) {
+    const parsed = ts.parseJsonConfigFileContent(configFile.config, ts.sys, projectDir);
+    const options: ts.CompilerOptions = { ...parsed.options, allowJs: true, checkJs: parsed.options.checkJs ?? false };
+    const program = ts.createProgram({ rootNames: parsed.fileNames, options });
+    const checker = program.getTypeChecker();
+    const sourceFiles = program.getSourceFiles().filter((sf) => !sf.isDeclarationFile && !sf.fileName.includes("node_modules"));
+    return { program, checker, sourceFiles };
+  }
+
+  const options: ts.CompilerOptions = { allowJs: true, checkJs: false };
+  const program = ts.createProgram({ rootNames: [projectDir], options });
+  const checker = program.getTypeChecker();
+  const sourceFiles = program.getSourceFiles().filter((sf) => !sf.isDeclarationFile && !sf.fileName.includes("node_modules"));
+  return { program, checker, sourceFiles };
+}
+
+function filterSourceFiles(
+  sourceFiles: ts.SourceFile[],
+  include: string[] | undefined,
+  exclude: string[] | undefined,
+  projectDir: string
+): ts.SourceFile[] {
+  if ((!include || include.length === 0) && (!exclude || exclude.length === 0)) {
+    return sourceFiles;
+  }
+  return sourceFiles.filter((sf) => {
+    if (exclude && exclude.length > 0 && matchesAnyPattern(sf.fileName, exclude, projectDir)) {
+      return false;
+    }
+    if (include && include.length > 0) {
+      return matchesAnyPattern(sf.fileName, include, projectDir);
+    }
+    return true;
+  });
+}
+
+function matchesAnyPattern(fileName: string, patterns: string[], projectDir: string): boolean {
+  const candidates = buildMatchCandidates(fileName, projectDir);
+  return patterns.some((pattern) => {
+    const normalized = normalizeGlobPattern(pattern);
+    if (!hasGlobMagic(normalized)) {
+      return candidates.some(
+        (candidate) => candidate === normalized || candidate.startsWith(`${normalized}/`)
+      );
+    }
+    const re = globToRegExp(normalized);
+    return candidates.some((candidate) => re.test(candidate));
+  });
+}
+
+function buildMatchCandidates(fileName: string, projectDir: string): string[] {
+  const abs = toPosixPath(fileName);
+  const candidates = [abs];
+  const relCwd = toPosixPath(path.relative(process.cwd(), fileName));
+  if (!relCwd.startsWith("..")) candidates.push(relCwd);
+  const relProject = toPosixPath(path.relative(projectDir, fileName));
+  if (!relProject.startsWith("..")) candidates.push(relProject);
+  candidates.push(path.posix.basename(abs));
+  return candidates;
+}
+
+function toPosixPath(p: string): string {
+  return p.replace(/\\/g, "/");
+}
+
+function normalizeGlobPattern(pattern: string): string {
+  let normalized = toPosixPath(pattern).replace(/\/+/g, "/");
+  if (normalized.startsWith("./")) normalized = normalized.slice(2);
+  if (normalized.length > 1 && normalized.endsWith("/")) normalized = normalized.slice(0, -1);
+  return normalized;
+}
+
+function hasGlobMagic(pattern: string): boolean {
+  return /[*?[\]{}]/.test(pattern);
+}
+
+function globToRegExpSource(glob: string): string {
+  let re = "";
+  let i = 0;
+  while (i < glob.length) {
+    const c = glob[i];
+    if (c === "*") {
+      if (glob[i + 1] === "*") {
+        if (glob[i + 2] === "/") {
+          re += "(?:.*/)?";
+          i += 3;
+        } else {
+          re += ".*";
+          i += 2;
+        }
+      } else {
+        re += "[^/]*";
+        i += 1;
+      }
+    } else if (c === "?") {
+      re += "[^/]";
+      i += 1;
+    } else if (c === "{") {
+      const end = glob.indexOf("}", i);
+      if (end === -1) {
+        re += "\\{";
+        i += 1;
+      } else {
+        const inner = glob
+          .slice(i + 1, end)
+          .split(",")
+          .map((part) => globToRegExpSource(part))
+          .join("|");
+        re += `(?:${inner})`;
+        i = end + 1;
+      }
+    } else if (c === "[") {
+      const end = glob.indexOf("]", i);
+      if (end === -1) {
+        re += "\\[";
+        i += 1;
+      } else {
+        re += glob.slice(i, end + 1);
+        i = end + 1;
+      }
+    } else {
+      if ("+|^$.()\\".includes(c)) re += `\\${c}`;
+      else re += c;
+      i += 1;
+    }
+  }
+  return re;
+}
+
+function globToRegExp(glob: string): RegExp {
+  return new RegExp(`^${globToRegExpSource(glob)}$`);
+}
+
+function applyBuiltInInheritance(
+  manifest: InternalManifest,
+  inheritance: false | InheritancePluginOptions
+) {
+  if (inheritance === false) return;
+  const patch = buildInheritancePatch(manifest, inheritance);
+  applyManifestPatch(manifest, "core:inheritance", patch, "Annotator");
+
+  if (inheritance.includeExternalManifests) {
+    mergeExternalModulesIntoManifest(manifest, extractExternalModules(inheritance.externalManifests));
+  }
+}
+
+function mergeExternalModulesIntoManifest(
+  manifest: InternalManifest,
+  externalModules: InternalManifest["modules"]
+) {
+  const existingDeclKeys = new Set<string>();
+  for (const mod of manifest.modules) {
+    for (const decl of mod.declarations) {
+      existingDeclKeys.add(`${mod.path}#${decl.name}`);
+    }
+  }
+
+  for (const extMod of externalModules) {
+    const filtered = extMod.declarations.filter((decl) => !existingDeclKeys.has(`${extMod.path}#${decl.name}`));
+    if (filtered.length === 0) continue;
+    manifest.modules.push({ path: extMod.path, declarations: filtered });
+    for (const decl of filtered) {
+      existingDeclKeys.add(`${extMod.path}#${decl.name}`);
+    }
+  }
 }
 
 function analyzeFile(
@@ -242,8 +476,81 @@ function applyManifestPatch(
   }
 }
 
-function toCemPackage(internal: InternalManifest): CemPackage {
-  const modules: JavaScriptModule[] = internal.modules.map((mod) => {
+function sortManifest(
+  modules: JavaScriptModule[],
+  deprecatedLast: boolean
+): JavaScriptModule[] {
+  const sortByName = <T extends { name: string; deprecated?: boolean | string }>(
+    items: T[],
+    deprecatedLast = false
+  ): T[] => {
+    const getDeprecated = (item: T): boolean => {
+      return "deprecated" in item && !!item.deprecated;
+    };
+
+    const sorted = [...items].sort((a, b) => {
+      const aDeprecated = deprecatedLast && getDeprecated(a);
+      const bDeprecated = deprecatedLast && getDeprecated(b);
+
+      if (aDeprecated && !bDeprecated) return 1;
+      if (!aDeprecated && bDeprecated) return -1;
+      return a.name.localeCompare(b.name);
+    });
+
+    return sorted;
+  };
+
+  const sortByPath = <T extends { path: string }>(items: T[]): T[] => {
+    return [...items].sort((a, b) => a.path.localeCompare(b.path));
+  };
+
+  const sortedModules = sortByPath(modules);
+
+  return sortedModules.map((mod) => {
+    const sortedDeclarations = sortByName(mod.declarations ?? [], deprecatedLast);
+    const sortedExports = sortByName(mod.exports ?? [], deprecatedLast);
+
+    const sortedMod: JavaScriptModule = { ...mod, declarations: sortedDeclarations, exports: sortedExports };
+
+    if (sortedMod.declarations) {
+      sortedMod.declarations = sortedMod.declarations.map((decl) => {
+        const sortedDecl = { ...decl } as CustomElementDeclaration;
+
+        if (sortedDecl.members) {
+          sortedDecl.members = sortByName(sortedDecl.members, deprecatedLast);
+        }
+        if (sortedDecl.attributes) {
+          sortedDecl.attributes = sortByName(sortedDecl.attributes, deprecatedLast);
+        }
+        if (sortedDecl.events) {
+          sortedDecl.events = sortByName(sortedDecl.events, deprecatedLast);
+        }
+        if (sortedDecl.slots) {
+          sortedDecl.slots = sortByName(sortedDecl.slots, deprecatedLast);
+        }
+        if (sortedDecl.cssProperties) {
+          sortedDecl.cssProperties = sortByName(sortedDecl.cssProperties, deprecatedLast);
+        }
+        if (sortedDecl.cssParts) {
+          sortedDecl.cssParts = sortByName(sortedDecl.cssParts, deprecatedLast);
+        }
+        if (sortedDecl.cssStates) {
+          sortedDecl.cssStates = sortByName(sortedDecl.cssStates, deprecatedLast);
+        }
+
+        return sortedDecl;
+      });
+    }
+
+    return sortedMod;
+  });
+}
+
+function toCemPackage(
+  internal: InternalManifest,
+  sortOptions: { sort: boolean; deprecatedLast: boolean } = { sort: false, deprecatedLast: false }
+): CemPackage {
+  let modules: JavaScriptModule[] = internal.modules.map((mod) => {
     const declarations: CustomElementDeclaration[] = mod.declarations.map((decl) =>
       toCustomElementDeclaration(decl)
     );
@@ -271,6 +578,10 @@ function toCemPackage(internal: InternalManifest): CemPackage {
       ],
     };
   });
+
+  if (sortOptions.sort) {
+    modules = sortManifest(modules, sortOptions.deprecatedLast);
+  }
 
   return {
     schemaVersion: TARGET_CEM_SCHEMA_VERSION,

@@ -36,7 +36,6 @@ cem generate --config tsconfig.json --output custom-elements.json
 | `--include <patterns...>` | Glob patterns to include | — |
 | `--exclude <patterns...>` | Glob patterns to exclude | — |
 | `--no-inheritance` | Disable inheritance materialization | — |
-| `--lit` | Enable Lit plugin (`@cem-generator/plugin-lit`) | — |
 | `--plugin <paths...>` | Additional plugin paths to load | — |
 | `--conflict-policy <policy>` | Detector conflict policy: `throw` \| `last-wins` | `throw` |
 
@@ -46,14 +45,6 @@ cem generate --config tsconfig.json --output custom-elements.json
 
 ```bash
 cem generate
-```
-
-### Lit project with conflict resolution
-
-When using Lit, both the built-in vanilla detector and Lit plugin may detect the same class members. Use `--conflict-policy last-wins`:
-
-```bash
-cem generate --lit --conflict-policy last-wins
 ```
 
 ### Custom include/exclude patterns
@@ -83,7 +74,7 @@ Add to your build scripts:
 ```json
 {
   "scripts": {
-    "build:cem": "cem generate --config tsconfig.json --output custom-elements.json --lit --conflict-policy last-wins",
+    "build:cem": "cem generate --config tsconfig.json --output custom-elements.json",
     "prepare": "npm run build:cem"
   }
 }
@@ -95,13 +86,10 @@ For advanced use cases, use the core package directly:
 
 ```ts
 import { generateCem } from "@cem-generator/core";
-import { litPlugin } from "@cem-generator/plugin-lit";
 import fs from "node:fs";
 
 const manifest = generateCem({
   tsConfigPath: "./tsconfig.json",
-  plugins: [litPlugin()],
-  detectorConflictPolicy: "last-wins",
 });
 
 fs.writeFileSync("custom-elements.json", JSON.stringify(manifest, null, 2));
@@ -111,4 +99,4 @@ fs.writeFileSync("custom-elements.json", JSON.stringify(manifest, null, 2));
 
 - See [Installation](/installation/) for programmatic usage.
 - See [Pipeline](/guide/pipeline/) for `generateCem()` options.
-- See [Plugins](/plugins/) for Lit and custom plugin details.
+- See [Plugins](/plugins/) for framework and custom plugin details.

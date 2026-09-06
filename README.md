@@ -20,7 +20,7 @@ handful of deliberate departures from it.
 - **Vanilla `HTMLElement` detection is built into core, not a plugin.**
   Every project has vanilla components even if it also uses a framework —
   requiring an install for the baseline case added friction with no
-  payoff, so `runPipeline` always runs it, prepended to whatever plugins
+  payoff, so `generateCem` always runs it, prepended to whatever plugins
   are supplied. Framework-specific detection (Lit, Stencil, ...) stays
   plugin-based, since those genuinely are opt-in per project.
 - **One shared `ts.Program`** built from the project's own `tsconfig.json`
@@ -51,12 +51,12 @@ handful of deliberate departures from it.
   `customElements.define()` tag-name mapping, public members, `@fires`
   JSDoc events
 - `packages/core-utils` — JSDoc extraction, inheritance resolution
-- `packages/plugin-lit` — the one example framework plugin, kept as a
+- `packages/plugins/lit` — an example framework plugin, kept as a
   demonstration of the extension point. Per current direction, no
   further plugins are being built right now — focus is on core.
-- `examples/` — two fixture components (one vanilla, one Lit) and a
-  runnable script showing vanilla resolving with zero plugins passed,
-  plus Lit opted in via `plugins: [litPlugin()]`
+- `examples/` — fixture components and a runnable script showing vanilla
+  resolving with zero plugins passed, plus a framework plugin opted in
+  via `plugins: [myPlugin()]`
 
 Run it:
 
@@ -68,16 +68,15 @@ pnpm example
 
 This writes a manifest file to `examples/custom-elements.json`.
 
-Example fixture highlights:
+## Documentation site
 
-- `examples/fixtures/my-button.ts` demonstrates Lit CSS extraction rules:
-  - `@property --token { syntax; initial-value; }` support
-  - `:host { --token: value; }` declaration capture
-  - no auto-capture for `var(--token)` usage-only references
-  - `part="..."` markup discovery for CSS shadow parts
-- `examples/fixtures/my-card.ts` demonstrates additional part docs behavior:
-  - template comment before `part="container"` becomes fallback part description
-  - `@csspart title - ...` overrides fallback when both exist
+This repo includes an Astro Starlight docs site in `packages/docs`.
+
+```sh
+pnpm docs:dev
+pnpm docs:build
+pnpm docs:preview
+```
 
 ## Package demos
 
@@ -86,7 +85,7 @@ evaluated in isolation.
 
 - Core demo (vanilla only): `pnpm demo:core`
 - Core utils demo (parser output): `pnpm demo:core-utils`
-- Lit plugin demo: `pnpm demo:lit`
+- Example framework plugin demo: `pnpm demo:lit`
 - Run all package demos: `pnpm demo:all`
 
 Integration demo remains in `examples/` and runs with `pnpm example`.

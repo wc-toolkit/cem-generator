@@ -22,9 +22,6 @@ npm install -D @cem-generator/core
 
 # With CLI
 npm install -D @cem-generator/cli
-
-# With Lit support
-npm install -D @cem-generator/core @cem-generator/plugin-lit
 ```
 
 ## Quick Start
@@ -34,13 +31,10 @@ npm install -D @cem-generator/core @cem-generator/plugin-lit
 ```ts
 // generate-cem.ts
 import { generateCem } from "@cem-generator/core";
-import { litPlugin } from "@cem-generator/plugin-lit";
 import fs from "node:fs";
 
 const manifest = generateCem({
   tsConfigPath: "./tsconfig.json",
-  plugins: [litPlugin()],
-  detectorConflictPolicy: "last-wins",
 });
 
 fs.writeFileSync("custom-elements.json", JSON.stringify(manifest, null, 2));
@@ -55,9 +49,6 @@ npx tsx generate-cem.ts
 ```bash
 # Zero-config (uses ./tsconfig.json -> ./custom-elements.json)
 npx @cem-generator/cli generate
-
-# With Lit
-npx @cem-generator/cli generate --lit --conflict-policy last-wins
 ```
 
 ## Demo
@@ -123,21 +114,22 @@ Run `generateCem()` and get:
 - `observedAttributes` → `attributes`
 - Class fields/methods → `members`
 - `customElements.define()` → `tagName`
+- Slot elements in template literals → `slots`
+- `:host` declarations and `@property` rules in template literals → `cssProperties`
+- `part="..."` attributes in template literals → `cssParts`
+- `ElementInternals` `.states.add(...)` calls → `cssStates`
 - JSDoc tags:
   - `@fires` → `events`
   - `@slot` → `slots`
   - `@cssprop` → `cssProperties`
   - `@csspart` → `cssParts`
-  - `@cssstate` → `cssStates`
-  - `@deprecated`, `@summary`, `@description`
+  - `@cssState` → `cssStates`
+  - `@deprecated`, `@summary`, and the comment body → `description`
 - Inheritance: resolves superclass chain automatically
 
 ## Framework plugins
 
-| Framework | Package | Detects |
-|-----------|---------|---------|
-| Lit | `@cem-generator/plugin-lit` | `@property`, `@state`, `@query`, `static styles` CSS properties/parts |
-| Your framework | Custom plugin | Whatever you need |
+Framework-specific detection is opt-in via plugins. See the [Plugins](/plugins/) docs to add support for a particular component framework.
 
 ## Next steps
 

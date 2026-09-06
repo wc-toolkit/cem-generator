@@ -23,17 +23,7 @@ const manifest = generateCem({
 });
 ```
 
-For Lit projects, pass the plugin:
-
-```ts
-import { generateCem } from "@cem-generator/core";
-import { litPlugin } from "@cem-generator/plugin-lit";
-
-const manifest = generateCem({
-  tsConfigPath: "./tsconfig.json",
-  plugins: [litPlugin()],
-});
-```
+Framework-specific detection is opt-in via plugins — see the [Plugins](/plugins/) docs.
 
 ## Demo
 
@@ -105,12 +95,10 @@ Vanilla web components work out of the box — no plugin needed:
 - events, slots, CSS properties and parts documented via JSDoc (`@fires`, `@slot`, `@cssprop`, `@csspart`, …),
 - inherited APIs, resolved automatically through the superclass chain.
 
-Framework-specific detection is opt-in via plugins (e.g. `@cem-generator/plugin-lit` for `LitElement`, `@property`/`@state` decorators, and `static styles` CSS tokens).
-
 ## Next steps
 
 - See [Installation](/installation/) for full setup, `include`/`exclude` filtering, and verifying output.
 - See [CLI](/cli/) for command-line generation with `cem generate`.
 - See [Pipeline](/guide/pipeline/) for how `generateCem()` builds a manifest.
 - See [Inheritance](/guide/inheritance/) for omitting inherited APIs and using external manifests.
-- See [Plugin System](/guide/plugins/) for custom detectors and annotators.
+- See [Plugins](/plugins/) for custom detectors and annotators.

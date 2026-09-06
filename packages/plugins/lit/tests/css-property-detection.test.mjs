@@ -3,16 +3,14 @@ import assert from "node:assert/strict";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { createProgramFromTsConfig } from "../../../core/dist/program.js";
-import { runPipeline } from "../../../core/dist/pipeline.js";
+import { generateCem } from "../../../core/dist/pipeline.js";
 import { litPlugin } from "../dist/index.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const fixturesTsConfig = path.resolve(__dirname, "fixtures/tsconfig.json");
 
 test("captures only declared CSS custom properties and @property metadata", () => {
-  const program = createProgramFromTsConfig(fixturesTsConfig);
-  const manifest = runPipeline(program, { plugins: [litPlugin()] });
+  const manifest = generateCem({ tsConfigPath: fixturesTsConfig, plugins: [litPlugin()] });
 
   const decl = manifest.modules
     .flatMap((m) => m.declarations)

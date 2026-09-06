@@ -66,7 +66,7 @@ const manifest = generateCem({
   tsConfigPath: "./tsconfig.json",
 
   // Optional: additional plugins beyond built-in vanilla detector
-  plugins: [litPlugin()],
+  plugins: [myPlugin()],
 
   // Optional: how to handle detector conflicts
   // "throw" (default) | "last-wins"
@@ -100,14 +100,14 @@ const manifest = generateCem({
 
 ```ts
 inheritance: {
-  // Omit inherited members from class metadata (keeps only locally-defined)
-  omitInherited: true,
+  // Omit inherited items by kind, class name, or a custom metadata field
+  omitByKind: {
+    members: ["internalMethod"],
+    attributes: ["deprecated-attr"],
+  },
 
-  // External manifests to resolve superclass from
-  externalManifests: [
-    "./node_modules/some-lib/custom-elements.json",
-    "https://cdn.example.com/manifest.json",
-  ],
+  // External manifests used to resolve inherited superclass APIs
+  externalManifests: [externalCem],
 
   // Include external manifest declarations in output
   includeExternalManifests: true,
@@ -116,8 +116,11 @@ inheritance: {
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `omitInherited` | `boolean` | `false` | When true, omits inherited APIs from output (controlled via `@omitInherited` JSDoc tag on superclass). |
-| `externalManifests` | `string[]` | `[]` | Paths/URLs to external CEM files for resolving inherited superclass APIs. |
+| `include` / `ignore` | `InheritableCollectionKey[]` | all keys | Restrict which collection kinds are inherited. |
+| `omitByKind` | `OmitInheritedMap` | — | Names of inherited items to omit, per collection kind. |
+| `omitByClassName` | `Record<string, OmitInheritedMap>` | — | Per-superclass-class omission maps. |
+| `metadataField` | `string` | `"omitInherited"` | Manifest field each class exposes its omit map on. |
+| `externalManifests` | `unknown[]` | `[]` | External CEM manifests used to resolve inherited superclass APIs. |
 | `includeExternalManifests` | `boolean` | `false` | Whether to include external manifest declarations in output. |
 
 ## File Filtering (include/exclude)
@@ -139,23 +142,21 @@ exclude: ["**/*.test.ts", "**/*.stories.ts"]
 
 | Flag | Description | Default |
 |------|-------------|---------|
-| `-c, --config <path>` | tsconfig.json path | `./tsconfig.json` |
-| `--cem-config <path>` | cem-generator config file path (auto-detected if omitted) | — |
+| `--tsconfig <path>` | tsconfig.json path | `./tsconfig.json` |
+| `-c, --config <path>` | cem-generator config file path (auto-detected if omitted) | — |
 | `-o, --output <path>` | Output file | `./custom-elements.json` |
 | `--include <patterns...>` | Include globs | — |
 | `--exclude <patterns...>` | Exclude globs | — |
 | `--no-inheritance` | Disable inheritance | — |
-| `--lit` | Enable Lit plugin | — |
 | `--plugin <paths...>` | Custom plugin paths | — |
 | `--conflict-policy <policy>` | `throw` \| `last-wins` | `throw` |
 
 ```bash
 cem generate \
-  --config tsconfig.lib.json \
+  --tsconfig tsconfig.lib.json \
   --output dist/custom-elements.json \
   --include "src/**" \
   --exclude "**/*.test.ts" \
-  --lit \
   --conflict-policy last-wins
 ```
 

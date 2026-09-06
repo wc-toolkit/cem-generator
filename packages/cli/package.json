@@ -1,0 +1,25 @@
+{
+  "name": "@cem-generator/cli",
+  "version": "0.1.0",
+  "type": "module",
+  "bin": {
+    "cem": "./dist/cli.js"
+  },
+  "main": "./dist/cli.js",
+  "types": "./dist/cli.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/cli.ts",
+    "demo": "node dist/cli.js generate --config ../../examples/tsconfig.json --output ../../examples/custom-elements-demo.json --conflict-policy last-wins"
+  },
+  "dependencies": {
+    "@cem-generator/core": "workspace:*",
+    "@cem-generator/core-utils": "workspace:*",
+    "commander": "^12.1.0",
+    "custom-elements-manifest": "^2.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.4.1",
+    "typescript": "^5.9.0"
+  }
+}

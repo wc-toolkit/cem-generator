@@ -5,8 +5,7 @@ import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import Ajv from "ajv";
 
-import { createProgramFromTsConfig } from "../dist/program.js";
-import { runPipeline } from "../dist/pipeline.js";
+import { generateCem } from "../dist/pipeline.js";
 import { TARGET_CEM_SCHEMA_VERSION } from "../dist/pipeline.js";
 
 const require = createRequire(import.meta.url);
@@ -16,8 +15,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const fixturesTsConfig = path.resolve(__dirname, "fixtures/tsconfig.json");
 
 test("supports standard component API JSDoc tags", () => {
-  const program = createProgramFromTsConfig(fixturesTsConfig);
-  const manifest = runPipeline(program);
+  const manifest = generateCem({ tsConfigPath: fixturesTsConfig });
 
   const ajv = new Ajv({ strict: false });
   const validate = ajv.compile(cemSchema);
@@ -78,11 +76,170 @@ test("supports standard component API JSDoc tags", () => {
   assert.equal(doWork.parameters?.[1]?.name, "rest");
   assert.equal(doWork.parameters?.[1]?.rest, true);
   assert.ok(doWork.return?.type?.text);
+
+  const internalCount = decl.members?.find((m) => m.name === "#internalCount");
+  assert.ok(internalCount, "Expected #-prefixed private member to be included");
+  assert.equal(internalCount.privacy, "private");
+
+  const increment = decl.members?.find((m) => m.name === "#increment");
+  assert.ok(increment, "Expected #-prefixed private method to be included");
+  assert.equal(increment.kind, "method");
+  assert.equal(increment.privacy, "private");
+
+  const internalFlag = decl.members?.find((m) => m.name === "_internalFlag");
+  assert.ok(internalFlag, "Expected _-prefixed member to be included");
+  assert.equal(internalFlag.kind, "field");
+  assert.equal(internalFlag.privacy, undefined);
+
+  const counter = decl.members?.find((m) => m.name === "counter");
+  assert.ok(counter, "Expected counter member");
+  assert.equal(counter.default, "3");
+
+  const label = decl.members?.find((m) => m.name === "label");
+  assert.ok(label, "Expected label member");
+  assert.equal(label.default, "'primary'");
+});
+
+test("auto-discovers slots from slot elements in template literals", () => {
+  const manifest = generateCem({ tsConfigPath: fixturesTsConfig });
+
+  const decl = manifest.modules
+    .flatMap((m) => m.declarations)
+    .find((d) => d.name === "SlotDiscoveryElement");
+
+  assert.ok(decl, "Expected SlotDiscoveryElement declaration");
+
+  const slots = decl.slots ?? [];
+
+  const header = slots.find((s) => s.name === "header");
+  assert.ok(header, "Expected header slot");
+  assert.equal(header.description, "JSDoc override description");
+
+  const defaultSlot = slots.find((s) => s.name === "");
+  assert.ok(defaultSlot, "Expected default slot");
+  assert.equal(defaultSlot.description, "Main content area");
+
+  const footer = slots.find((s) => s.name === "footer");
+  assert.ok(footer, "Expected footer slot");
+  assert.equal(footer.description, undefined);
+});
+
+test("auto-discovers CSS custom properties from :host and @property in templates", () => {
+  const manifest = generateCem({ tsConfigPath: fixturesTsConfig });
+
+  const decl = manifest.modules
+    .flatMap((m) => m.declarations)
+    .find((d) => d.name === "CssPropDiscoveryElement");
+
+  assert.ok(decl, "Expected CssPropDiscoveryElement declaration");
+
+  const cssProps = decl.cssProperties ?? [];
+
+  const bg = cssProps.find((p) => p.name === "--my-card-bg");
+  assert.ok(bg, "Expected --my-card-bg");
+  assert.equal(bg.default, "steelblue");
+  assert.equal(bg.description, "Host text color token.");
+
+  const padding = cssProps.find((p) => p.name === "--my-card-padding");
+  assert.ok(padding, "Expected --my-card-padding");
+  assert.equal(padding.default, "16px");
+  assert.equal(padding.description, "JSDoc override description");
+
+  const radius = cssProps.find((p) => p.name === "--my-card-radius");
+  assert.equal(radius, undefined, "Expected commentless :host declaration to be ignored");
+
+  const moduleBg = cssProps.find((p) => p.name === "--module-bg");
+  assert.ok(moduleBg, "Expected module-level :host token");
+  assert.equal(moduleBg.default, "coral");
+  assert.equal(moduleBg.description, "Module-level background token.");
+
+  const fg = cssProps.find((p) => p.name === "--my-card-fg");
+  assert.ok(fg, "Expected --my-card-fg");
+  assert.equal(fg.syntax, "<color>");
+  assert.equal(fg.default, "white");
+  assert.equal(fg.description, "Foreground token contract.");
+});
+
+test("auto-discovers slots from module-level template literals", () => {
+  const manifest = generateCem({ tsConfigPath: fixturesTsConfig });
+
+  const decl = manifest.modules
+    .flatMap((m) => m.declarations)
+    .find((d) => d.name === "CssPropDiscoveryElement");
+
+  assert.ok(decl, "Expected CssPropDiscoveryElement declaration");
+
+  const moduleSlot = decl.slots?.find((s) => s.name === "module-slot");
+  assert.ok(moduleSlot, "Expected module-level slot");
+  assert.equal(moduleSlot.description, "Module-level slot");
+});
+
+test("auto-discovers CSS parts from part attributes in templates", () => {
+  const manifest = generateCem({ tsConfigPath: fixturesTsConfig });
+
+  const decl = manifest.modules
+    .flatMap((m) => m.declarations)
+    .find((d) => d.name === "CssPropDiscoveryElement");
+
+  assert.ok(decl, "Expected CssPropDiscoveryElement declaration");
+
+  const cssParts = decl.cssParts ?? [];
+
+  const button = cssParts.find((p) => p.name === "button");
+  assert.ok(button, "Expected button part");
+  assert.equal(button.description, "Primary chrome");
+
+  const card = cssParts.find((p) => p.name === "card");
+  assert.ok(card, "Expected card part");
+  assert.equal(card.description, "Module-level part");
+
+  const footer = cssParts.find((p) => p.name === "footer");
+  assert.ok(footer, "Expected footer part");
+  assert.equal(footer.description, "JSDoc override description");
+});
+
+test("slot description does not leak from preceding non-slot element comments", () => {
+  const manifest = generateCem({ tsConfigPath: fixturesTsConfig });
+
+  const decl = manifest.modules
+    .flatMap((m) => m.declarations)
+    .find((d) => d.name === "CssPropDiscoveryElement");
+
+  assert.ok(decl, "Expected CssPropDiscoveryElement declaration");
+
+  const defaultSlot = decl.slots?.find((s) => s.name === "");
+  assert.ok(defaultSlot, "Expected default slot");
+  assert.equal(defaultSlot.description, "Main content");
+
+  const headerPart = decl.cssParts?.find((p) => p.name === "button");
+  assert.ok(headerPart, "Expected button part");
+  assert.equal(headerPart.description, "Primary chrome");
+});
+
+test("auto-discovers CSS custom states from ElementInternals states.add calls", () => {
+  const manifest = generateCem({ tsConfigPath: fixturesTsConfig });
+
+  const decl = manifest.modules
+    .flatMap((m) => m.declarations)
+    .find((d) => d.name === "CssStateDiscoveryElement");
+
+  assert.ok(decl, "Expected CssStateDiscoveryElement declaration");
+
+  const cssStates = decl.cssStates ?? [];
+
+  const initialized = cssStates.find((s) => s.name === "initialized");
+  assert.ok(initialized, "Expected initialized state from #state.states.add");
+
+  const loading = cssStates.find((s) => s.name === "loading");
+  assert.ok(loading, "Expected loading state from attachInternals().states.add");
+
+  const busy = cssStates.find((s) => s.name === "busy");
+  assert.ok(busy, "Expected busy state");
+  assert.equal(busy.description, "JSDoc override description");
 });
 
 test("emits parsed types for fields, attributes, events, method params, and returns", () => {
-  const program = createProgramFromTsConfig(fixturesTsConfig);
-  const manifest = runPipeline(program);
+  const manifest = generateCem({ tsConfigPath: fixturesTsConfig });
 
   const decl = manifest.modules
     .flatMap((m) => m.declarations)
@@ -134,4 +291,120 @@ test("emits parsed types for fields, attributes, events, method params, and retu
 
   assert.equal(sharedMethod.return?.type?.text, "SharedPayload");
   assert.ok(sharedMethod.return?.parsedType?.text?.includes("id: string"));
+});
+
+test("materializes inheritance and omits inherited APIs via JSDoc tags", () => {
+  const manifest = generateCem({ tsConfigPath: fixturesTsConfig });
+
+  const child = manifest.modules
+    .flatMap((m) => m.declarations)
+    .find((d) => d.name === "ChildElement");
+
+  assert.ok(child, "Expected ChildElement declaration");
+
+  const memberNames = (child.members ?? []).map((m) => m.name);
+  assert.ok(memberNames.includes("childMethod"));
+  assert.ok(memberNames.includes("keepMethod"));
+  assert.equal(memberNames.includes("baseMethod"), false);
+
+  const attributeNames = (child.attributes ?? []).map((a) => a.name);
+  assert.ok(attributeNames.includes("keep-attr"));
+  assert.equal(attributeNames.includes("base-count"), false);
+
+  const eventNames = (child.events ?? []).map((e) => e.name);
+  assert.ok(eventNames.includes("keep-event"));
+  assert.equal(eventNames.includes("base-event"), false);
+});
+
+test("can disable built-in inheritance materialization", () => {
+  const manifest = generateCem({ tsConfigPath: fixturesTsConfig, inheritance: false });
+
+  const child = manifest.modules
+    .flatMap((m) => m.declarations)
+    .find((d) => d.name === "ChildElement");
+
+  assert.ok(child, "Expected ChildElement declaration");
+  const memberNames = (child.members ?? []).map((m) => m.name);
+  assert.ok(memberNames.includes("childMethod"));
+  assert.equal(memberNames.includes("keepMethod"), false);
+});
+
+test("resolves inheritance from external manifests", () => {
+  const externalManifest = {
+    schemaVersion: "2.1.0",
+    modules: [
+      {
+        kind: "javascript-module",
+        path: "external/base.js",
+        declarations: [
+          {
+            kind: "class",
+            name: "ExternalBase",
+            customElement: true,
+            members: [{ kind: "method", name: "externalMethod" }],
+            attributes: [{ name: "external-attr" }],
+            events: [{ name: "external-event", type: { text: "Event" } }],
+          },
+        ],
+      },
+    ],
+  };
+
+  const manifest = generateCem({
+    tsConfigPath: fixturesTsConfig,
+    inheritance: {
+      externalManifests: [externalManifest],
+    },
+  });
+
+  const child = manifest.modules
+    .flatMap((m) => m.declarations)
+    .find((d) => d.name === "ExternalChildElement");
+
+  assert.ok(child, "Expected ExternalChildElement declaration");
+
+  const memberNames = (child.members ?? []).map((m) => m.name);
+  assert.ok(memberNames.includes("ownMethod"));
+  assert.ok(memberNames.includes("externalMethod"));
+
+  const attributeNames = (child.attributes ?? []).map((a) => a.name);
+  assert.ok(attributeNames.includes("external-attr"));
+
+  const eventNames = (child.events ?? []).map((e) => e.name);
+  assert.ok(eventNames.includes("external-event"));
+});
+
+test("can include external manifest declarations in output", () => {
+  const externalManifest = {
+    schemaVersion: "2.1.0",
+    modules: [
+      {
+        kind: "javascript-module",
+        path: "external/base.js",
+        declarations: [
+          {
+            kind: "class",
+            name: "ExternalBase",
+            customElement: true,
+            tagName: "external-base",
+            members: [{ kind: "method", name: "externalMethod" }],
+          },
+        ],
+      },
+    ],
+  };
+
+  const manifest = generateCem({
+    inheritance: {
+      externalManifests: [externalManifest],
+      includeExternalManifests: true,
+    },
+  });
+
+  const externalModule = manifest.modules.find((m) => m.path === "external/base.js");
+  assert.ok(externalModule, "Expected external module to be present");
+
+  const externalBase = externalModule.declarations.find((d) => d.name === "ExternalBase");
+  assert.ok(externalBase, "Expected ExternalBase declaration");
+  assert.equal(externalBase.tagName, "external-base");
 });

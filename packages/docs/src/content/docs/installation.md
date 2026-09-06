@@ -24,7 +24,6 @@ import { generateCem } from "@cem-generator/core";
 
 const manifest = generateCem({
   tsConfigPath: "./tsconfig.json",
-  plugins: [litPlugin()],
 });
 ```
 
@@ -32,21 +31,18 @@ This writes a manifest with CEM 2.1.0 schema output.
 
 ## Add framework plugins (optional)
 
-For Lit projects, install and pass the Lit plugin:
-
-```bash
-npm install -D @cem-generator/plugin-lit
-```
+Framework-specific detection is opt-in via plugins. Install the plugin you need and pass it to `generateCem`:
 
 ```ts
 import { generateCem } from "@cem-generator/core";
-import { litPlugin } from "@cem-generator/plugin-lit";
 
 const manifest = generateCem({
   tsConfigPath: "./tsconfig.json",
-  plugins: [litPlugin()],
+  plugins: [myPlugin],
 });
 ```
+
+See the [Plugins](/plugins/) docs for available framework plugins and how to author your own.
 
 ## Verify the output
 
@@ -65,4 +61,4 @@ For zero-config generation from the command line, see the [CLI](/cli/) reference
 - See [Architecture](/guide/architecture/) for how the core works.
 - See [Pipeline](/guide/pipeline/) for `generateCem()` options and built-in inheritance.
 - See [Inheritance](/guide/inheritance/) for omitting inherited APIs and using external manifests.
-- See [Plugin System](/guide/plugins/) for custom detectors and annotators.
+- See [Plugins](/plugins/) for custom detectors and annotators.

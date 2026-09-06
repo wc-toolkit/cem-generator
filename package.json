@@ -3,14 +3,19 @@
   "private": true,
   "workspaces": [
     "packages/*",
-    "packages/*/*"
+    "packages/*/*",
+    "packages/docs"
   ],
   "scripts": {
     "build": "tsc -b",
     "example": "tsx examples/run.ts",
+    "docs:dev": "pnpm --filter @cem-generator/docs dev",
+    "docs:build": "pnpm --filter @cem-generator/docs build",
+    "docs:preview": "pnpm --filter @cem-generator/docs preview",
     "demo:core": "pnpm --filter @cem-generator/core demo",
     "demo:core-utils": "pnpm --filter @cem-generator/core-utils demo",
     "demo:lit": "pnpm --filter @cem-generator/plugin-lit demo",
+    "demo:cli": "pnpm --filter @cem-generator/cli demo",
     "demo:all": "pnpm -r --filter './packages/**' --if-present demo",
     "test": "pnpm build && pnpm -r --filter './packages/**' --if-present test"
   },

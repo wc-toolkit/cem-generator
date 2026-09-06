@@ -1,0 +1,208 @@
+{
+  "schemaVersion": "2.1.0",
+  "modules": [
+    {
+      "kind": "javascript-module",
+      "path": "/Users/burtonsmith/Documents/Projects/wc-toolkit/cem-generator/examples/fixtures/my-button.ts",
+      "declarations": [
+        {
+          "kind": "class",
+          "customElement": true,
+          "name": "MyButton",
+          "description": "A button component.",
+          "superclass": {
+            "name": "LitElement",
+            "module": "lit"
+          },
+          "members": [
+            {
+              "kind": "field",
+              "name": "variant",
+              "description": "The button's visual variant.",
+              "type": {
+                "text": "string"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "oldVariant",
+              "deprecated": "Use `variant` instead.",
+              "type": {
+                "text": "string"
+              }
+            },
+            {
+              "kind": "field",
+              "name": "pressed",
+              "privacy": "private",
+              "type": {
+                "text": "boolean"
+              }
+            }
+          ],
+          "cssProperties": [
+            {
+              "name": "--my-button-bg",
+              "description": "Background token contract for host styling.",
+              "default": "steelblue"
+            },
+            {
+              "name": "--my-button-fg",
+              "description": "Foreground token contract for host styling.",
+              "default": "white",
+              "syntax": "<color>"
+            }
+          ],
+          "cssParts": [
+            {
+              "name": "button"
+            },
+            {
+              "name": "icon",
+              "description": "Styles the icon inside the button"
+            }
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "MyButton",
+          "declaration": {
+            "name": "MyButton",
+            "module": "/Users/burtonsmith/Documents/Projects/wc-toolkit/cem-generator/examples/fixtures/my-button.ts"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "/Users/burtonsmith/Documents/Projects/wc-toolkit/cem-generator/examples/fixtures/my-card.ts",
+      "declarations": [
+        {
+          "kind": "class",
+          "customElement": true,
+          "name": "MyCard",
+          "description": "A card-style container.",
+          "tagName": "my-card",
+          "superclass": {
+            "name": "LitElement",
+            "module": "lit"
+          },
+          "cssProperties": [
+            {
+              "name": "--my-card-padding",
+              "description": "Host padding token.",
+              "default": "16px"
+            },
+            {
+              "name": "--my-card-radius",
+              "description": "Corner radius token contract for cards.",
+              "default": "12px",
+              "syntax": "<length>"
+            }
+          ],
+          "cssParts": [
+            {
+              "name": "container",
+              "description": "Main outer surface"
+            },
+            {
+              "name": "title",
+              "description": "Styles the title text region"
+            }
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "MyCard",
+          "declaration": {
+            "name": "MyCard",
+            "module": "/Users/burtonsmith/Documents/Projects/wc-toolkit/cem-generator/examples/fixtures/my-card.ts"
+          }
+        },
+        {
+          "kind": "custom-element-definition",
+          "name": "my-card",
+          "declaration": {
+            "name": "MyCard",
+            "module": "/Users/burtonsmith/Documents/Projects/wc-toolkit/cem-generator/examples/fixtures/my-card.ts"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "/Users/burtonsmith/Documents/Projects/wc-toolkit/cem-generator/examples/fixtures/my-icon.js",
+      "declarations": [
+        {
+          "kind": "class",
+          "customElement": true,
+          "name": "MyIcon",
+          "description": "A simple icon element.",
+          "tagName": "my-icon",
+          "members": [
+            {
+              "kind": "field",
+              "name": "size",
+              "description": "The icon's display size in pixels.",
+              "parsedType": {
+                "text": "any"
+              }
+            },
+            {
+              "kind": "method",
+              "name": "refresh",
+              "description": "Reloads the icon from its source.",
+              "return": {
+                "type": {
+                  "text": "() => void"
+                },
+                "parsedType": {
+                  "text": "void"
+                }
+              }
+            }
+          ],
+          "attributes": [
+            {
+              "name": "name"
+            },
+            {
+              "name": "size"
+            }
+          ],
+          "events": [
+            {
+              "name": "icon-loaded",
+              "description": "Fired once the icon's image has loaded",
+              "type": {
+                "text": "Event"
+              }
+            }
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "kind": "js",
+          "name": "MyIcon",
+          "declaration": {
+            "name": "MyIcon",
+            "module": "/Users/burtonsmith/Documents/Projects/wc-toolkit/cem-generator/examples/fixtures/my-icon.js"
+          }
+        },
+        {
+          "kind": "custom-element-definition",
+          "name": "my-icon",
+          "declaration": {
+            "name": "MyIcon",
+            "module": "/Users/burtonsmith/Documents/Projects/wc-toolkit/cem-generator/examples/fixtures/my-icon.js"
+          }
+        }
+      ]
+    }
+  ]
+}

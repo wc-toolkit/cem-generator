@@ -29,6 +29,14 @@ Build all packages (TypeScript project references):
 pnpm build
 ```
 
+Run documentation site (Astro Starlight):
+
+```sh
+pnpm docs:dev
+pnpm docs:build
+pnpm docs:preview
+```
+
 or
 
 ```sh

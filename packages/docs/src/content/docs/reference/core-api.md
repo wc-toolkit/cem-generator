@@ -12,11 +12,11 @@ description: API surface of `@cem-generator/core`.
 
 ```ts
 import { generateCem } from "@cem-generator/core";
-import { litPlugin } from "@cem-generator/plugin-lit";
+import { myPlugin } from "@cem-generator/plugin-my-framework";
 
 const manifest = generateCem({
   tsConfigPath: "./tsconfig.json",
-  plugins: [litPlugin()],
+  plugins: [myPlugin()],
 });
 ```
 

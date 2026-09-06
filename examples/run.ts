@@ -1,18 +1,17 @@
 import path from "node:path";
 import fs from "node:fs";
 import { fileURLToPath } from "node:url";
-import { createProgramFromTsConfig, runPipeline } from "@cem-generator/core";
+import { generateCem } from "@cem-generator/core";
 import { litPlugin } from "@cem-generator/plugin-lit";
 import { defineRegistrationPlugin } from "./plugins/define-registration-plugin.ts";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const tsConfigPath = path.join(__dirname, "tsconfig.json");
 
-const programResult = createProgramFromTsConfig(tsConfigPath);
-
 // Vanilla HTMLElement detection is built into core and always runs.
 // `plugins` here is for anything beyond that — Lit, in this example.
-const manifest = runPipeline(programResult, {
+const manifest = generateCem({
+  tsConfigPath,
   plugins: [litPlugin(), defineRegistrationPlugin()],
 });
 

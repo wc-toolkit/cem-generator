@@ -19,10 +19,10 @@ Reference Lit detector plugin for developers and agents extending `cem-generator
 ## Usage
 
 ```ts
-import { runPipeline } from "@cem-generator/core";
+import { generateCem } from "@cem-generator/core";
 import { litPlugin } from "@cem-generator/plugin-lit";
 
-const manifest = runPipeline({
+const manifest = generateCem({
   projectTsconfigPath: "./tsconfig.json",
   plugins: [litPlugin()],
 });

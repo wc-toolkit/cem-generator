@@ -40,6 +40,27 @@ export class StandardTagsElement extends HTMLElement {
    * @internal
    */
   hiddenProp;
+
+  /**
+   * @summary Hidden internal counter (ES private field).
+   */
+  #internalCount = 0;
+
+  /**
+   * @summary Internal flag (underscore-prefixed, standard member).
+   */
+  _internalFlag = true;
+
+  /** @summary Auto-detected default from initializer. */
+  counter = 3;
+
+  /** @summary Auto-detected default from string literal initializer. */
+  label = 'primary';
+
+  /** @summary Increments the private counter. */
+  #increment() {
+    this.#internalCount += 1;
+  }
 }
 
 customElements.define("standard-tags-element", StandardTagsElement);

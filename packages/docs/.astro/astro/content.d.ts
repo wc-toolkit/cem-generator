@@ -187,6 +187,83 @@ declare module 'astro:content' {
   collection: "docs";
   data: InferEntrySchema<"docs">
 } & { render(): Render[".md"] };
+"guide/features/cli.md": {
+	id: "guide/features/cli.md";
+  slug: "guide/features/cli";
+  body: string;
+  collection: "docs";
+  data: InferEntrySchema<"docs">
+} & { render(): Render[".md"] };
+"guide/features/conflict-policy.md": {
+	id: "guide/features/conflict-policy.md";
+  slug: "guide/features/conflict-policy";
+  body: string;
+  collection: "docs";
+  data: InferEntrySchema<"docs">
+} & { render(): Render[".md"] };
+"guide/features/file-filtering.md": {
+	id: "guide/features/file-filtering.md";
+  slug: "guide/features/file-filtering";
+  body: string;
+  collection: "docs";
+  data: InferEntrySchema<"docs">
+} & { render(): Render[".md"] };
+"guide/features/inheritance.md": {
+	id: "guide/features/inheritance.md";
+  slug: "guide/features/inheritance";
+  body: string;
+  collection: "docs";
+  data: InferEntrySchema<"docs">
+} & { render(): Render[".md"] };
+"guide/features/options.md": {
+	id: "guide/features/options.md";
+  slug: "guide/features/options";
+  body: string;
+  collection: "docs";
+  data: InferEntrySchema<"docs">
+} & { render(): Render[".md"] };
+"guide/features/output-schema.md": {
+	id: "guide/features/output-schema.md";
+  slug: "guide/features/output-schema";
+  body: string;
+  collection: "docs";
+  data: InferEntrySchema<"docs">
+} & { render(): Render[".md"] };
+"guide/features/performance.md": {
+	id: "guide/features/performance.md";
+  slug: "guide/features/performance";
+  body: string;
+  collection: "docs";
+  data: InferEntrySchema<"docs">
+} & { render(): Render[".md"] };
+"guide/features/plugins.md": {
+	id: "guide/features/plugins.md";
+  slug: "guide/features/plugins";
+  body: string;
+  collection: "docs";
+  data: InferEntrySchema<"docs">
+} & { render(): Render[".md"] };
+"guide/features/sorting.md": {
+	id: "guide/features/sorting.md";
+  slug: "guide/features/sorting";
+  body: string;
+  collection: "docs";
+  data: InferEntrySchema<"docs">
+} & { render(): Render[".md"] };
+"guide/features/type-parsing.md": {
+	id: "guide/features/type-parsing.md";
+  slug: "guide/features/type-parsing";
+  body: string;
+  collection: "docs";
+  data: InferEntrySchema<"docs">
+} & { render(): Render[".md"] };
+"guide/features/vanilla-detection.md": {
+	id: "guide/features/vanilla-detection.md";
+  slug: "guide/features/vanilla-detection";
+  body: string;
+  collection: "docs";
+  data: InferEntrySchema<"docs">
+} & { render(): Render[".md"] };
 "guide/inheritance.md": {
 	id: "guide/inheritance.md";
   slug: "guide/inheritance";
@@ -208,13 +285,6 @@ declare module 'astro:content' {
   collection: "docs";
   data: InferEntrySchema<"docs">
 } & { render(): Render[".md"] };
-"guide/plugins.md": {
-	id: "guide/plugins.md";
-  slug: "guide/plugins";
-  body: string;
-  collection: "docs";
-  data: InferEntrySchema<"docs">
-} & { render(): Render[".md"] };
 "index.md": {
 	id: "index.md";
   slug: "index";
@@ -225,6 +295,13 @@ declare module 'astro:content' {
 "installation.md": {
 	id: "installation.md";
   slug: "installation";
+  body: string;
+  collection: "docs";
+  data: InferEntrySchema<"docs">
+} & { render(): Render[".md"] };
+"plugins/creating-plugins.md": {
+	id: "plugins/creating-plugins.md";
+  slug: "plugins/creating-plugins";
   body: string;
   collection: "docs";
   data: InferEntrySchema<"docs">

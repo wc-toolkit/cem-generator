@@ -142,6 +142,8 @@ export type ManifestPatch =
   | {
       byDeclaration?: Record<string, Partial<ClassFragment>>;
       byClassName?: Record<string, Partial<ClassFragment>>;
+      replaceByDeclaration?: Record<string, Partial<ClassFragment>>;
+      replaceByClassName?: Record<string, Partial<ClassFragment>>;
     }
   | Record<string, Partial<ClassFragment>>;
 

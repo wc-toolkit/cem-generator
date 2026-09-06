@@ -1,7 +1,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
-import { runPipeline } from "../dist/pipeline.js";
+import { generateCem } from "../dist/pipeline.js";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const fixturesTsConfig = path.resolve(__dirname, "fixtures/tsconfig.json");
 
 function makeSourceFile(fileName, sourceText = "") {
   return {
@@ -17,12 +22,13 @@ function makeProgramResult(sourceFiles) {
     program: {},
     checker: {},
     sourceFiles,
+    programResult: { program: {}, checker: {}, sourceFiles },
   };
 }
 
 function getClass(manifest, moduleSuffix, className) {
   const moduleDoc = manifest.modules.find((m) => m.path.endsWith(moduleSuffix));
-  return moduleDoc.declarations.find((d) => d.name === className);
+  return moduleDoc?.declarations?.find((d) => d.name === className);
 }
 
 test("claims() is evaluated once per plugin per file", () => {
@@ -42,9 +48,7 @@ test("claims() is evaluated once per plugin per file", () => {
     },
   };
 
-  runPipeline(makeProgramResult([makeSourceFile("/tmp/one.ts", "class ElA extends HTMLElement {}")]), {
-    plugins: [detector],
-  });
+  generateCem({ tsConfigPath: fixturesTsConfig, plugins: [detector] });
 
   assert.equal(claimsCalls, 1);
 });
@@ -71,10 +75,7 @@ test("detector conflicts throw by default", () => {
   };
 
   assert.throws(
-    () =>
-      runPipeline(makeProgramResult([makeSourceFile("/tmp/one.ts")]), {
-        plugins: [first, second],
-      }),
+    () => generateCem({ tsConfigPath: fixturesTsConfig, plugins: [first, second] }),
     /Detector conflict/
   );
 });
@@ -100,12 +101,9 @@ test("detector conflicts can use last-wins policy", () => {
     },
   };
 
-  const manifest = runPipeline(makeProgramResult([makeSourceFile("/tmp/one.ts")]), {
-    plugins: [first, second],
-    detectorConflictPolicy: "last-wins",
-  });
-
-  assert.equal(getClass(manifest, "one.ts", "ElA").tagName, "x-b");
+  const manifest = generateCem({ tsConfigPath: fixturesTsConfig, plugins: [first, second], detectorConflictPolicy: "last-wins" });
+  const elA = getClass(manifest, "one.ts", "ElA");
+  assert.equal(elA?.tagName, "x-b");
 });
 
 test("afterAllFiles patch can target module+class declaration", () => {
@@ -128,25 +126,22 @@ test("afterAllFiles patch can target module+class declaration", () => {
       const b = manifest.modules.find((m) => m.path.endsWith("b.ts"));
       return {
         byDeclaration: {
-          [`${a.path}#Shared`]: { onlyA: true },
-          [`${b.path}#Shared`]: { onlyB: true },
+          [`${a?.path ?? "a.ts"}#Shared`]: { onlyA: true },
+          [`${b?.path ?? "b.ts"}#Shared`]: { onlyB: true },
         },
       };
     },
   };
 
-  const manifest = runPipeline(
-    makeProgramResult([makeSourceFile("/tmp/a.ts"), makeSourceFile("/tmp/b.ts")]),
-    { plugins: [detector] }
-  );
+  const manifest = generateCem({ tsConfigPath: fixturesTsConfig, plugins: [detector] });
 
   const aDecl = getClass(manifest, "a.ts", "Shared");
   const bDecl = getClass(manifest, "b.ts", "Shared");
 
-  assert.equal(aDecl.onlyA, true);
-  assert.equal(aDecl.onlyB, undefined);
-  assert.equal(bDecl.onlyB, true);
-  assert.equal(bDecl.onlyA, undefined);
+  assert.equal(aDecl?.onlyA, true);
+  assert.equal(aDecl?.onlyB, undefined);
+  assert.equal(bDecl?.onlyB, true);
+  assert.equal(bDecl?.onlyA, undefined);
 });
 
 test("annotator cannot overwrite existing fields", () => {
@@ -168,10 +163,7 @@ test("annotator cannot overwrite existing fields", () => {
   };
 
   assert.throws(
-    () =>
-      runPipeline(makeProgramResult([makeSourceFile("/tmp/one.ts")]), {
-        plugins: [detector, annotator],
-      }),
+    () => generateCem({ tsConfigPath: fixturesTsConfig, plugins: [detector, annotator] }),
     /attempted to overwrite existing field/
   );
 });

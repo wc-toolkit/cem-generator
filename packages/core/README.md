@@ -26,7 +26,7 @@ Core engine package for developers and agents building CEM analysis flows.
 
 ## Main exports
 
-- `runPipeline`
+- `generateCem`
 - `buildProgramFromTsconfig`
 - `vanillaBuiltin`
 - Types from `./types`
@@ -35,13 +35,12 @@ Core engine package for developers and agents building CEM analysis flows.
 ## Integration pattern
 
 ```ts
-import { createProgramFromTsConfig, runPipeline } from "@cem-generator/core";
-import { litPlugin } from "@cem-generator/plugin-lit";
+import { generateCem } from "@cem-generator/core";
+import { myPlugin } from "@cem-generator/plugin-my-framework";
 
-const program = createProgramFromTsConfig("./tsconfig.json");
-
-const manifest = runPipeline(program, {
-  plugins: [litPlugin()],
+const manifest = generateCem({
+  tsConfigPath: "./tsconfig.json",
+  plugins: [myPlugin()],
   detectorConflictPolicy: "throw", // default
 });
 ```

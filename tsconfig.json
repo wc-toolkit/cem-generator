@@ -3,7 +3,8 @@
   "references": [
     { "path": "packages/core-utils" },
     { "path": "packages/core" },
-    { "path": "packages/plugins/lit" }
+    { "path": "packages/plugins/lit" },
+    { "path": "packages/cli" }
   ],
   "files": []
 }
