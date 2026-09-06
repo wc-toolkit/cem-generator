@@ -53,7 +53,7 @@ test("claims() is evaluated once per plugin per file", () => {
   assert.equal(claimsCalls, 1);
 });
 
-test("detector conflicts throw by default", () => {
+test("detector conflicts can throw when explicitly configured", () => {
   const first = {
     name: "first",
     claims() {
@@ -75,12 +75,12 @@ test("detector conflicts throw by default", () => {
   };
 
   assert.throws(
-    () => generateCem({ tsConfigPath: fixturesTsConfig, plugins: [first, second] }),
+    () => generateCem({ tsConfigPath: fixturesTsConfig, plugins: [first, second], conflictPolicy: "throw" }),
     /Detector conflict/
   );
 });
 
-test("detector conflicts can use last-wins policy", () => {
+test("detector conflicts use last-wins by default", () => {
   const first = {
     name: "first",
     claims() {
@@ -101,7 +101,7 @@ test("detector conflicts can use last-wins policy", () => {
     },
   };
 
-  const manifest = generateCem({ tsConfigPath: fixturesTsConfig, plugins: [first, second], detectorConflictPolicy: "last-wins" });
+  const manifest = generateCem({ tsConfigPath: fixturesTsConfig, plugins: [first, second] });
   const elA = getClass(manifest, "one.ts", "ElA");
   assert.equal(elA?.tagName, "x-b");
 });

@@ -21,6 +21,7 @@ CSS custom properties are auto-detected from the static `styles` tagged template
 A `@property --token { ... }` rule records the token `name`, `initial-value` as the `default`, `syntax`, and any preceding `/** */` JSDoc comment as the `description`:
 
 ```ts
+/** Demonstrates CSS custom property metadata from a Lit stylesheet. */
 export class MyButton extends LitElement {
   static styles = css`
     /** Foreground token contract for host styling. */
@@ -49,6 +50,7 @@ Result:
 A `--token: value;` declaration under a `:host` selector records the token `name`, the value as the `default`, and any preceding `/** */` JSDoc comment as the `description`:
 
 ```ts
+/** Demonstrates CSS custom property metadata declared under `:host`. */
 export class MyButton extends LitElement {
   static styles = css`
     :host {

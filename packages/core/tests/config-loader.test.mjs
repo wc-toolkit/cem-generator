@@ -27,13 +27,13 @@ describe("config-loader", () => {
   });
 
   it("loads .mjs config file", async () => {
-    const configContent = `export default { include: ["src/**/*.ts"], detectorConflictPolicy: "last-wins" };`;
+    const configContent = `export default { include: ["src/**/*.ts"], conflictPolicy: "last-wins" };`;
     fs.writeFileSync(path.join(testDir, "cem-generator.config.mjs"), configContent);
 
     const result = await loadConfig({ cwd: testDir });
     assert.ok(result.configPath?.endsWith("cem-generator.config.mjs"));
     assert.deepStrictEqual(result.options.include, ["src/**/*.ts"]);
-    assert.strictEqual(result.options.detectorConflictPolicy, "last-wins");
+    assert.strictEqual(result.options.conflictPolicy, "last-wins");
   });
 
   it("loads .js config file", async () => {
@@ -83,18 +83,18 @@ describe("config-loader", () => {
     const cliOptions = {
       tsConfigPath: "tsconfig.json",
       include: ["cli/**/*.ts"],
-      detectorConflictPolicy: "throw",
+      conflictPolicy: "throw",
     };
     const fileOptions = {
       include: ["config/**/*.ts"],
       exclude: ["**/*.test.ts"],
-      detectorConflictPolicy: "last-wins",
+      conflictPolicy: "last-wins",
     };
 
     const merged = mergeConfig(cliOptions, fileOptions);
 
     // CLI takes precedence for single-value options
-    assert.strictEqual(merged.detectorConflictPolicy, "throw");
+    assert.strictEqual(merged.conflictPolicy, "throw");
     // Arrays are concatenated (config first, then CLI)
     assert.deepStrictEqual(merged.include, ["config/**/*.ts", "cli/**/*.ts"]);
     assert.deepStrictEqual(merged.exclude, ["**/*.test.ts"]);

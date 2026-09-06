@@ -41,7 +41,7 @@ import { myPlugin } from "@cem-generator/plugin-my-framework";
 const manifest = generateCem({
   tsConfigPath: "./tsconfig.json",
   plugins: [myPlugin()],
-  detectorConflictPolicy: "throw", // default
+  conflictPolicy: "last-wins", // default
 });
 ```
 

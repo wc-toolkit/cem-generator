@@ -26,7 +26,7 @@ program
   .option("--exclude <patterns...>", "Glob patterns to exclude")
   .option("--no-inheritance", "Disable inheritance materialization")
   .option("--plugin <paths...>", "Additional plugin paths to load")
-  .option("--conflict-policy <policy>", "Detector conflict policy: throw | last-wins", "throw")
+  .option("--conflict-policy <policy>", "Detector conflict policy: throw | last-wins", "last-wins")
   .option("--no-sort", "Disable alphabetical sorting of manifest entries")
   .option("--deprecated-last", "Move deprecated items to end of sorted lists")
   .action(async (options) => {
@@ -52,7 +52,7 @@ program
         cliOptions.inheritance = false;
       }
 
-      cliOptions.detectorConflictPolicy = options.conflictPolicy as "throw" | "last-wins";
+      cliOptions.conflictPolicy = options.conflictPolicy as "throw" | "last-wins";
 
       const plugins: RunOptions["plugins"] = [];
 

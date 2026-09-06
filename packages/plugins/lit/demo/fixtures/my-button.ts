@@ -28,9 +28,11 @@ export class MyButton extends LitElement {
   @property({ type: String })
   variant = "primary";
 
+  /** Tracks the button's pressed state during interaction. */
   @state()
   private pressed = false;
 
+  /** Renders the button and exposes its icon as a CSS part. */
   render() {
     return html`
       <!-- Primary button chrome -->

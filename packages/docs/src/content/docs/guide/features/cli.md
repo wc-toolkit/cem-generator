@@ -28,7 +28,7 @@ Create `cem-generator.config.js` in your project root:
 export default {
   tsConfigPath: "./tsconfig.lib.json",
   plugins: [],
-  detectorConflictPolicy: "last-wins",
+  conflictPolicy: "last-wins",
   include: ["src/**/*.ts"],
   sort: true,
   deprecatedLast: true
@@ -48,6 +48,6 @@ CLI options override config file settings.
 | `--exclude` | | Glob patterns to exclude |
 | `--no-inheritance` | | Disable inheritance |
 | `--plugin` | | Additional plugin paths |
-| `--conflict-policy` | | `throw` or `last-wins` |
+| `--conflict-policy` | | `last-wins` or `throw` |
 | `--no-sort` | | Disable alphabetical sorting |
 | `--deprecated-last` | | Move deprecated to end |

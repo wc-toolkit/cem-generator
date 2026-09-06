@@ -5,6 +5,44 @@ description: Extending cem-generator with detector and annotator plugins.
 
 Plugins let you add framework-specific detection, cross-file enrichment, or custom post-processing to the CEM generator without changing the core pipeline.
 
+## Plugin types
+
+| Type | When it runs | Use case |
+|------|--------------|----------|
+| **Detector** | Per-file, during analysis | Find framework-specific patterns |
+| **Annotator** | After the full manifest is assembled | Cross-plugin enrichment, design tokens, or validation |
+
+## Using a plugin
+
+Plugins are passed to `generateCem()`:
+
+```ts
+import { generateCem } from "@cem-generator/core";
+import { myPlugin } from "@cem-generator/plugin-my-framework";
+
+const manifest = generateCem({
+  tsConfigPath: "./tsconfig.json",
+  plugins: [myPlugin()],
+});
+```
+
+Framework plugins are opt-in. The vanilla detector runs automatically, while
+framework-specific detectors run only when included in `plugins`.
+
+## How the generator is structured
+
+The pipeline separates plugin responsibilities from manifest assembly:
+
+- **Detection** extracts class-level fragments from source files.
+- **Core pipeline** merges fragments, applies conflict policy, and runs
+  post-processing.
+- **Core utilities** provide shared JSDoc parsing and inheritance resolution.
+- **Output** converts the internal manifest into the CEM 2.1.0 package shape.
+
+The built-in vanilla detector handles standard `HTMLElement` components without
+a plugin. All detectors share one TypeScript `ts.Program`, and detectors do not
+depend directly on one another. Cross-plugin enrichment belongs in annotators.
+
 ## Official Plugins
 
 - [Lit Plugin](/plugins/lit/) — Detects `@customElement`, `@property`, `@state`, `@query`, `@eventOptions`, and Lit-specific JSDoc tags.

@@ -9,17 +9,19 @@ cem-generator automatically loads configuration from a `cem-generator.config.{js
 
 ```js
 // cem-generator.config.mjs
+// Load this object from a custom-elements.json file before configuration.
+const externalCem = loadManifest("./other-manifest.json");
+
 export default {
   // Optional: glob patterns limiting analyzed files
   include: ["src/components/**/*.ts"],
   // Optional: glob patterns removing files from analysis
   exclude: ["**/*.stories.ts", "**/*.test.ts"],
   // Optional: how to handle detector conflicts
-  detectorConflictPolicy: "last-wins",
+  conflictPolicy: "last-wins",
   // Optional: inheritance materialization
   inheritance: {
-    omitInherited: true,
-    externalManifests: ["./other-manifest.json"],
+    externalManifests: [externalCem],
   },
 };
 ```
@@ -52,7 +54,7 @@ import type { RunOptions } from "@cem-generator/core";
 export default {
   include: ["src/**/*.ts"],
   exclude: ["**/*.test.ts"],
-  detectorConflictPolicy: "last-wins",
+  conflictPolicy: "last-wins",
 } satisfies RunOptions;
 ```
 
@@ -69,14 +71,13 @@ const manifest = generateCem({
   plugins: [myPlugin()],
 
   // Optional: how to handle detector conflicts
-  // "throw" (default) | "last-wins"
-  detectorConflictPolicy: "last-wins",
+  // "throw" | "last-wins" (default)
+  conflictPolicy: "last-wins",
 
   // Optional: inheritance materialization
-  // false to disable, or options object
+  // false to disable, or an options object. Manifests must be loaded objects.
   inheritance: {
-    omitInherited: true,
-    externalManifests: ["./other-manifest.json"],
+    externalManifests: [externalCem],
   },
 
   // Optional: file filtering
@@ -91,15 +92,29 @@ const manifest = generateCem({
 |--------|------|---------|-------------|
 | `tsConfigPath` | `string` | `"./tsconfig.json"` | Path to TypeScript config. Program created from this config. |
 | `plugins` | `Plugin[]` | `[]` | Additional detector/annotator plugins. Vanilla detector always runs. |
-| `detectorConflictPolicy` | `"throw" \| "last-wins"` | `"throw"` | How to resolve when multiple detectors produce different values for same class field. |
+| `conflictPolicy` | `"throw" \| "last-wins"` | `"last-wins"` | How to resolve when multiple detectors produce different values for same class field. |
 | `inheritance` | `false \| InheritancePluginOptions` | `{}` | Built-in inheritance materialization. Set `false` to disable. |
 | `include` | `string[]` | `undefined` | Glob patterns limiting analyzed files. Omit for all non-declaration, non-node_modules files. |
 | `exclude` | `string[]` | `undefined` | Glob patterns removing files from analysis. Exclude wins over include. |
 
 ## Inheritance Options
 
+`externalManifests` takes parsed manifest objects. The generator does not read
+paths or fetch URLs itself:
+
+```js
+import { readFileSync } from "node:fs";
+
+const externalCem = JSON.parse(
+  readFileSync("./node_modules/@acme/components/custom-elements.json", "utf8")
+);
+```
+
 ```ts
 inheritance: {
+  // Restrict which collection kinds are materialized
+  include: ["members", "attributes", "events"],
+
   // Omit inherited items by kind, class name, or a custom metadata field
   omitByKind: {
     members: ["internalMethod"],
@@ -109,8 +124,8 @@ inheritance: {
   // External manifests used to resolve inherited superclass APIs
   externalManifests: [externalCem],
 
-  // Include external manifest declarations in output
-  includeExternalManifests: true,
+  // Also append eligible external custom-element declarations to output
+  includeExternalManifests: false,
 }
 ```
 
@@ -120,8 +135,13 @@ inheritance: {
 | `omitByKind` | `OmitInheritedMap` | — | Names of inherited items to omit, per collection kind. |
 | `omitByClassName` | `Record<string, OmitInheritedMap>` | — | Per-superclass-class omission maps. |
 | `metadataField` | `string` | `"omitInherited"` | Manifest field each class exposes its omit map on. |
-| `externalManifests` | `unknown[]` | `[]` | External CEM manifests used to resolve inherited superclass APIs. |
-| `includeExternalManifests` | `boolean` | `false` | Whether to include external manifest declarations in output. |
+| `externalManifests` | `unknown[]` | `[]` | Loaded CEM manifest objects used to resolve inherited superclass APIs. |
+| `includeExternalManifests` | `boolean` | `false` | Also append external declarations with `customElement: true` or `tagName` to output. |
+
+`includeExternalManifests` does not control whether inheritance is resolved. A
+manifest can be used for lookup while remaining absent from output. Conversely,
+setting it to `true` has no effect unless the manifest is supplied through
+`externalManifests`.
 
 ## File Filtering (include/exclude)
 
@@ -149,7 +169,7 @@ exclude: ["**/*.test.ts", "**/*.stories.ts"]
 | `--exclude <patterns...>` | Exclude globs | — |
 | `--no-inheritance` | Disable inheritance | — |
 | `--plugin <paths...>` | Custom plugin paths | — |
-| `--conflict-policy <policy>` | `throw` \| `last-wins` | `throw` |
+| `--conflict-policy <policy>` | `throw` \| `last-wins` | `last-wins` |
 
 ```bash
 cem generate \
@@ -164,7 +184,7 @@ cem generate \
 
 When both a config file and CLI flags are provided, they are merged with **CLI flags taking precedence**:
 
-- Single-value options (e.g., `tsConfigPath`, `detectorConflictPolicy`): CLI value wins
+- Single-value options (e.g., `tsConfigPath`, `conflictPolicy`): CLI value wins
 - Array options (e.g., `plugins`, `include`, `exclude`): CLI values are appended to config file values
 - Object options (e.g., `inheritance`): Deep merged, CLI properties override config file properties
 
@@ -193,4 +213,4 @@ Ensure your `tsconfig.json` includes source files and enables `checkJs` for JSDo
 
 - [Overview](/guide/overview/) — Getting started
 - [Documenting](/guide/documenting/) — JSDoc tags reference
-- [Pipeline](/guide/pipeline/) — Internal architecture
+- [Plugins](/plugins/) — Internal architecture and plugin layers

@@ -99,6 +99,6 @@ Vanilla web components work out of the box — no plugin needed:
 
 - See [Installation](/installation/) for full setup, `include`/`exclude` filtering, and verifying output.
 - See [CLI](/cli/) for command-line generation with `cem generate`.
-- See [Pipeline](/guide/pipeline/) for how `generateCem()` builds a manifest.
-- See [Inheritance](/guide/inheritance/) for omitting inherited APIs and using external manifests.
+- See [Creating Plugins](/plugins/creating-plugins/) for how `generateCem()` builds a manifest and runs plugin hooks.
+- See [Inheritance](/guide/features/inheritance/) for omitting inherited APIs and using external manifests.
 - See [Plugins](/plugins/) for custom detectors and annotators.

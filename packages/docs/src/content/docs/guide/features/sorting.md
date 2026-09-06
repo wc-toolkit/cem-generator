@@ -1,5 +1,5 @@
 ---
-title: Alphabetical Sorting
+title: Sorting
 description: Sort manifest entries alphabetically for consistent, deterministic output.
 ---
 
@@ -13,6 +13,25 @@ const manifest = generateCem({
   sort: true,            // default: true
   deprecatedLast: true   // default: true
 });
+```
+
+Sorting applies to the manifest entries produced from documented declarations:
+
+```ts
+/** A component with current and legacy APIs. */
+export class MyComponent extends HTMLElement {
+  /** The current active state. */
+  active = false;
+
+  /** The preferred action. */
+  activate() {}
+
+  /**
+   * The legacy action retained for compatibility.
+   * @deprecated Use `activate()` instead.
+   */
+  oldActivate() {}
+}
 ```
 
 ## CLI
@@ -43,7 +62,9 @@ cem generate --deprecated-last
 
 ## Deprecated last
 
-When `deprecatedLast: true`, items with `@deprecated` are grouped at the end of their respective lists while maintaining alphabetical order within each group:
+When `deprecatedLast: true`, items documented with `@deprecated` are grouped at
+the end of their respective lists while maintaining alphabetical order within
+each group:
 
 ```json
 {

@@ -37,7 +37,7 @@ cem generate --config tsconfig.json --output custom-elements.json
 | `--exclude <patterns...>` | Glob patterns to exclude | — |
 | `--no-inheritance` | Disable inheritance materialization | — |
 | `--plugin <paths...>` | Additional plugin paths to load | — |
-| `--conflict-policy <policy>` | Detector conflict policy: `throw` \| `last-wins` | `throw` |
+| `--conflict-policy <policy>` | Detector conflict policy: `throw` \| `last-wins` | `last-wins` |
 
 ## Examples
 
@@ -98,5 +98,5 @@ fs.writeFileSync("custom-elements.json", JSON.stringify(manifest, null, 2));
 ## Next steps
 
 - See [Installation](/installation/) for programmatic usage.
-- See [Pipeline](/guide/pipeline/) for `generateCem()` options.
+- See [Configuration](/guide/configuration/) for `generateCem()` options.
 - See [Plugins](/plugins/) for framework and custom plugin details.

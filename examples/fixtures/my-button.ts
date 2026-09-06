@@ -34,9 +34,11 @@ export class MyButton extends LitElement {
   @property({ type: String })
   oldVariant = "legacy";
 
+  /** Tracks the button's pressed state during interaction. */
   @state()
   private pressed = false;
 
+  /** Renders the button and exposes its icon as a CSS part. */
   render() {
     return html`<button part="button"><span part="icon"></span>Click me</button>`;
   }

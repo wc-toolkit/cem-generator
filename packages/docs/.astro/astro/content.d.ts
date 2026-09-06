@@ -159,20 +159,6 @@ declare module 'astro:content' {
   collection: "docs";
   data: InferEntrySchema<"docs">
 } & { render(): Render[".md"] };
-"contributing/development.md": {
-	id: "contributing/development.md";
-  slug: "contributing/development";
-  body: string;
-  collection: "docs";
-  data: InferEntrySchema<"docs">
-} & { render(): Render[".md"] };
-"guide/architecture.md": {
-	id: "guide/architecture.md";
-  slug: "guide/architecture";
-  body: string;
-  collection: "docs";
-  data: InferEntrySchema<"docs">
-} & { render(): Render[".md"] };
 "guide/configuration.md": {
 	id: "guide/configuration.md";
   slug: "guide/configuration";
@@ -194,20 +180,6 @@ declare module 'astro:content' {
   collection: "docs";
   data: InferEntrySchema<"docs">
 } & { render(): Render[".md"] };
-"guide/features/conflict-policy.md": {
-	id: "guide/features/conflict-policy.md";
-  slug: "guide/features/conflict-policy";
-  body: string;
-  collection: "docs";
-  data: InferEntrySchema<"docs">
-} & { render(): Render[".md"] };
-"guide/features/file-filtering.md": {
-	id: "guide/features/file-filtering.md";
-  slug: "guide/features/file-filtering";
-  body: string;
-  collection: "docs";
-  data: InferEntrySchema<"docs">
-} & { render(): Render[".md"] };
 "guide/features/inheritance.md": {
 	id: "guide/features/inheritance.md";
   slug: "guide/features/inheritance";
@@ -222,30 +194,9 @@ declare module 'astro:content' {
   collection: "docs";
   data: InferEntrySchema<"docs">
 } & { render(): Render[".md"] };
-"guide/features/options.md": {
-	id: "guide/features/options.md";
-  slug: "guide/features/options";
-  body: string;
-  collection: "docs";
-  data: InferEntrySchema<"docs">
-} & { render(): Render[".md"] };
-"guide/features/output-schema.md": {
-	id: "guide/features/output-schema.md";
-  slug: "guide/features/output-schema";
-  body: string;
-  collection: "docs";
-  data: InferEntrySchema<"docs">
-} & { render(): Render[".md"] };
-"guide/features/performance.md": {
-	id: "guide/features/performance.md";
-  slug: "guide/features/performance";
-  body: string;
-  collection: "docs";
-  data: InferEntrySchema<"docs">
-} & { render(): Render[".md"] };
-"guide/features/plugins.md": {
-	id: "guide/features/plugins.md";
-  slug: "guide/features/plugins";
+"guide/features/module-paths.md": {
+	id: "guide/features/module-paths.md";
+  slug: "guide/features/module-paths";
   body: string;
   collection: "docs";
   data: InferEntrySchema<"docs">
@@ -271,23 +222,9 @@ declare module 'astro:content' {
   collection: "docs";
   data: InferEntrySchema<"docs">
 } & { render(): Render[".md"] };
-"guide/inheritance.md": {
-	id: "guide/inheritance.md";
-  slug: "guide/inheritance";
-  body: string;
-  collection: "docs";
-  data: InferEntrySchema<"docs">
-} & { render(): Render[".md"] };
 "guide/overview.md": {
 	id: "guide/overview.md";
   slug: "guide/overview";
-  body: string;
-  collection: "docs";
-  data: InferEntrySchema<"docs">
-} & { render(): Render[".md"] };
-"guide/pipeline.md": {
-	id: "guide/pipeline.md";
-  slug: "guide/pipeline";
   body: string;
   collection: "docs";
   data: InferEntrySchema<"docs">
@@ -323,20 +260,6 @@ declare module 'astro:content' {
 "plugins/lit.md": {
 	id: "plugins/lit.md";
   slug: "plugins/lit";
-  body: string;
-  collection: "docs";
-  data: InferEntrySchema<"docs">
-} & { render(): Render[".md"] };
-"reference/core-api.md": {
-	id: "reference/core-api.md";
-  slug: "reference/core-api";
-  body: string;
-  collection: "docs";
-  data: InferEntrySchema<"docs">
-} & { render(): Render[".md"] };
-"reference/core-utils-api.md": {
-	id: "reference/core-utils-api.md";
-  slug: "reference/core-utils-api";
   body: string;
   collection: "docs";
   data: InferEntrySchema<"docs">

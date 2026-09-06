@@ -452,4 +452,4 @@ Class-level `@attr` / `@attribute` tags can also carry a type — e.g. `@attr {b
 
 - [Overview](/guide/overview/) — Getting started
 - [Configuration](/guide/configuration/) — All options
-- [Pipeline](/guide/pipeline/) — How detection works
+- [Creating Plugins](/plugins/creating-plugins/) — How detection and enrichment hooks work

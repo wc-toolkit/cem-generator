@@ -25,6 +25,7 @@ export class MyCard extends LitElement {
     }
   `;
 
+  /** Renders the card surface and its documented title part. */
   render() {
     return html`
       <!-- Main outer surface -->

@@ -58,6 +58,20 @@ handful of deliberate departures from it.
   resolving with zero plugins passed, plus a framework plugin opted in
   via `plugins: [myPlugin()]`
 
+### Inheritance documentation
+
+Inheritance materialization is enabled by default and runs after the complete
+manifest has been assembled. It resolves `members`, `attributes`, CSS
+properties/parts/states, `slots`, and `events` across multi-level superclass
+chains. Inherited entries are marked with `inheritedFrom`; subclass declarations
+with the same name take precedence.
+
+Use `inheritance: false` to disable it, or configure `include`/`ignore`, omit
+maps, and external manifest lookup through `InheritancePluginOptions`. See the
+[inheritance guide](packages/docs/src/content/docs/guide/inheritance.md) for
+JSDoc omission tags, output examples, circular-reference behavior, and external
+manifest requirements.
+
 Run it:
 
 ```sh

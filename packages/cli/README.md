@@ -37,7 +37,7 @@ cem generate --no-inheritance
 | `--exclude <patterns...>` | Glob patterns to exclude | - |
 | `--no-inheritance` | Disable inheritance materialization | - |
 | `--plugin <paths...>` | Additional plugin paths to load | - |
-| `--conflict-policy <policy>` | Detector conflict policy: `throw` \| `last-wins` | `throw` |
+| `--conflict-policy <policy>` | Detector conflict policy: `throw` \| `last-wins` | `last-wins` |
 
 ## Example
 

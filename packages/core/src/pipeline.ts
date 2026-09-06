@@ -1,5 +1,6 @@
 import ts from "typescript";
 import path from "node:path";
+import fs from "node:fs";
 import { parseCustomTagValue } from "@cem-generator/core-utils";
 import {
   ClassFragment,
@@ -48,16 +49,29 @@ export interface CustomTagOptions {
   };
 }
 
+export interface ModulePathResolverOptions {
+  /** Transform the source module path into the published runtime module path. */
+  modulePathTemplate?: (modulePath: string, name?: string, tagName?: string) => string;
+  /** Add a separate module containing the custom-element definition export. */
+  definitionPathTemplate?: (modulePath: string, name?: string, tagName?: string) => string;
+  /** Add a non-standard module-level type definition path. */
+  typeDefinitionPathTemplate?: (modulePath: string, name?: string, tagName?: string) => string;
+  /** Class names excluded from path transformations. */
+  exclude?: string[];
+  /** Disable module path transformations. */
+  skip?: boolean;
+}
+
 export interface RunOptions {
   /** Additional plugins beyond the built-in vanilla detector. */
   plugins?: Plugin[];
   /**
    * How to handle conflicting detector values for the same class field.
    *
-   * - throw: fail fast on non-equal conflicts (default)
-   * - last-wins: preserve previous behavior
+   * - throw: fail fast on non-equal conflicts
+   * - last-wins: let later detector output replace earlier output (default)
    */
-  detectorConflictPolicy?: "throw" | "last-wins";
+  conflictPolicy?: "throw" | "last-wins";
   /** Built-in inheritance materialization; set false to disable. */
   inheritance?: false | InheritancePluginOptions;
   /** Path to tsconfig.json. Defaults to ./tsconfig.json. */
@@ -106,12 +120,14 @@ export interface RunOptions {
    * @default false
    */
   customJsDocTags?: boolean | CustomTagOptions;
+  /** Configure source-to-runtime module path resolution. */
+  modulePathResolver?: ModulePathResolverOptions;
 }
 
 export function generateCem(options: RunOptions = {}): CemPackage {
 const {
     plugins = [],
-    detectorConflictPolicy = "throw",
+    conflictPolicy = "last-wins",
     inheritance = {},
     tsConfigPath,
     include,
@@ -119,7 +135,15 @@ const {
     sort = true,
     deprecatedLast = true,
     customJsDocTags = false,
+    modulePathResolver = {},
   } = options;
+  const {
+    modulePathTemplate,
+    definitionPathTemplate,
+    typeDefinitionPathTemplate,
+    exclude: modulePathExclude = [],
+    skip: modulePathSkip = false,
+  } = modulePathResolver;
 
   const customJsDocTagsConfig: CustomTagOptions | undefined =
     typeof customJsDocTags === "object" && customJsDocTags !== null
@@ -132,6 +156,10 @@ const {
   const resolvedPath = path.resolve(configFilePath);
   const programResult = createProgramResult(resolvedPath);
   const { program, checker, sourceFiles } = programResult;
+  const projectDir = path.dirname(resolvedPath);
+  const runtimeResolver = modulePathSkip
+    ? (sourceFile: string) => sourceFile
+    : createRuntimeResolver(projectDir, readCompilerOptions(resolvedPath));
   const filteredFiles = filterSourceFiles(sourceFiles, include, exclude, path.dirname(resolvedPath));
 
   const allPlugins: Plugin[] = [vanillaBuiltin(), ...plugins];
@@ -141,9 +169,31 @@ const {
   const manifest: InternalManifest = { schemaVersion: TARGET_CEM_SCHEMA_VERSION, modules: [] };
 
   for (const sourceFile of filteredFiles) {
-    const moduleDeclarations = analyzeFile(sourceFile, checker, detectors, detectorConflictPolicy);
+      const moduleDeclarations = analyzeFile(sourceFile, checker, detectors, conflictPolicy);
     if (moduleDeclarations.length > 0) {
-      manifest.modules.push({ path: sourceFile.fileName, declarations: moduleDeclarations });
+      const pathDeclaration = moduleDeclarations.find(
+        (declaration) => declaration.tagName && !modulePathExclude.includes(declaration.name)
+      );
+      const sourcePath = sourceFile.fileName;
+      const resolvedPath = modulePathSkip
+        ? sourcePath
+        : modulePathTemplate
+          ? pathDeclaration
+            ? normalizeModulePath(modulePathTemplate(sourcePath, pathDeclaration.name, pathDeclaration.tagName))
+            : sourcePath
+          : runtimeResolver(sourcePath);
+      manifest.modules.push({
+        source: sourcePath,
+        path: resolvedPath,
+        ...(!modulePathSkip && typeDefinitionPathTemplate && pathDeclaration
+          ? {
+              typeDefinitionPath: normalizeModulePath(
+                typeDefinitionPathTemplate(sourcePath, pathDeclaration.name, pathDeclaration.tagName)
+              ),
+            }
+          : {}),
+        declarations: moduleDeclarations,
+      });
     }
   }
 
@@ -151,7 +201,156 @@ const {
   applyBuiltInInheritance(manifest, inheritance);
   applyAnnotators(manifest, annotators);
 
-  return toCemPackage(manifest, { sort, deprecatedLast, customJsDocTags: customJsDocTagsConfig });
+  return toCemPackage(manifest, {
+    sort,
+    deprecatedLast,
+    customJsDocTags: customJsDocTagsConfig,
+    definitionPathTemplate: modulePathSkip ? undefined : definitionPathTemplate,
+    excludedNames: new Set(modulePathExclude),
+  });
+}
+
+type ExportTarget = { key: string; types?: string; runtime?: string };
+
+function readCompilerOptions(configFilePath: string): ts.CompilerOptions {
+  const configFile = ts.readConfigFile(configFilePath, ts.sys.readFile);
+  if (configFile.error) return {};
+  return ts.parseJsonConfigFileContent(configFile.config, ts.sys, path.dirname(configFilePath)).options;
+}
+
+function createRuntimeResolver(projectDir: string, compilerOptions: ts.CompilerOptions): (sourceFile: string) => string {
+  const packageRoot = findPackageRoot(projectDir);
+  if (!packageRoot) return (sourceFile) => sourceFile;
+
+  const packageJsonPath = path.join(packageRoot, "package.json");
+  let packageJson: { exports?: unknown };
+  try {
+    packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf8")) as { exports?: unknown };
+  } catch {
+    return (sourceFile) => sourceFile;
+  }
+
+  const targets = readExportTargets(packageJson.exports);
+  if (targets.length === 0) return (sourceFile) => sourceFile;
+  return (sourceFile) => {
+    const relativeSource = toPosixPath(path.relative(packageRoot, sourceFile));
+    const runtimeCandidates = outputCandidates(relativeSource, projectDir, packageRoot, compilerOptions);
+    const runtimeCandidate = runtimeCandidates.find((candidate) => candidate.endsWith(".js"));
+    const declarationCandidate = runtimeCandidate
+      ?.replace(/\.js$/, ".d.ts");
+
+    for (const target of targets) {
+      const declarationForTypes = target.types?.endsWith("*")
+        ? declarationCandidate?.replace(/\.d\.ts$/, "")
+        : declarationCandidate;
+      const match =
+        matchExportTarget(target.types, declarationForTypes) ??
+        matchExportTarget(target.runtime, runtimeCandidate);
+      if (match !== undefined && target.runtime) {
+        const resolved = normalizeModulePath(target.runtime.replace(/^\.\//, "").replace("*", match));
+        if (!path.posix.extname(resolved) && target.runtime.endsWith("*") && runtimeCandidate) {
+          return `${resolved}${path.posix.extname(runtimeCandidate)}`;
+        }
+        return resolved;
+      }
+    }
+
+    return runtimeCandidates.find((candidate) => candidate.endsWith(".js")) ?? sourceFile;
+  };
+}
+
+function findPackageRoot(startDir: string): string | undefined {
+  let current = path.resolve(startDir);
+  while (true) {
+    if (fs.existsSync(path.join(current, "package.json"))) return current;
+    const parent = path.dirname(current);
+    if (parent === current) return undefined;
+    current = parent;
+  }
+}
+
+function readExportTargets(exportsField: unknown): ExportTarget[] {
+  if (typeof exportsField === "string" || Array.isArray(exportsField)) {
+    return [{ key: ".", ...readExportConditionTargets(exportsField) }];
+  }
+  if (!exportsField || typeof exportsField !== "object") return [];
+  const record = exportsField as Record<string, unknown>;
+  const entries = Object.keys(record).some((key) => key.startsWith("."))
+    ? Object.entries(record)
+    : [[".", exportsField] as [string, unknown]];
+  const targets: ExportTarget[] = [];
+
+  for (const [key, value] of entries) {
+    if (!key.startsWith(".")) continue;
+    targets.push({ key, ...readExportConditionTargets(value) });
+  }
+  return targets.sort((a, b) => {
+    const aWildcard = a.key.includes("*");
+    const bWildcard = b.key.includes("*");
+    if (aWildcard !== bWildcard) return aWildcard ? 1 : -1;
+    return b.key.length - a.key.length;
+  });
+}
+
+function readExportConditionTargets(value: unknown): Omit<ExportTarget, "key"> {
+  return {
+    types: resolveExportCondition(value, ["types"]),
+    runtime: resolveExportCondition(value, ["import", "default", "node", "browser"]),
+  };
+}
+
+function resolveExportCondition(value: unknown, preferredConditions: string[]): string | undefined {
+  if (typeof value === "string") return value;
+  if (Array.isArray(value)) {
+    for (const candidate of value) {
+      const resolved = resolveExportCondition(candidate, preferredConditions);
+      if (resolved) return resolved;
+    }
+    return undefined;
+  }
+  if (!value || typeof value !== "object") return undefined;
+  const record = value as Record<string, unknown>;
+  for (const condition of [...preferredConditions, ...Object.keys(record)]) {
+    if (!(condition in record)) continue;
+    const resolved = resolveExportCondition(record[condition], preferredConditions);
+    if (resolved) return resolved;
+  }
+  return undefined;
+}
+
+function outputCandidates(
+  relativeSource: string,
+  projectDir: string,
+  packageRoot: string,
+  compilerOptions: ts.CompilerOptions
+): string[] {
+  const sourceWithoutExtension = relativeSource.replace(/\.(tsx?|mts|cts|jsx?|mjs|cjs)$/, "");
+  const sourceRoot = compilerOptions.rootDir
+    ? path.resolve(projectDir, compilerOptions.rootDir)
+    : projectDir;
+  const outputRoot = compilerOptions.outDir
+    ? path.resolve(projectDir, compilerOptions.outDir)
+    : projectDir;
+  const sourcePath = path.resolve(packageRoot, relativeSource);
+  const sourceRelativeToRoot = toPosixPath(path.relative(sourceRoot, sourcePath));
+  const rootRelative = sourceRelativeToRoot.replace(/\.(tsx?|mts|cts|jsx?|mjs|cjs)$/, "");
+  const relativeToProject = toPosixPath(path.relative(projectDir, sourcePath));
+  const candidates = [
+    toPosixPath(path.relative(packageRoot, path.join(outputRoot, `${rootRelative}.js`))),
+    toPosixPath(path.relative(packageRoot, path.join(outputRoot, `${rootRelative}.mjs`))),
+    toPosixPath(path.relative(packageRoot, path.join(outputRoot, `${rootRelative}.cjs`))),
+    `${relativeToProject.replace(/\.(tsx?|mts|cts|jsx?|mjs|cjs)$/, ".js")}`,
+  ];
+  return [...new Set(candidates)];
+}
+
+function matchExportTarget(target: string | undefined, candidate: string | undefined): string | undefined {
+  if (!target || !candidate) return undefined;
+  const normalizedTarget = target.replace(/^\.\//, "");
+  if (!normalizedTarget.includes("*")) return normalizedTarget === candidate ? "" : undefined;
+  const [prefix, suffix] = normalizedTarget.split("*");
+  if (!candidate.startsWith(prefix) || !candidate.endsWith(suffix)) return undefined;
+  return candidate.slice(prefix.length, candidate.length - suffix.length || undefined);
 }
 
 function createProgramResult(configFilePath: string): ProgramResult {
@@ -235,6 +434,13 @@ function buildMatchCandidates(fileName: string, projectDir: string): string[] {
 
 function toPosixPath(p: string): string {
   return p.replace(/\\/g, "/");
+}
+
+function normalizeModulePath(modulePath: string): string {
+  const normalized = toPosixPath(modulePath);
+  const [protocol, ...segments] = normalized.split("://");
+  if (segments.length === 0) return normalized.replace(/\/{2,}/g, "/");
+  return `${protocol}://${segments.join("://").replace(/\/{2,}/g, "/")}`;
 }
 
 function normalizeGlobPattern(pattern: string): string {
@@ -332,7 +538,7 @@ function mergeExternalModulesIntoManifest(
   for (const extMod of externalModules) {
     const filtered = extMod.declarations.filter((decl) => !existingDeclKeys.has(`${extMod.path}#${decl.name}`));
     if (filtered.length === 0) continue;
-    manifest.modules.push({ path: extMod.path, declarations: filtered });
+    manifest.modules.push({ source: extMod.source, path: extMod.path, declarations: filtered });
     for (const decl of filtered) {
       existingDeclKeys.add(`${extMod.path}#${decl.name}`);
     }
@@ -343,7 +549,7 @@ function analyzeFile(
   sourceFile: ts.SourceFile,
   checker: ts.TypeChecker,
   detectors: DetectorPlugin[],
-  detectorConflictPolicy: "throw" | "last-wins"
+  conflictPolicy: "throw" | "last-wins"
 ): ClassFragment[] {
   const sourceText = sourceFile.getFullText();
   const context: FileContext = { filePath: sourceFile.fileName, sourceText, sourceFile, checker };
@@ -375,7 +581,7 @@ function analyzeFile(
         incoming: classFragment,
         pluginName: plugin.name,
         owners,
-        detectorConflictPolicy,
+        conflictPolicy,
       });
     }
   }
@@ -398,14 +604,14 @@ function mergeClassFragment({
   incoming,
   pluginName,
   owners,
-  detectorConflictPolicy,
+  conflictPolicy,
 }: {
   className: string;
   target: ClassFragment;
   incoming: ClassFragment;
   pluginName: string;
   owners: Record<string, string>;
-  detectorConflictPolicy: "throw" | "last-wins";
+  conflictPolicy: "throw" | "last-wins";
 }) {
   for (const [field, incomingValue] of Object.entries(incoming)) {
     if (field === "name" || incomingValue === undefined) continue;
@@ -414,16 +620,16 @@ function mergeClassFragment({
     const hasCurrentValue = currentValue !== undefined;
     const hasConflict = hasCurrentValue && !deepEqual(currentValue, incomingValue);
 
-    if (hasConflict && detectorConflictPolicy === "throw") {
+    if (hasConflict && conflictPolicy === "throw") {
       const previousPlugin = owners[field] ?? "(unknown)";
       throw new Error(
         `Detector conflict on "${className}.${field}": plugin "${previousPlugin}" and ` +
           `"${pluginName}" produced different values. ` +
-          `Set detectorConflictPolicy: "last-wins" to allow overrides.`
+          `Set conflictPolicy: "last-wins" to allow overrides.`
       );
     }
 
-    if (!hasCurrentValue || detectorConflictPolicy === "last-wins") {
+    if (!hasCurrentValue || conflictPolicy === "last-wins") {
       (target as Record<string, unknown>)[field] = incomingValue;
       owners[field] = pluginName;
     }
@@ -625,7 +831,13 @@ function toCustomTagFields(
 
 function toCemPackage(
   internal: InternalManifest,
-  options: { sort: boolean; deprecatedLast: boolean; customJsDocTags?: CustomTagOptions } = {
+  options: {
+    sort: boolean;
+    deprecatedLast: boolean;
+    customJsDocTags?: CustomTagOptions;
+    definitionPathTemplate?: (modulePath: string, name?: string, tagName?: string) => string;
+    excludedNames?: Set<string>;
+  } = {
     sort: false,
     deprecatedLast: false,
   }
@@ -642,8 +854,10 @@ function toCemPackage(
         declaration: { name: decl.name, module: mod.path },
       }));
 
-    return {
+    const module = {
       kind: "javascript-module",
+      ...(mod.source ? { source: mod.source } : {}),
+      ...(mod.typeDefinitionPath ? { typeDefinitionPath: mod.typeDefinitionPath } : {}),
       path: mod.path,
       declarations,
       exports: [
@@ -656,8 +870,38 @@ function toCemPackage(
             declaration: { name: decl.name, module: mod.path },
           })),
       ],
-    };
+    } as unknown as JavaScriptModule;
+
+    return module;
   });
+
+  rewriteKnownModuleReferences(modules, internal);
+
+  if (options.definitionPathTemplate) {
+    const definitionModules: JavaScriptModule[] = [];
+    for (const mod of internal.modules) {
+      for (const declaration of mod.declarations.filter(
+        (item) => item.tagName && !options.excludedNames?.has(item.name)
+      )) {
+        const definitionPath = normalizeModulePath(
+          options.definitionPathTemplate(mod.source ?? mod.path, declaration.name, declaration.tagName)
+        );
+        definitionModules.push({
+          kind: "javascript-module",
+          path: definitionPath,
+          declarations: [],
+          exports: [
+            {
+              kind: "custom-element-definition",
+              name: declaration.tagName!,
+              declaration: { name: declaration.name, module: mod.path },
+            },
+          ],
+        });
+      }
+    }
+    modules = [...modules, ...definitionModules];
+  }
 
   if (options.sort) {
     modules = sortManifest(modules, options.deprecatedLast);
@@ -667,6 +911,38 @@ function toCemPackage(
     schemaVersion: TARGET_CEM_SCHEMA_VERSION,
     modules,
   } as CemPackage;
+}
+
+function rewriteKnownModuleReferences(
+  modules: JavaScriptModule[],
+  internal: InternalManifest
+): void {
+  const paths = new Map<string, string>();
+  for (const module of internal.modules) {
+    if (!module.source) continue;
+    paths.set(module.source, module.path);
+    paths.set(toPosixPath(module.source), module.path);
+  }
+
+  for (const module of modules) {
+    rewriteModuleReferences(module.declarations, paths);
+    rewriteModuleReferences(module.exports, paths);
+  }
+}
+
+function rewriteModuleReferences(value: unknown, paths: Map<string, string>): void {
+  if (Array.isArray(value)) {
+    for (const item of value) rewriteModuleReferences(item, paths);
+    return;
+  }
+  if (!value || typeof value !== "object") return;
+
+  const record = value as Record<string, unknown>;
+  if (typeof record.module === "string") {
+    const resolved = paths.get(record.module) ?? paths.get(toPosixPath(record.module));
+    if (resolved) record.module = resolved;
+  }
+  for (const nested of Object.values(record)) rewriteModuleReferences(nested, paths);
 }
 
 function toCustomElementDeclaration(

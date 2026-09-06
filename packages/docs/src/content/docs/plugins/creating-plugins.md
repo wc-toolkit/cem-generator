@@ -7,6 +7,29 @@ description: Guide to authoring custom detector and annotator plugins for cem-ge
 
 This guide walks through building a detector plugin from scratch. The same principles apply to annotator plugins.
 
+## Pipeline lifecycle
+
+`generateCem()` processes a project in this order:
+
+1. Build a shared TypeScript program from `tsconfig.json`.
+2. Run the built-in vanilla detector and user-supplied detectors per file.
+3. Merge detector fragments using `conflictPolicy` (`last-wins` by default, or
+   `throw`).
+4. Run detector `afterAllFiles` hooks for cross-file detector work.
+5. Materialize built-in inheritance.
+6. Run annotators with the complete manifest.
+7. Convert the internal manifest to CEM 2.1.0 output.
+
+Detector plugins should stay isolated and return fragments for the classes they
+detect. Use `afterAllFiles` for cross-file detection that still belongs to the
+detector. Use an annotator for independent enrichment after all detectors have
+finished.
+
+Detector patches can add fields with `byDeclaration` or `byClassName`. The
+`replaceByDeclaration` and `replaceByClassName` forms are reserved for replacing
+inheritable collections. Annotator patches are additive-only and cannot
+overwrite fields already produced by a detector.
+
 ## Plugin Types
 
 ### DetectorPlugin

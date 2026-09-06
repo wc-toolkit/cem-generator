@@ -85,7 +85,9 @@ export type ManifestFragment = Record<string /* class name */, ClassFragment>;
 export interface InternalManifest {
   schemaVersion: string;
   modules: Array<{
+    source?: string;
     path: string;
+    typeDefinitionPath?: string;
     declarations: ClassFragment[];
   }>;
 }
