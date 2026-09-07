@@ -50,6 +50,7 @@ depend directly on one another. Cross-plugin enrichment belongs in annotators.
 - [Preact Plugin](/plugins/preact/) — Detects `preact-custom-element` registrations and typed Preact component props.
 - [Vue Plugin](/plugins/vue/) — Detects Vue custom elements created with `defineCustomElement`.
 - [Solid Plugin](/plugins/solid/) — Detects Solid Element `customElement` registrations and typed props.
+- [Svelte Plugin](/plugins/svelte/) — Detects Svelte components compiled as custom elements.
 - [Stencil Plugin](/plugins/stencil/) — Detects Stencil components, props, and events.
 
 ## Build Integrations

@@ -167,9 +167,14 @@ const {
   const runtimeResolver = modulePathSkip
     ? (sourceFile: string) => sourceFile
     : createRuntimeResolver(projectDir, readCompilerOptions(resolvedPath));
-  const filteredFiles = filterSourceFiles(sourceFiles, include, exclude, path.dirname(resolvedPath));
-
   const allPlugins: Plugin[] = [vanillaBuiltin(), ...plugins];
+  const additionalFiles = getAdditionalPluginFiles(
+    projectDir,
+    allPlugins,
+    sourceFiles,
+    program.getCompilerOptions()
+  );
+  const filteredFiles = filterSourceFiles([...sourceFiles, ...additionalFiles], include, exclude, projectDir);
   const detectors = allPlugins.filter(isDetectorPlugin);
   const annotators = allPlugins.filter(isAnnotatorPlugin);
 
@@ -215,8 +220,35 @@ const {
     definitionPathTemplate: modulePathSkip ? undefined : definitionPathTemplate,
     excludedNames: new Set(modulePathExclude),
   });
-  validateGeneratedManifest(cem, manifest, checker, sourceFiles, validation);
+  validateGeneratedManifest(cem, manifest, checker, [...sourceFiles, ...additionalFiles], validation);
   return cem;
+}
+
+function getAdditionalPluginFiles(
+  projectDir: string,
+  plugins: Plugin[],
+  existingFiles: ts.SourceFile[],
+  compilerOptions: ts.CompilerOptions
+): ts.SourceFile[] {
+  if (!plugins.some((plugin) => isDetectorPlugin(plugin) && plugin.name === "svelte")) return [];
+  const existing = new Set(existingFiles.map((file) => path.resolve(file.fileName)));
+  const result: ts.SourceFile[] = [];
+
+  function visit(directory: string) {
+    for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+      if (entry.name === "node_modules" || entry.name === ".git" || entry.name === "dist" || entry.name === ".astro") continue;
+      const filePath = path.join(directory, entry.name);
+      if (entry.isDirectory()) {
+        visit(filePath);
+      } else if (entry.isFile() && entry.name.endsWith(".svelte") && !existing.has(path.resolve(filePath))) {
+        const sourceText = fs.readFileSync(filePath, "utf-8");
+        result.push(ts.createSourceFile(filePath, sourceText, compilerOptions.target ?? ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX));
+      }
+    }
+  }
+
+  visit(projectDir);
+  return result;
 }
 
 type ExportTarget = { key: string; types?: string; runtime?: string };

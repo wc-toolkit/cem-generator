@@ -9,6 +9,7 @@
     { "path": "packages/plugins/preact" },
     { "path": "packages/plugins/vue" },
     { "path": "packages/plugins/solid" },
+    { "path": "packages/plugins/svelte" },
     { "path": "packages/bundler-plugin" },
     { "path": "packages/cli" }
   ],

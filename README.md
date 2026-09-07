@@ -56,6 +56,8 @@ handful of deliberate departures from it.
   demonstration of the extension point.
 - `packages/plugins/preact` — detects `preact-custom-element` registrations and
   typed Preact component props.
+- `packages/plugins/svelte` — detects Svelte components compiled as custom
+  elements, including props, slots, parts, styles, and events.
 - `examples/` — fixture components and a runnable script showing vanilla
   resolving with zero plugins passed, plus a framework plugin opted in
   via `plugins: [myPlugin()]`

@@ -306,6 +306,13 @@ declare module 'astro:content' {
   collection: "docs";
   data: InferEntrySchema<"docs">
 } & { render(): Render[".md"] };
+"plugins/svelte.md": {
+	id: "plugins/svelte.md";
+  slug: "plugins/svelte";
+  body: string;
+  collection: "docs";
+  data: InferEntrySchema<"docs">
+} & { render(): Render[".md"] };
 "plugins/vue.md": {
 	id: "plugins/vue.md";
   slug: "plugins/vue";
