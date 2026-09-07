@@ -264,6 +264,13 @@ declare module 'astro:content' {
   collection: "docs";
   data: InferEntrySchema<"docs">
 } & { render(): Render[".md"] };
+"plugins/fast.md": {
+	id: "plugins/fast.md";
+  slug: "plugins/fast";
+  body: string;
+  collection: "docs";
+  data: InferEntrySchema<"docs">
+} & { render(): Render[".md"] };
 "plugins/index.md": {
 	id: "plugins/index.md";
   slug: "plugins";
@@ -274,6 +281,20 @@ declare module 'astro:content' {
 "plugins/lit.md": {
 	id: "plugins/lit.md";
   slug: "plugins/lit";
+  body: string;
+  collection: "docs";
+  data: InferEntrySchema<"docs">
+} & { render(): Render[".md"] };
+"plugins/preact.md": {
+	id: "plugins/preact.md";
+  slug: "plugins/preact";
+  body: string;
+  collection: "docs";
+  data: InferEntrySchema<"docs">
+} & { render(): Render[".md"] };
+"plugins/stencil.md": {
+	id: "plugins/stencil.md";
+  slug: "plugins/stencil";
   body: string;
   collection: "docs";
   data: InferEntrySchema<"docs">

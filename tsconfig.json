@@ -6,6 +6,7 @@
     { "path": "packages/plugins/lit" },
     { "path": "packages/plugins/fast" },
     { "path": "packages/plugins/stencil" },
+    { "path": "packages/plugins/preact" },
     { "path": "packages/bundler-plugin" },
     { "path": "packages/cli" }
   ],

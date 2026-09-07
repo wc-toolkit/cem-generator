@@ -46,6 +46,9 @@ depend directly on one another. Cross-plugin enrichment belongs in annotators.
 ## Official Plugins
 
 - [Lit Plugin](/plugins/lit/) — Detects `@customElement`, `@property`, `@state`, `@query`, `@eventOptions`, and Lit-specific JSDoc tags.
+- [FAST Plugin](/plugins/fast/) — Detects FAST elements, decorators, attributes, and emitted events.
+- [Preact Plugin](/plugins/preact/) — Detects `preact-custom-element` registrations and typed Preact component props.
+- [Stencil Plugin](/plugins/stencil/) — Detects Stencil components, props, and events.
 
 ## Build Integrations
 

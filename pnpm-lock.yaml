@@ -118,6 +118,25 @@ importers:
         specifier: ^3.3.3
         version: 3.3.3
 
+  packages/plugins/preact:
+    dependencies:
+      '@wc-toolkit/cem-generator':
+        specifier: workspace:*
+        version: link:../../core
+      '@wc-toolkit/cem-generator-utils':
+        specifier: workspace:*
+        version: link:../../core-utils
+      typescript:
+        specifier: ^5.9.0
+        version: 5.9.3
+    devDependencies:
+      preact:
+        specifier: ^10.27.2
+        version: 10.29.8
+      preact-custom-element:
+        specifier: ^4.3.0
+        version: 4.6.0(preact@10.29.8)
+
   packages/plugins/stencil:
     dependencies:
       '@wc-toolkit/cem-generator':
@@ -1884,6 +1903,19 @@ packages:
   postcss@8.5.28:
     resolution: {integrity: sha512-RRuzqDtt5Y9h3quz5hWhK+TPnsmVs6WwSU6LkJMeY4HstUEDuYTG8UJSdawMRzmzAtV+KEoG8N3Qg2qLy5vM/A==}
     engines: {node: ^10 || ^12 || >=14}
+
+  preact-custom-element@4.6.0:
+    resolution: {integrity: sha512-RhPMuFpEIsbpEwnF+MoRbddzX0y8AdLn1dSpJSbpc6Nx3aSAPXSW9t2xAqQyGfEH1sl/bcsi8Vf0XbvStUy/Ug==}
+    peerDependencies:
+      preact: '>= 10.25.0 || >=11.0.0-0'
+
+  preact@10.29.8:
+    resolution: {integrity: sha512-ej2aVZ+vZ8WO7tvlQWRM9N63A0KzF9q4mWJfDUHgYaIofWY9hu74QdnQrjoPMmZi2/nZ5gN0bJCQF49xQqx09Q==}
+    peerDependencies:
+      preact-render-to-string: '>=5'
+    peerDependenciesMeta:
+      preact-render-to-string:
+        optional: true
 
   preferred-pm@4.1.1:
     resolution: {integrity: sha512-rU+ZAv1Ur9jAUZtGPebQVQPzdGhNzaEiQ7VL9+cjsAWPHFYOccNXPNiev1CCDSOg/2j7UujM7ojNhpkuILEVNQ==}
@@ -4448,6 +4480,12 @@ snapshots:
       nanoid: 3.3.18
       picocolors: 1.1.1
       source-map-js: 1.2.1
+
+  preact-custom-element@4.6.0(preact@10.29.8):
+    dependencies:
+      preact: 10.29.8
+
+  preact@10.29.8: {}
 
   preferred-pm@4.1.1:
     dependencies:

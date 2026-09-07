@@ -16,6 +16,7 @@
       "@wc-toolkit/cem-generator-lit": ["./packages/plugins/lit/src/index.ts"],
       "@wc-toolkit/cem-generator-fast": ["./packages/plugins/fast/src/index.ts"],
       "@wc-toolkit/cem-generator-stencil": ["./packages/plugins/stencil/src/index.ts"],
+      "@wc-toolkit/cem-generator-preact": ["./packages/plugins/preact/src/index.ts"],
       "@wc-toolkit/cem-generator-bundler": ["./packages/bundler-plugin/src/index.ts"]
     }
   }

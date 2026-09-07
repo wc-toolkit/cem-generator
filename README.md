@@ -53,8 +53,9 @@ handful of deliberate departures from it.
 - `packages/core-utils` — JSDoc extraction, inheritance resolution
 - `packages/bundler-plugin` — Vite/Rollup/Rolldown and Webpack integrations
 - `packages/plugins/lit` — an example framework plugin, kept as a
-  demonstration of the extension point. Per current direction, no
-  further plugins are being built right now — focus is on core.
+  demonstration of the extension point.
+- `packages/plugins/preact` — detects `preact-custom-element` registrations and
+  typed Preact component props.
 - `examples/` — fixture components and a runnable script showing vanilla
   resolving with zero plugins passed, plus a framework plugin opted in
   via `plugins: [myPlugin()]`
