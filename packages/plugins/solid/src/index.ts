@@ -18,7 +18,7 @@ export function solidPlugin(): DetectorPlugin {
   return {
     name: "solid",
 
-    claims(sourceText) {
+    shouldAnalyze(sourceText) {
       return /from\s+["']solid-element["']/.test(sourceText) &&
         /\bcustomElement\s*\(/.test(sourceText);
     },

@@ -32,7 +32,7 @@ export function stencilPlugin(): DetectorPlugin {
   return {
     name: "stencil",
 
-    claims(sourceText) {
+    shouldAnalyze(sourceText) {
       return /from\s+["']@stencil\/core["']/.test(sourceText) ||
         /@(?:Component|Prop|Event)\b/.test(sourceText);
     },

@@ -12,7 +12,7 @@ export function defineRegistrationPlugin(): DetectorPlugin {
   return {
     name: "define-registration-example",
 
-    claims(sourceText) {
+    shouldAnalyze(sourceText) {
       return sourceText.includes("customElements.define") || sourceText.includes("class ");
     },
 

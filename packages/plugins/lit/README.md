@@ -116,7 +116,7 @@ More real fixtures are in `examples/fixtures/my-button.ts` and
 
 ## Agent notes
 
-- Keep `claims()` cheap; this plugin uses text checks before AST work.
+- Keep `shouldAnalyze()` cheap; this plugin uses text checks before AST work.
 - Return class fragments only; leave global enrichment to annotators.
 - Treat this as a minimal reference implementation, not full Lit parity.
 

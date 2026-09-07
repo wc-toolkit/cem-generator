@@ -7,7 +7,7 @@ handful of deliberate departures from it.
 ## Design decisions
 
 - **Disjoint plugins by default, no dependency graph.** A `DetectorPlugin`
-  implements `claims(sourceText)` + `onFile(context)` and returns an
+  implements `shouldAnalyze(sourceText)` + `onFile(context)` and returns an
   isolated fragment; core merges by class name. No shared mutable
   `context` object, no plugin-to-plugin dependency declarations. This was
   chosen over a wireit-style task graph specifically to avoid making every
@@ -26,7 +26,7 @@ handful of deliberate departures from it.
 - **One shared `ts.Program`** built from the project's own `tsconfig.json`
   (respecting `paths`, `include`/`exclude`), reused across every plugin's
   analysis for a run rather than each plugin/file constructing its own.
-- **`claims()` is a cheap text check**, not an AST check — it runs before a
+- **`shouldAnalyze()` is a cheap text check**, not an AST check — it runs before a
   file is even parsed for that plugin, so a project with several installed
   framework plugins doesn't pay full traversal cost per plugin per file.
 - **Inheritance resolution is memoized recursion in `afterAllFiles`

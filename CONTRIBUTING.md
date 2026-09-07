@@ -110,7 +110,7 @@ Use the example run as an additional smoke check after major changes.
 
 ## Plugin contribution guidance
 
-- Keep detector `claims()` checks cheap and text-based.
+- Keep detector `shouldAnalyze()` checks cheap and text-based.
 - Keep detector output isolated; avoid cross-plugin coupling.
 - Use detector `afterAllFiles` for cross-file detector enrichment.
 - Use annotators for additive post-assembly metadata only.

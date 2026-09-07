@@ -30,32 +30,36 @@ Detector patches can add fields with `byDeclaration` or `byClassName`. The
 inheritable collections. Annotator patches are additive-only and cannot
 overwrite fields already produced by a detector.
 
-## Plugin Types
+## Plugin Interface
 
-### DetectorPlugin
-
-Runs per source file. Extracts class fragments (properties, methods, attributes, events, etc.) and merges them into the manifest.
+Plugins use one interface. Implement only the lifecycle hooks that apply to
+your plugin:
 
 ```ts
-interface DetectorPlugin {
+interface Plugin {
   name: string;
-  claims(sourceText: string, filePath: string): boolean;
-  onFile(context: FileContext): ManifestFragment;
-  afterFile?(context: FileContext, ownFragment: ClassFragment | undefined): ClassFragment | undefined;
+  shouldAnalyze?(sourceText: string, filePath: string): boolean;
+  onFile?(context: FileContext): ManifestFragment;
   afterAllFiles?(manifest: Readonly<InternalManifest>): ManifestPatch;
+  afterManifest?(manifest: Readonly<InternalManifest>): ManifestPatch;
 }
 ```
 
-### AnnotatorPlugin
-
-Runs once after all detection and inheritance. Enriches the manifest with cross-cutting data.
+`onFile` and `afterAllFiles` are detector hooks. `afterManifest` is the
+final-manifest enrichment hook and runs after detection and inheritance. A
+plugin that only enriches the assembled manifest can omit `onFile` entirely:
 
 ```ts
-interface AnnotatorPlugin {
-  name: string;
-  afterManifest(manifest: Readonly<InternalManifest>): ManifestPatch;
-}
+const metadataPlugin: Plugin = {
+  name: "metadata",
+  afterManifest(manifest) {
+    return { byClassName: buildMetadataPatch(manifest) };
+  },
+};
 ```
+
+The exported `DetectorPlugin` and `AnnotatorPlugin` types remain available as
+specialized compatibility types for plugins that implement those roles.
 
 ## Minimal Detector Plugin
 
@@ -66,7 +70,7 @@ export const myFrameworkPlugin = (): DetectorPlugin => ({
   name: "my-framework",
   
   // Fast opt-in: check if file might contain your framework's components
-  claims(sourceText: string, filePath: string): boolean {
+  shouldAnalyze(sourceText: string, filePath: string): boolean {
     return sourceText.includes("@MyDecorator") || sourceText.includes("MyBaseClass");
   },
 
@@ -171,7 +175,7 @@ import type { DetectorPlugin, FileContext, ClassFragment, ManifestFragment } fro
 export const mySimplePlugin = (): DetectorPlugin => ({
   name: "my-simple-plugin",
 
-  claims(sourceText) {
+  shouldAnalyze(sourceText) {
     return sourceText.includes("SimpleComponent");
   },
 
@@ -260,7 +264,8 @@ export const myAnnotatorPlugin = (): AnnotatorPlugin => ({
 
 ## Tips
 
-1. **Keep `claims` fast** — only text search, no AST parsing
+1. **Keep `shouldAnalyze` fast** — only text search, no AST parsing. The hook is
+   optional and defaults to `true` when omitted.
 2. **Use core utilities** — `getJSDocInfo`, `getJSDocTagsNamed`, `getJSDocDescription` for standard JSDoc
 3. **Return partial fragments** — core merges fragments from multiple detectors
 4. **Use `byDeclaration` patches** — unambiguous targeting via `modulePath#className`

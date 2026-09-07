@@ -21,7 +21,7 @@ export function fastPlugin(): DetectorPlugin {
   return {
     name: "fast",
 
-    claims(sourceText) {
+    shouldAnalyze(sourceText) {
       return /from\s+["']@microsoft\/fast-(?:element|foundation)["']/.test(sourceText) ||
         /extends\s+(?:FASTElement|FastElement)/.test(sourceText) ||
         /@(?:customElement|attr)\b/.test(sourceText);

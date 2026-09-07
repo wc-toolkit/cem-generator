@@ -18,9 +18,8 @@ Core engine package for developers and agents building CEM analysis flows.
 
 ## Plugin lifecycle
 
-- `claims(sourceText, filePath)` runs once per detector per file as a cheap prefilter
-- `onFile(context)` runs for claimed files and returns class fragments
-- `afterFile(context, classFragment)` runs after per-file fragment merge
+- `shouldAnalyze(sourceText, filePath)` runs once per detector per file as a cheap prefilter
+- `onFile(context)` runs for analyzed files and returns class fragments
 - `afterAllFiles(manifest)` runs once for cross-file detector enrichment with additive-only patch semantics
 - Annotators run after detectors and are also additive-only
 
@@ -46,7 +45,7 @@ const manifest = generateCem({
 
 ## Agent notes
 
-- Treat detector `claims()` as a fast prefilter and keep it text-cheap.
+- Treat detector `shouldAnalyze()` as a fast prefilter and keep it text-cheap.
 - Keep detector output isolated to its own fragment; avoid cross-plugin coupling.
 - Additive enrichment belongs in annotators, not detectors.
 - Use detector `afterAllFiles` only for cross-file detection that still belongs to detector logic.

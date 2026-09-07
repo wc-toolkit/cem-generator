@@ -598,18 +598,19 @@ function analyzeFile(
 
   function claimed(plugin: DetectorPlugin): boolean {
     if (claimedByPlugin.has(plugin)) return claimedByPlugin.get(plugin)!;
-    const value = plugin.claims(sourceText, sourceFile.fileName);
+    const value = plugin.shouldAnalyze?.(sourceText, sourceFile.fileName) ?? true;
     claimedByPlugin.set(plugin, value);
     return value;
   }
 
-  // merged[className] accumulates fragments from every plugin that claims
+  // merged[className] accumulates fragments from every plugin that analyzes
   // this file.
   const merged: Record<string, ClassFragment> = {};
   const fieldOwners: Record<string, Record<string, string>> = {};
 
   for (const plugin of detectors) {
     if (!claimed(plugin)) continue;
+    if (!plugin.onFile) continue;
 
     const fragment = plugin.onFile(context);
     for (const [className, classFragment] of Object.entries(fragment)) {
@@ -624,15 +625,6 @@ function analyzeFile(
         owners,
         conflictPolicy,
       });
-    }
-  }
-
-  for (const plugin of detectors) {
-    if (!plugin.afterFile) continue;
-    if (!claimed(plugin)) continue;
-    for (const className of Object.keys(merged)) {
-      const updated = plugin.afterFile(context, merged[className]);
-      if (updated) merged[className] = updated;
     }
   }
 

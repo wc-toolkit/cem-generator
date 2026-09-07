@@ -32,32 +32,46 @@ function getClass(manifest, moduleSuffix, className) {
   return moduleDoc?.declarations?.find((d) => d.name === className);
 }
 
-test("claims() is evaluated once per plugin per file", () => {
-  let claimsCalls = 0;
+test("shouldAnalyze() is evaluated once per plugin per file", () => {
+  let shouldAnalyzeCalls = 0;
 
   const detector = {
-    name: "claims-once",
-    claims() {
-      claimsCalls += 1;
+    name: "should-analyze-once",
+    shouldAnalyze() {
+      shouldAnalyzeCalls += 1;
       return true;
     },
     onFile() {
       return { ElA: { name: "ElA", fromOnFile: true } };
     },
-    afterFile(_context, fragment) {
-      return fragment;
-    },
   };
 
   generateCem({ tsConfigPath: fixturesTsConfig, include: ["inheritance-fixture.ts"], plugins: [detector] });
 
-  assert.equal(claimsCalls, 1);
+  assert.equal(shouldAnalyzeCalls, 1);
+});
+
+test("detectors without shouldAnalyze analyze files by default", () => {
+  const detector = {
+    name: "always-analyze",
+    onFile() {
+      return { ElA: { name: "ElA", tagName: "x-a" } };
+    },
+  };
+
+  const manifest = generateCem({
+    tsConfigPath: fixturesTsConfig,
+    include: ["inheritance-fixture.ts"],
+    plugins: [detector],
+  });
+
+  assert.equal(getClass(manifest, "inheritance-fixture.ts", "ElA")?.tagName, "x-a");
 });
 
 test("detector conflicts can throw when explicitly configured", () => {
   const first = {
     name: "first",
-    claims() {
+    shouldAnalyze() {
       return true;
     },
     onFile() {
@@ -67,7 +81,7 @@ test("detector conflicts can throw when explicitly configured", () => {
 
   const second = {
     name: "second",
-    claims() {
+    shouldAnalyze() {
       return true;
     },
     onFile() {
@@ -84,7 +98,7 @@ test("detector conflicts can throw when explicitly configured", () => {
 test("detector conflicts use last-wins by default", () => {
   const first = {
     name: "first",
-    claims() {
+    shouldAnalyze() {
       return true;
     },
     onFile() {
@@ -94,7 +108,7 @@ test("detector conflicts use last-wins by default", () => {
 
   const second = {
     name: "second",
-    claims() {
+    shouldAnalyze() {
       return true;
     },
     onFile() {
@@ -110,7 +124,7 @@ test("detector conflicts use last-wins by default", () => {
 test("afterAllFiles patch can target module+class declaration", () => {
   const detector = {
     name: "cross-file",
-    claims() {
+    shouldAnalyze() {
       return true;
     },
     onFile(context) {
@@ -148,7 +162,7 @@ test("afterAllFiles patch can target module+class declaration", () => {
 test("annotator cannot overwrite existing fields", () => {
   const detector = {
     name: "base",
-    claims() {
+    shouldAnalyze() {
       return true;
     },
     onFile() {

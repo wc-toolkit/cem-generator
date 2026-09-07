@@ -25,7 +25,7 @@ export function litPlugin(): DetectorPlugin {
   return {
     name: "lit",
 
-    claims(sourceText) {
+    shouldAnalyze(sourceText) {
       return /from\s+['"]lit['"]/.test(sourceText) ||
         /extends\s+LitElement/.test(sourceText) ||
         /customElements\.define\s*\(/.test(sourceText);

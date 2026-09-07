@@ -18,7 +18,7 @@ export function preactPlugin(): DetectorPlugin {
   return {
     name: "preact",
 
-    claims(sourceText) {
+    shouldAnalyze(sourceText) {
       return /from\s+["']preact-custom-element["']/.test(sourceText) ||
         /\bregister\s*\(/.test(sourceText);
     },

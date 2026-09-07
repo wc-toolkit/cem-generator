@@ -15,7 +15,7 @@ test("preserves source and resolves exact and wildcard package exports", () => {
     plugins: [
       {
         name: "fixture-detector",
-        claims: () => true,
+        shouldAnalyze: () => true,
         onFile(context) {
           if (context.filePath.endsWith("multi.ts")) {
             return {
@@ -64,7 +64,7 @@ test("supports configurable module, definition, and type paths", () => {
     plugins: [
       {
         name: "fixture-detector",
-        claims: () => true,
+        shouldAnalyze: () => true,
         onFile(context) {
           if (context.filePath.endsWith("multi.ts")) {
             return {

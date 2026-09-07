@@ -12,7 +12,7 @@ export function sveltePlugin(): DetectorPlugin {
   return {
     name: "svelte",
 
-    claims(sourceText, filePath) {
+    shouldAnalyze(sourceText, filePath) {
       return filePath.endsWith(".svelte") && /<svelte:options\b[^>]*customElement/.test(sourceText);
     },
 

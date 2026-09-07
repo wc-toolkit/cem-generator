@@ -14,7 +14,7 @@ export function vanillaBuiltin(): DetectorPlugin {
   return {
     name: "vanilla",
 
-    claims(sourceText) {
+    shouldAnalyze(sourceText) {
       return sourceText.includes("HTMLElement") || sourceText.includes("customElements.define");
     },
 

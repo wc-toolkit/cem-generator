@@ -13,7 +13,7 @@ export function vuePlugin(): DetectorPlugin {
   return {
     name: "vue",
 
-    claims(sourceText) {
+    shouldAnalyze(sourceText) {
       return /from\s+["']vue["']/.test(sourceText) &&
         /\bdefineCustomElement\s*\(/.test(sourceText);
     },

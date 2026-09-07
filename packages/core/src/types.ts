@@ -93,23 +93,13 @@ export interface InternalManifest {
   }>;
 }
 
-/**
- * A detector plugin: runs per-file, opt-in via `claims`, returns an isolated
- * fragment. No dependency graph, no shared mutable context — core merges
- * fragments by class name. This is the interface almost every framework
- * plugin (Lit, vanilla, Stencil, ...) implements.
- */
-export interface DetectorPlugin {
+/** Implement only the lifecycle hooks a plugin needs. */
+export interface Plugin {
   name: string;
   /** Cheap, text-level opt-in check — runs before any AST work. */
-  claims(sourceText: string, filePath: string): boolean;
+  shouldAnalyze?(sourceText: string, filePath: string): boolean;
   /** Per-file analysis. Return only the classes this plugin found/enriched. */
-  onFile(context: FileContext): ManifestFragment;
-  /**
-   * Optional per-file hook that runs immediately after detector fragment merge
-   * for a claimed file. Useful for file-scoped follow-up work.
-   */
-  afterFile?(context: FileContext, ownFragment: ClassFragment | undefined): ClassFragment | undefined;
+  onFile?(context: FileContext): ManifestFragment;
   /**
    * Optional whole-manifest detector hook.
    *
@@ -118,19 +108,15 @@ export interface DetectorPlugin {
    * Patch semantics are additive-only, matching annotators.
    */
   afterAllFiles?(manifest: Readonly<InternalManifest>): ManifestPatch;
+  /** Runs after detection and inheritance for cross-cutting enrichment. */
+  afterManifest?(manifest: Readonly<InternalManifest>): ManifestPatch;
 }
 
-/**
- * An annotator plugin: runs once, after the full manifest is assembled.
- * Read-only access to the manifest; returns a patch that may only ADD
- * fields, never overwrite what a detector already wrote. This is how
- * cross-plugin enrichment (e.g. design tokens reading Lit's output) works
- * without a dependency graph between separately-versioned packages.
- */
-export interface AnnotatorPlugin {
-  name: string;
-  afterManifest(manifest: Readonly<InternalManifest>): ManifestPatch;
-}
+/** Compatibility type for plugins that implement source detection. */
+export type DetectorPlugin = Plugin & { onFile: (context: FileContext) => ManifestFragment };
+
+/** Compatibility type for plugins that implement final-manifest enrichment. */
+export type AnnotatorPlugin = Plugin & { afterManifest: (manifest: Readonly<InternalManifest>) => ManifestPatch };
 
 /**
  * Preferred patch form:
@@ -150,10 +136,8 @@ export type ManifestPatch =
     }
   | Record<string, Partial<ClassFragment>>;
 
-export type Plugin = DetectorPlugin | AnnotatorPlugin;
-
 export function isDetectorPlugin(p: Plugin): p is DetectorPlugin {
-  return "onFile" in p;
+  return typeof p.onFile === "function" || typeof p.afterAllFiles === "function";
 }
 
 export function isAnnotatorPlugin(p: Plugin): p is AnnotatorPlugin {
