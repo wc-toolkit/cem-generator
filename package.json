@@ -16,6 +16,7 @@
     "demo:core-utils": "pnpm --filter @wc-toolkit/cem-generator-utils demo",
     "demo:lit": "pnpm --filter @wc-toolkit/cem-generator-lit demo",
     "demo:fast": "pnpm --filter @wc-toolkit/cem-generator-fast demo",
+    "demo:stencil": "pnpm --filter @wc-toolkit/cem-generator-stencil demo",
     "demo:cli": "pnpm --filter @wc-toolkit/cem-generator-cli demo",
     "demo:all": "pnpm -r --filter './packages/**' --if-present demo",
     "test": "pnpm build && pnpm -r --filter './packages/**' --if-present test"

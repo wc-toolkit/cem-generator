@@ -118,6 +118,18 @@ importers:
         specifier: ^3.3.3
         version: 3.3.3
 
+  packages/plugins/stencil:
+    dependencies:
+      '@wc-toolkit/cem-generator':
+        specifier: workspace:*
+        version: link:../../core
+      '@wc-toolkit/cem-generator-utils':
+        specifier: workspace:*
+        version: link:../../core-utils
+      typescript:
+        specifier: ^5.9.0
+        version: 5.9.3
+
 packages:
 
   '@astrojs/compiler@2.13.1':
