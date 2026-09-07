@@ -86,6 +86,22 @@ importers:
         specifier: 4.16.18
         version: 4.16.18(@types/node@26.4.1)(rollup@4.63.1)(typescript@5.9.3)
 
+  packages/plugins/fast:
+    dependencies:
+      '@wc-toolkit/cem-generator':
+        specifier: workspace:*
+        version: link:../../core
+      '@wc-toolkit/cem-generator-utils':
+        specifier: workspace:*
+        version: link:../../core-utils
+      typescript:
+        specifier: ^5.9.0
+        version: 5.9.3
+    devDependencies:
+      '@microsoft/fast-element':
+        specifier: ^3.0.2
+        version: 3.0.2
+
   packages/plugins/lit:
     dependencies:
       '@wc-toolkit/cem-generator':
@@ -671,6 +687,9 @@ packages:
 
   '@mdx-js/mdx@3.1.1':
     resolution: {integrity: sha512-f6ZO2ifpwAQIpzGWaBQT2TXxPv6z3RBzQKpVftEWN78Vl/YweF1uwussDx8ECAXVtr3Rs89fKyG9YlzUs9DyGQ==}
+
+  '@microsoft/fast-element@3.0.2':
+    resolution: {integrity: sha512-eNCfcReRuPXyHOB9fwISEIz7BtCFstbZ6SEWrpcsSkVTQ4CCqr0pBYb9RTPbdqLY86Bt2cnEihDaX4zsKCgwpg==}
 
   '@napi-rs/lzma-linux-x64-gnu@1.5.1':
     resolution: {integrity: sha512-oTXEIha4SsuXdTA4Iyskj0kpdx2yVXdhd75c2v3xGrHFfVMsbhTPZU/nMPL4sWKo4pBHm3aucLaqGlF696dTyQ==}
@@ -2806,6 +2825,8 @@ snapshots:
       vfile: 6.0.3
     transitivePeerDependencies:
       - supports-color
+
+  '@microsoft/fast-element@3.0.2': {}
 
   '@napi-rs/lzma-linux-x64-gnu@1.5.1':
     optional: true

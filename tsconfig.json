@@ -4,6 +4,7 @@
     { "path": "packages/core-utils" },
     { "path": "packages/core" },
     { "path": "packages/plugins/lit" },
+    { "path": "packages/plugins/fast" },
     { "path": "packages/bundler-plugin" },
     { "path": "packages/cli" }
   ],
