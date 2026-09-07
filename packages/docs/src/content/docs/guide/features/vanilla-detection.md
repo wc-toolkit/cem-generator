@@ -5,6 +5,9 @@ description: Built-in detection for vanilla web components without any plugins.
 
 `@wc-toolkit/cem-generator` detects vanilla web components out of the box — no plugins required.
 
+CSS metadata is parsed with the core CSS parser, so `:host` declarations and
+`@property` rules are handled structurally rather than with regular expressions.
+
 ## What's detected
 
 | Feature | Source | Output |

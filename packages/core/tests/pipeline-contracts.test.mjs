@@ -48,7 +48,7 @@ test("claims() is evaluated once per plugin per file", () => {
     },
   };
 
-  generateCem({ tsConfigPath: fixturesTsConfig, plugins: [detector] });
+  generateCem({ tsConfigPath: fixturesTsConfig, include: ["inheritance-fixture.ts"], plugins: [detector] });
 
   assert.equal(claimsCalls, 1);
 });
@@ -101,8 +101,8 @@ test("detector conflicts use last-wins by default", () => {
     },
   };
 
-  const manifest = generateCem({ tsConfigPath: fixturesTsConfig, plugins: [first, second] });
-  const elA = getClass(manifest, "one.ts", "ElA");
+  const manifest = generateCem({ tsConfigPath: fixturesTsConfig, include: ["inheritance-fixture.ts"], plugins: [first, second] });
+  const elA = getClass(manifest, "inheritance-fixture.ts", "ElA");
   assert.equal(elA?.tagName, "x-b");
 });
 
@@ -113,17 +113,17 @@ test("afterAllFiles patch can target module+class declaration", () => {
       return true;
     },
     onFile(context) {
-      if (context.filePath.endsWith("a.ts")) {
+      if (context.filePath.endsWith("inheritance-fixture.ts")) {
         return { Shared: { name: "Shared", module: context.filePath } };
       }
-      if (context.filePath.endsWith("b.ts")) {
+      if (context.filePath.endsWith("parsed-types-element.ts")) {
         return { Shared: { name: "Shared", module: context.filePath } };
       }
       return {};
     },
     afterAllFiles(manifest) {
-      const a = manifest.modules.find((m) => m.path.endsWith("a.ts"));
-      const b = manifest.modules.find((m) => m.path.endsWith("b.ts"));
+      const a = manifest.modules.find((m) => m.path.endsWith("inheritance-fixture.ts"));
+      const b = manifest.modules.find((m) => m.path.endsWith("parsed-types-element.ts"));
       return {
         byDeclaration: {
           [`${a?.path ?? "a.ts"}#Shared`]: { onlyA: true },
@@ -133,10 +133,10 @@ test("afterAllFiles patch can target module+class declaration", () => {
     },
   };
 
-  const manifest = generateCem({ tsConfigPath: fixturesTsConfig, plugins: [detector] });
+  const manifest = generateCem({ tsConfigPath: fixturesTsConfig, include: ["inheritance-fixture.ts", "parsed-types-element.ts"], plugins: [detector] });
 
-  const aDecl = getClass(manifest, "a.ts", "Shared");
-  const bDecl = getClass(manifest, "b.ts", "Shared");
+  const aDecl = getClass(manifest, "inheritance-fixture.ts", "Shared");
+  const bDecl = getClass(manifest, "parsed-types-element.ts", "Shared");
 
   assert.equal(aDecl?.onlyA, true);
   assert.equal(aDecl?.onlyB, undefined);

@@ -1,5 +1,5 @@
 {
-  "name": "@cem-generator/plugin-lit",
+  "name": "@wc-toolkit/cem-generator-lit",
   "version": "0.1.0",
   "type": "module",
   "main": "./dist/index.js",
@@ -9,8 +9,11 @@
     "demo": "tsx demo/run.ts"
   },
   "dependencies": {
-    "@cem-generator/core": "workspace:*",
-    "@cem-generator/core-utils": "workspace:*",
+    "@wc-toolkit/cem-generator": "workspace:*",
+    "@wc-toolkit/cem-generator-utils": "workspace:*",
     "typescript": "^5.9.0"
+  },
+  "devDependencies": {
+    "lit": "^3.3.3"
   }
 }

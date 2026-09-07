@@ -16,7 +16,7 @@ export function detectClassEvents(node: ts.ClassDeclaration, context: FileContex
     ) {
       const event = current.arguments[0];
       if (event && ts.isNewExpression(event) && ts.isIdentifier(event.expression)) {
-        const eventName = resolveStaticString(event.arguments?.[0], node.getSourceFile());
+        const eventName = resolveStaticString(event.arguments?.[0], node.getSourceFile(), context.checker);
         const eventType = resolveEventConstructor(event.expression, node.getSourceFile());
         if (eventName && eventType) {
           const detail = eventType === "CustomEvent" ? getCustomEventDetail(event, context) : undefined;
@@ -76,11 +76,19 @@ function getCustomEventDetail(event: ts.NewExpression, context: FileContext): st
   return detail ? getNodeTypeText(detail.initializer, context.checker) : undefined;
 }
 
-function resolveStaticString(expression: ts.Expression | undefined, sourceFile: ts.SourceFile): string | undefined {
+function resolveStaticString(
+  expression: ts.Expression | undefined,
+  sourceFile: ts.SourceFile,
+  checker: ts.TypeChecker,
+  resolving = new Set<string>()
+): string | undefined {
   if (!expression) return undefined;
   if (ts.isStringLiteralLike(expression)) return expression.text;
   if (!ts.isIdentifier(expression)) return undefined;
   const identifierName = expression.text;
+  const resolutionKey = `${sourceFile.fileName}#${identifierName}`;
+  if (resolving.has(resolutionKey)) return undefined;
+  resolving.add(resolutionKey);
 
   let initializer: ts.Expression | undefined;
   function findDeclaration(node: ts.Node) {
@@ -92,6 +100,13 @@ function resolveStaticString(expression: ts.Expression | undefined, sourceFile: 
     ts.forEachChild(node, findDeclaration);
   }
   findDeclaration(sourceFile);
-  if (initializer) return resolveStaticString(initializer, sourceFile);
+  if (initializer) return resolveStaticString(initializer, sourceFile, checker, resolving);
+
+  const symbol = checker.getSymbolAtLocation(expression);
+  const resolvedSymbol = symbol && symbol.flags & ts.SymbolFlags.Alias ? checker.getAliasedSymbol(symbol) : symbol;
+  const declaration = resolvedSymbol?.declarations?.find(ts.isVariableDeclaration);
+  if (declaration?.initializer) {
+    return resolveStaticString(declaration.initializer, declaration.getSourceFile(), checker, resolving);
+  }
   return undefined;
 }

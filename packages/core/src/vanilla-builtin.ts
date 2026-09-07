@@ -7,6 +7,8 @@ import {
 } from "@wc-toolkit/cem-generator-utils";
 import { detectClassMembers } from "./api-members.js";
 import { detectClassEvents, mergeClassEvents } from "./api-events.js";
+import { detectCustomElementRegistrations } from "./registrations.js";
+import { parseCssMetadata } from "./css-metadata.js";
 
 export function vanillaBuiltin(): DetectorPlugin {
   return {
@@ -18,7 +20,7 @@ export function vanillaBuiltin(): DetectorPlugin {
 
     onFile(context: FileContext): ManifestFragment {
       const fragment: ManifestFragment = {};
-      const tagNamesByClass = collectDefineCalls(context.sourceFile);
+      const tagNamesByClass = detectCustomElementRegistrations(context.sourceFile);
 
       ts.forEachChild(context.sourceFile, function visit(node) {
         if (ts.isClassDeclaration(node) && node.name) {
@@ -315,41 +317,8 @@ function discoverCssPropertiesFromNode(
     }
 
     if (ts.isTemplateExpression(n) || ts.isNoSubstitutionTemplateLiteral(n)) {
-      const text = n.getText();
-
-      const hostBlocks = [...text.matchAll(/:host(?:\([^)]*\))?\s*\{([\s\S]*?)\}/g)];
-      for (const block of hostBlocks) {
-        const declarations = [
-          ...(block[1] ?? "").matchAll(
-            /\/\*\*?([^{}]*?)\*\/\s*(--[a-zA-Z0-9-]+)\s*:\s*([^;}{]+)\s*;/g
-          ),
-        ];
-        for (const [, jsdocComment, name, defaultValue] of declarations) {
-          if (byName.has(name)) continue;
-          byName.set(name, {
-            name,
-            default: defaultValue.trim() || undefined,
-            description: parseCssComment(jsdocComment),
-          });
-        }
-      }
-
-      const propertyRules = [
-        ...text.matchAll(
-          /(?:\/\*\*?([^{}]*?)\*\/\s*)?@property\s+(--[a-zA-Z0-9-]+)\s*\{([\s\S]*?)\}/g
-        ),
-      ];
-      for (const [, jsdocComment, name, body] of propertyRules) {
-        const syntax = extractCssDeclarationValue(body, "syntax");
-        const initialValue = extractCssDeclarationValue(body, "initial-value");
-        const cleanedSyntax = stripCssQuotes(syntax?.trim());
-        const entry = byName.get(name) ?? { name };
-        byName.set(name, {
-          ...entry,
-          syntax: cleanedSyntax ?? entry.syntax,
-          default: initialValue?.trim() || entry.default,
-          description: parseCssComment(jsdocComment) ?? entry.description,
-        });
+      for (const property of parseCssMetadata(n.getText()) ?? []) {
+        byName.set(property.name, { ...byName.get(property.name), ...property });
       }
     }
 
@@ -358,29 +327,6 @@ function discoverCssPropertiesFromNode(
 
   ts.forEachChild(root, visit);
   return byName.size ? [...byName.values()] : undefined;
-}
-
-function extractCssDeclarationValue(block: string, propertyName: string): string | undefined {
-  const match = block.match(new RegExp(`${propertyName}\\s*:\\s*([^;]+)\\s*;`));
-  return match?.[1];
-}
-
-function stripCssQuotes(value: string | undefined): string | undefined {
-  if (!value) return undefined;
-  if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
-    return value.slice(1, -1);
-  }
-  return value;
-}
-
-function parseCssComment(rawComment: string | undefined): string | undefined {
-  if (!rawComment) return undefined;
-  const text = rawComment
-    .split("\n")
-    .map((line) => line.replace(/^\s*\*\s?/, ""))
-    .join("\n")
-    .trim();
-  return text || undefined;
 }
 
 function mergeCssProperties(
@@ -506,25 +452,4 @@ function mergeCssStates(
     byName.set(state.name, { ...byName.get(state.name), ...state });
   }
   return [...byName.values()];
-}
-
-function collectDefineCalls(sourceFile: ts.SourceFile): Map<string, string> {
-  const result = new Map<string, string>();
-
-  ts.forEachChild(sourceFile, function visit(node) {
-    if (
-      ts.isCallExpression(node) &&
-      ts.isPropertyAccessExpression(node.expression) &&
-      node.expression.expression.getText() === "customElements" &&
-      node.expression.name.text === "define"
-    ) {
-      const [tagArg, classArg] = node.arguments;
-      if (tagArg && ts.isStringLiteralLike(tagArg) && classArg && ts.isIdentifier(classArg)) {
-        result.set(classArg.text, tagArg.text);
-      }
-    }
-    ts.forEachChild(node, visit);
-  });
-
-  return result;
 }

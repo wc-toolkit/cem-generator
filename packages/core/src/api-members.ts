@@ -10,7 +10,7 @@ import {
 
 /** Detects public class fields and methods for framework-specific detectors. */
 export function detectClassMembers(
-  node: ts.ClassDeclaration,
+  node: ts.ClassLikeDeclaration,
   context: FileContext
 ): ClassFragment["members"] {
   const byName = new Map<string, NonNullable<ClassFragment["members"]>[number]>();

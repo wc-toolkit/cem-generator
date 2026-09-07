@@ -1,6 +1,8 @@
 import { LitElement, html, css } from "lit";
 import { property, state } from "lit/decorators.js";
 
+export type ButtonVariant = "primary" | "secondary" | "tertiary";
+
 /**
  * A button component.
  * @csspart icon - Styles the icon inside the button
@@ -26,7 +28,7 @@ export class MyButton extends LitElement {
 
   /** The button's visual variant. */
   @property({ type: String })
-  variant = "primary";
+  variant: ButtonVariant = "primary";
 
   /** Tracks the button's pressed state during interaction. */
   @state()

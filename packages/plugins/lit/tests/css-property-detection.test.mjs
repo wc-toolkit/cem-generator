@@ -18,6 +18,105 @@ test("captures only declared CSS custom properties and @property metadata", () =
 
   assert.ok(decl, "Expected LitCssPropsEl declaration");
 
+  const publicField = (decl.members ?? []).find((member) => member.name === "publicField");
+  assert.equal(publicField?.kind, "field");
+  assert.equal(publicField?.type?.text, "string");
+
+  const describeSurface = (decl.members ?? []).find((member) => member.name === "describeSurface");
+  assert.equal(describeSurface?.kind, "method");
+  assert.equal(describeSurface?.parameters?.[0]?.type?.text, "string");
+  assert.equal(describeSurface?.return?.type?.text, "string");
+
+  const surfaceChanged = (decl.events ?? []).find((event) => event.name === "surface-changed");
+  assert.equal(surfaceChanged?.type?.text, "CustomEvent");
+  assert.equal(surfaceChanged?.detail?.text, "string");
+
+  assert.equal(decl.tagName, "lit-css-props");
+
+  const surfaceColor = (decl.members ?? []).find((member) => member.name === "surfaceColor");
+  assert.equal(surfaceColor?.attribute, "surface-color");
+  assert.equal(surfaceColor?.reflects, true);
+
+  const internalValue = (decl.members ?? []).find((member) => member.name === "internalValue");
+  assert.equal(internalValue?.internal, true);
+
+  const internalPropertyValue = (decl.members ?? []).find((member) => member.name === "internalPropertyValue");
+  assert.equal(internalPropertyValue?.internal, true);
+  assert.equal(internalPropertyValue?.attribute, undefined);
+
+  const button = (decl.members ?? []).find((member) => member.name === "button");
+  assert.equal(button?.internal, true);
+  assert.equal(button?.attribute, undefined);
+
+  const legacyFlag = (decl.members ?? []).find((member) => member.name === "legacyFlag");
+  assert.equal(legacyFlag?.attribute, "legacy-flag");
+  assert.equal(legacyFlag?.reflects, true);
+  assert.equal(legacyFlag?.type?.text, "boolean");
+
+  assert.equal(decl.mixins?.[0]?.name, "InputMixin");
+  assert.equal(typeof decl.mixins?.[0]?.module, "string");
+  const disabled = (decl.members ?? []).find((member) => member.name === "disabled");
+  assert.equal(disabled?.attribute, "disabled");
+  assert.deepEqual(disabled?.inheritedFrom, decl.mixins?.[0]);
+  const mixin = (manifest.modules ?? []).flatMap((module) => module.declarations).find((item) => item.name === "InputMixin");
+  assert.equal(mixin?.kind, "mixin");
+  assert.ok(mixin?.members?.some((member) => member.name === "disabled"));
+  assert.equal(
+    manifest.modules[0].exports?.some((entry) => entry.kind === "js" && entry.name === "InputMixin"),
+    true
+  );
+
+  const chainedValue = (decl.members ?? []).find((member) => member.name === "chainedValue");
+  assert.equal(chainedValue?.attribute, "chained-value");
+
+  const importedElement = manifest.modules
+    .flatMap((module) => module.declarations)
+    .find((item) => item.name === "ImportedLitElement");
+  assert.equal(importedElement?.tagName, "imported-lit-element");
+  assert.equal(importedElement?.members?.find((member) => member.name === "externalValue")?.attribute, "external-value");
+
+  const registeredElement = manifest.modules
+    .flatMap((module) => module.declarations)
+    .find((item) => item.name === "RegisteredLitElement");
+  assert.equal(registeredElement?.tagName, "registered-lit-element");
+
+  const getterElement = manifest.modules
+    .flatMap((module) => module.declarations)
+    .find((item) => item.name === "GetterPropertiesElement");
+  const getterFlag = getterElement?.members?.find((member) => member.name === "getterFlag");
+  assert.equal(getterFlag?.attribute, "getterFlag");
+  assert.equal(getterFlag?.reflects, true);
+  const getterInternal = getterElement?.members?.find((member) => member.name === "getterInternal");
+  assert.equal(getterInternal?.attribute, undefined);
+  assert.equal(getterFlag?.default, "false");
+
+  const collapsed = manifest.modules
+    .flatMap((module) => module.declarations)
+    .find((item) => item.name === "CollapsedElement");
+  assert.equal(collapsed?.tagName, "collapsed-element");
+  assert.ok(collapsed?.members?.some((member) => member.name === "lastName" && member.default === '"Doe"'));
+  assert.ok(collapsed?.members?.some((member) => member.name === "firstName" && member.default === '"John"'));
+  assert.ok(collapsed?.members?.some((member) => member.name === "mixA" && member.inheritedFrom?.name === "MixinA"));
+  assert.ok(collapsed?.members?.some((member) => member.name === "mixB" && member.inheritedFrom?.name === "MixinB"));
+
+  const crossModule = manifest.modules
+    .flatMap((module) => module.declarations)
+    .find((item) => item.name === "CrossModuleLitElement");
+  assert.equal(crossModule?.tagName, "cross-module-lit");
+
+  assert.equal((decl.members ?? []).some((member) => member.name === "render"), false);
+  assert.equal((decl.members ?? []).some((member) => member.name === "properties"), false);
+  assert.equal((decl.members ?? []).some((member) => member.name === "styles"), false);
+  for (const internalName of [
+    "controllers",
+    "addController",
+    "removeController",
+    "hostConnected",
+    "hostDisconnected",
+  ]) {
+    assert.equal((decl.members ?? []).some((member) => member.name === internalName), false, internalName);
+  }
+
   const cssProps = decl.cssProperties ?? [];
 
   const surface = cssProps.find((p) => p.name === "--surface-color");

@@ -1,4 +1,4 @@
-# @cem-generator/plugin-lit
+# @wc-toolkit/cem-generator-lit
 
 Reference Lit detector plugin for developers and agents extending `cem-generator`.
 
@@ -11,7 +11,13 @@ Reference Lit detector plugin for developers and agents extending `cem-generator
 ## What this plugin detects
 
 - Classes extending `LitElement`
+- Custom-element tags from `@customElement(...)` or `customElements.define(...)`
 - Decorated members from `@property(...)` and `@state(...)`
+- Legacy `static properties` and `static get properties()` metadata
+- Internal Lit members from `@internalProperty` and query decorators
+- Reactive controller infrastructure is excluded from public members
+- Constructor-assigned defaults and nested/imported mixins
+- Cross-module `customElements.define(...)` registrations
 - CSS custom properties defined in `:host { --token: ... }`
 - CSS `@property --token { syntax: ...; initial-value: ... }` metadata
 - JSDoc for CSS properties from class tags and comments above CSS declarations
@@ -19,8 +25,8 @@ Reference Lit detector plugin for developers and agents extending `cem-generator
 ## Usage
 
 ```ts
-import { generateCem } from "@cem-generator/core";
-import { litPlugin } from "@cem-generator/plugin-lit";
+import { generateCem } from "@wc-toolkit/cem-generator";
+import { litPlugin } from "@wc-toolkit/cem-generator-lit";
 
 const manifest = generateCem({
   projectTsconfigPath: "./tsconfig.json",

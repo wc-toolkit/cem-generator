@@ -694,13 +694,30 @@ function applyManifestPatch(
   }
 
   const isStructuredPatch =
-    !!patch && typeof patch === "object" && ("byDeclaration" in patch || "byClassName" in patch);
+    !!patch &&
+    typeof patch === "object" &&
+    ("byDeclaration" in patch || "byClassName" in patch || "replaceByDeclaration" in patch || "replaceByClassName" in patch);
 
   const byDeclaration = isStructuredPatch && "byDeclaration" in patch ? patch.byDeclaration ?? {} : {};
   const byClassName =
     isStructuredPatch && "byClassName" in patch
       ? patch.byClassName ?? {}
       : (patch as Record<string, Partial<ClassFragment>>);
+  const replaceByDeclaration = isStructuredPatch && "replaceByDeclaration" in patch ? patch.replaceByDeclaration ?? {} : {};
+  const replaceByClassName = isStructuredPatch && "replaceByClassName" in patch ? patch.replaceByClassName ?? {} : {};
+
+  for (const [declarationKey, patchForClass] of Object.entries(replaceByDeclaration)) {
+    const decl = declarationByKey.get(declarationKey);
+    if (!decl || !patchForClass) continue;
+    Object.assign(decl, patchForClass);
+  }
+
+  for (const mod of manifest.modules) {
+    for (const decl of mod.declarations) {
+      const patchForClass = replaceByClassName[decl.name];
+      if (patchForClass) Object.assign(decl, patchForClass);
+    }
+  }
 
   for (const [declarationKey, patchForClass] of Object.entries(byDeclaration)) {
     const decl = declarationByKey.get(declarationKey);
@@ -950,8 +967,8 @@ function toCustomElementDeclaration(
   customJsDocTagsConfig?: CustomTagOptions
 ): CustomElementDeclaration {
   const known = {
-    kind: "class",
-    customElement: true,
+    kind: asString(fragment.kind) ?? "class",
+    customElement: typeof fragment.customElement === "boolean" ? fragment.customElement : true,
     name: fragment.name,
     description: asString(fragment.description),
     summary: asString(fragment.summary),
@@ -970,6 +987,7 @@ function toCustomElementDeclaration(
     cssProperties: toCssProperties(fragment.cssProperties),
     cssParts: toCssParts(fragment.cssParts),
     cssStates: toCssStates(fragment.cssStates),
+    ...(Array.isArray(fragment.parameters) ? { parameters: fragment.parameters } : {}),
   };
 
   const extraFields = Object.fromEntries(
@@ -977,6 +995,8 @@ function toCustomElementDeclaration(
       ([key]) =>
         ![
           "name",
+          "kind",
+          "customElement",
           "module",
           "exportName",
           "tagName",
@@ -990,6 +1010,7 @@ function toCustomElementDeclaration(
           "cssStates",
           "slots",
           "events",
+          "parameters",
           "description",
           "customJsDocTags",
           "omitInherited",
