@@ -92,9 +92,9 @@ Use the example run as an additional smoke check after major changes.
 ## Workspace tips
 
 - Workspace packages:
-  - `@cem-generator/core-utils`
-  - `@cem-generator/core`
-  - `@cem-generator/plugin-lit`
+  - `@wc-toolkit/cem-generator-utils`
+  - `@wc-toolkit/cem-generator`
+  - `@wc-toolkit/cem-generator-lit`
 - Root `tsconfig.json` uses project references; package `tsconfig.json` files participate in the root build.
 
 ## Contribution workflow
@@ -114,4 +114,4 @@ Use the example run as an additional smoke check after major changes.
 - Keep detector output isolated; avoid cross-plugin coupling.
 - Use detector `afterAllFiles` for cross-file detector enrichment.
 - Use annotators for additive post-assembly metadata only.
-- Reuse shared helpers from `@cem-generator/core-utils` instead of duplicating logic.
+- Reuse shared helpers from `@wc-toolkit/cem-generator-utils` instead of duplicating logic.

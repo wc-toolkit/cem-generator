@@ -29,16 +29,16 @@ importers:
 
   packages/bundler-plugin:
     dependencies:
-      '@cem-generator/core':
+      '@wc-toolkit/cem-generator':
         specifier: workspace:*
         version: link:../core
 
   packages/cli:
     dependencies:
-      '@cem-generator/core':
+      '@wc-toolkit/cem-generator':
         specifier: workspace:*
         version: link:../core
-      '@cem-generator/core-utils':
+      '@wc-toolkit/cem-generator-utils':
         specifier: workspace:*
         version: link:../core-utils
       commander:
@@ -57,7 +57,7 @@ importers:
 
   packages/core:
     dependencies:
-      '@cem-generator/core-utils':
+      '@wc-toolkit/cem-generator-utils':
         specifier: workspace:*
         version: link:../core-utils
       typescript:
@@ -85,10 +85,10 @@ importers:
 
   packages/plugins/lit:
     dependencies:
-      '@cem-generator/core':
+      '@wc-toolkit/cem-generator':
         specifier: workspace:*
         version: link:../../core
-      '@cem-generator/core-utils':
+      '@wc-toolkit/cem-generator-utils':
         specifier: workspace:*
         version: link:../../core-utils
       typescript:

@@ -3,7 +3,7 @@ import { Command } from "commander";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import fs from "node:fs";
-import { generateCem, type RunOptions, loadConfig, mergeConfig } from "@cem-generator/core";
+import { generateCem, type RunOptions, loadConfig, mergeConfig } from "@wc-toolkit/cem-generator";
 import type { Package as CemPackage } from "custom-elements-manifest";
 
 const __filename = fileURLToPath(import.meta.url);

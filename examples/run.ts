@@ -1,8 +1,8 @@
 import path from "node:path";
 import fs from "node:fs";
 import { fileURLToPath } from "node:url";
-import { generateCem } from "@cem-generator/core";
-import { litPlugin } from "@cem-generator/plugin-lit";
+import { generateCem } from "@wc-toolkit/cem-generator";
+import { litPlugin } from "@wc-toolkit/cem-generator-lit";
 import { defineRegistrationPlugin } from "./plugins/define-registration-plugin.ts";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));

@@ -1,7 +1,7 @@
 import ts from "typescript";
 import path from "node:path";
 import fs from "node:fs";
-import { parseCustomTagValue } from "@cem-generator/core-utils";
+import { parseCustomTagValue } from "@wc-toolkit/cem-generator-utils";
 import {
   ClassFragment,
   InternalManifest,
@@ -1030,7 +1030,10 @@ function toMembers(
           privacy: asPrivacy(member.privacy),
           static: asBoolean(member.static),
           parameters: toParameters(member.parameters),
-          return: toMethodReturn(member.return),
+           return: toMethodReturn(member.return),
+           ...(member as Record<string, unknown>).inheritedFrom
+             ? { inheritedFrom: (member as Record<string, unknown>).inheritedFrom }
+             : {},
           ...(toType((member as Record<string, unknown>).parsedType)
             ? {
                 "parsedType": toType((member as Record<string, unknown>).parsedType),
@@ -1050,17 +1053,23 @@ function toMembers(
         return method;
       }
 
-      const field = {
-        kind: "field",
-        name: member.name,
+        const field = {
+          kind: "field",
+          name: member.name,
         description: asString(member.description),
         summary: asString(member.summary),
         deprecated: asDeprecated(member.deprecated),
         privacy: asPrivacy(member.privacy),
         static: asBoolean(member.static),
-        readonly: asBoolean(member.readonly),
-        default: asString(member.default),
-        type: toType(member.type),
+          readonly: asBoolean(member.readonly),
+          default: asString(member.default),
+          attribute: asString((member as Record<string, unknown>).attribute),
+          reflects: asBoolean((member as Record<string, unknown>).reflects),
+           internal: asBoolean((member as Record<string, unknown>).internal),
+           ...(member as Record<string, unknown>).inheritedFrom
+             ? { inheritedFrom: (member as Record<string, unknown>).inheritedFrom }
+             : {},
+          type: toType(member.type),
         ...(toType((member as Record<string, unknown>).parsedType)
           ? {
               "parsedType": toType((member as Record<string, unknown>).parsedType),
@@ -1117,6 +1126,11 @@ function toEvents(events: ClassFragment["events"]): Event[] | undefined {
       summary: asString(event.summary),
       deprecated: asDeprecated(event.deprecated),
       type: toType(event.type) ?? { text: "Event" },
+      ...(toType((event as Record<string, unknown>).detail)
+        ? {
+            detail: toType((event as Record<string, unknown>).detail),
+          }
+        : {}),
       ...(toType((event as Record<string, unknown>).parsedType)
         ? {
             "parsedType": toType((event as Record<string, unknown>).parsedType),

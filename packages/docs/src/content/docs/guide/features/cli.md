@@ -3,21 +3,21 @@ title: CLI
 description: Command-line interface for zero-config manifest generation.
 ---
 
-The `@cem-generator/cli` package provides a zero-config command line interface:
+The `@wc-toolkit/cem-generator-cli` package provides a zero-config command line interface:
 
 ```bash
 # Basic usage
-npx @cem-generator/cli generate
+npx @wc-toolkit/cem-generator-cli generate
 
 # With options
-npx @cem-generator/cli generate \
+npx @wc-toolkit/cem-generator-cli generate \
   --tsconfig ./tsconfig.lib.json \
   --output ./dist/custom-elements.json \
   --include "src/**/*.ts" \
   --deprecated-last
 
 # Load custom plugins
-npx @cem-generator/cli generate --plugin ./my-plugin.js
+npx @wc-toolkit/cem-generator-cli generate --plugin ./my-plugin.js
 ```
 
 ## Config file

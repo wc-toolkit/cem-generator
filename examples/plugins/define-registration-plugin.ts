@@ -1,5 +1,5 @@
 import ts from "typescript";
-import type { DetectorPlugin, FileContext, ManifestFragment } from "@cem-generator/core";
+import type { DetectorPlugin, FileContext, ManifestFragment } from "@wc-toolkit/cem-generator";
 
 /**
  * Example detector showing a cross-file pattern:

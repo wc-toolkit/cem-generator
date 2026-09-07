@@ -5,7 +5,7 @@ import {
   loadConfig,
   mergeConfig,
   type RunOptions,
-} from "@cem-generator/core";
+} from "@wc-toolkit/cem-generator";
 
 const SOURCE_EXTENSIONS = new Set([".js", ".mjs", ".cjs", ".ts", ".mts", ".cts", ".jsx", ".tsx"]);
 

@@ -3,18 +3,18 @@ title: CLI
 description: Use the cem CLI to generate Custom Elements Manifests from the command line.
 ---
 
-The `@cem-generator/cli` package provides a `cem` command for generating manifests without writing code.
+The `@wc-toolkit/cem-generator-cli` package provides a `cem` command for generating manifests without writing code.
 
 ## Install
 
 ```bash
-npm install -D @cem-generator/cli
+npm install -D @wc-toolkit/cem-generator-cli
 ```
 
 Or use it directly with `npx`:
 
 ```bash
-npx @cem-generator/cli generate
+npx @wc-toolkit/cem-generator-cli generate
 ```
 
 ## Quick Start
@@ -85,7 +85,7 @@ Add to your build scripts:
 For advanced use cases, use the core package directly:
 
 ```ts
-import { generateCem } from "@cem-generator/core";
+import { generateCem } from "@wc-toolkit/cem-generator";
 import fs from "node:fs";
 
 const manifest = generateCem({

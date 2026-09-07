@@ -5,23 +5,14 @@ description: What cem-generator does, why it helps, and how to get started.
 
 `cem-generator` generates a **Custom Elements Manifest (CEM)** — a machine-readable JSON file describing your custom elements. This manifest powers documentation sites, IDE autocomplete, and tooling across the web components ecosystem.
 
-## Why use it?
-
-| Without cem-generator | With cem-generator |
-|----------------------|-------------------|
-| Manual manifest maintenance | Auto-generated from source |
-| Docs drift out of sync | Docs always reflect code |
-| No IDE support for your components | Full autocomplete & hover docs |
-| Framework-specific tooling only | Works with any framework |
-
 ## Install
 
 ```bash
 # Core only (vanilla components)
-npm install -D @cem-generator/core
+npm install -D @wc-toolkit/cem-generator
 
 # With CLI
-npm install -D @cem-generator/cli
+npm install -D @wc-toolkit/cem-generator-cli
 ```
 
 ## Quick Start
@@ -30,7 +21,7 @@ npm install -D @cem-generator/cli
 
 ```ts
 // generate-cem.ts
-import { generateCem } from "@cem-generator/core";
+import { generateCem } from "@wc-toolkit/cem-generator";
 import fs from "node:fs";
 
 const manifest = generateCem({
@@ -48,7 +39,7 @@ npx tsx generate-cem.ts
 
 ```bash
 # Zero-config (uses ./tsconfig.json -> ./custom-elements.json)
-npx @cem-generator/cli generate
+npx @wc-toolkit/cem-generator-cli generate
 ```
 
 ## Demo

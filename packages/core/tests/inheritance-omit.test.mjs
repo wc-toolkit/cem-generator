@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { resolveInheritedCollection } from "@cem-generator/core-utils";
+import { resolveInheritedCollection } from "@wc-toolkit/cem-generator-utils";
 
 test("resolveInheritedCollection omits inherited names from class metadata + config", () => {
   const base = {
@@ -55,7 +55,7 @@ test("resolveInheritedCollection omits inherited names from class metadata + con
 });
 
 test("parseCemClassTags exposes omitInherited from JSDoc tags", async () => {
-  const { parseCemClassTags } = await import("@cem-generator/core-utils");
+  const { parseCemClassTags } = await import("@wc-toolkit/cem-generator-utils");
   const { default: ts } = await import("typescript");
 
   const source = ts.createSourceFile(

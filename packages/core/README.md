@@ -1,4 +1,4 @@
-# @cem-generator/core
+# @wc-toolkit/cem-generator
 
 Core engine package for developers and agents building CEM analysis flows.
 
@@ -14,7 +14,7 @@ Core engine package for developers and agents building CEM analysis flows.
 - Runs detector plugins per source file and merges fragments by class name
 - Runs annotator plugins after manifest assembly with additive-only enforcement
 - Includes built-in vanilla `HTMLElement` detection (always on)
-- Re-exports shared helpers from `@cem-generator/core-utils`
+- Re-exports shared helpers from `@wc-toolkit/cem-generator-utils`
 
 ## Plugin lifecycle
 
@@ -35,8 +35,8 @@ Core engine package for developers and agents building CEM analysis flows.
 ## Integration pattern
 
 ```ts
-import { generateCem } from "@cem-generator/core";
-import { myPlugin } from "@cem-generator/plugin-my-framework";
+import { generateCem } from "@wc-toolkit/cem-generator";
+import { myPlugin } from "@wc-toolkit/plugin-my-framework";
 
 const manifest = generateCem({
   tsConfigPath: "./tsconfig.json",
@@ -59,6 +59,6 @@ const manifest = generateCem({
 
 ## Demo
 
-- Run `pnpm --filter @cem-generator/core demo`
+- Run `pnpm --filter @wc-toolkit/cem-generator demo`
 - Input fixtures live in `packages/core/demo/fixtures/` and include both JS and TS examples.
 - Output manifest is written to `packages/core/demo/custom-elements.json`.

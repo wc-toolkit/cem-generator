@@ -148,6 +148,12 @@ export class MyButton extends HTMLElement {
 | `@fires name` | Same as `@event` |
 | `@fires {Type} name` | Same as `@event` with a type |
 
+Core also detects statically named platform events dispatched with
+`dispatchEvent(new Event(...))` or `dispatchEvent(new CustomEvent(...))`.
+For `CustomEvent`, the generated event includes the statically inferred
+`detail` type when available. Use `@event` or `@fires` for dynamic event names
+or additional descriptions.
+
 ## Slots
 
 Slot elements in template literals are auto-discovered. This includes template literals in the class body (e.g. inside `connectedCallback` or a `render()` method) and module-level template literals in the same file. An HTML comment immediately before a `<slot>` tag becomes its description:

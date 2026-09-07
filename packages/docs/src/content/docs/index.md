@@ -8,7 +8,7 @@ description: Generate Custom Elements Manifests for component libraries quickly 
 ## Install
 
 ```bash
-npm install -D @cem-generator/core
+npm install -D @wc-toolkit/cem-generator
 ```
 
 ## Usage
@@ -16,7 +16,7 @@ npm install -D @cem-generator/core
 If your project has a TS config other than one at the root of the project called `tsconfig.json`, you can add it to the `generateCem` config:
 
 ```ts
-import { generateCem } from "@cem-generator/core";
+import { generateCem } from "@wc-toolkit/cem-generator";
 
 const manifest = generateCem({
   tsConfigPath: "./tsconfig.lib.json",

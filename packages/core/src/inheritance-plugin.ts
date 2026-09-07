@@ -1,5 +1,5 @@
 import type { AnnotatorPlugin, ClassFragment, InternalManifest, OmitInheritedMap } from "./types.js";
-import { resolveInheritedCollection, type InheritableCollectionKey } from "@cem-generator/core-utils";
+import { resolveInheritedCollection, type InheritableCollectionKey } from "@wc-toolkit/cem-generator-utils";
 
 export interface InheritancePluginOptions {
   include?: InheritableCollectionKey[];

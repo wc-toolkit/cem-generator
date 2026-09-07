@@ -45,11 +45,11 @@ To use a `.ts` config file, install `tsx`:
 npm install --save-dev tsx
 ```
 
-The config file can use TypeScript syntax and import types from `@cem-generator/core`:
+The config file can use TypeScript syntax and import types from `@wc-toolkit/cem-generator`:
 
 ```ts
 // cem-generator.config.ts
-import type { RunOptions } from "@cem-generator/core";
+import type { RunOptions } from "@wc-toolkit/cem-generator";
 
 export default {
   include: ["src/**/*.ts"],
@@ -61,7 +61,7 @@ export default {
 ## generateCem() Options
 
 ```ts
-import { generateCem } from "@cem-generator/core";
+import { generateCem } from "@wc-toolkit/cem-generator";
 
 const manifest = generateCem({
   // Required: path to tsconfig.json

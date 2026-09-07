@@ -3,7 +3,7 @@ title: Vanilla Detection
 description: Built-in detection for vanilla web components without any plugins.
 ---
 
-`@cem-generator/core` detects vanilla web components out of the box — no plugins required.
+`@wc-toolkit/cem-generator` detects vanilla web components out of the box — no plugins required.
 
 ## What's detected
 
@@ -12,7 +12,7 @@ description: Built-in detection for vanilla web components without any plugins.
 | Custom elements | `class extends HTMLElement` + `customElements.define()` | `declarations[].tagName` |
 | Attributes | `static observedAttributes` | `attributes[]` |
 | Properties & methods | Class fields/methods | `members[]` |
-| Events | `@fires` JSDoc tag | `events[]` |
+| Events | `dispatchEvent(new Event/CustomEvent(...))` + `@fires` JSDoc tag | `events[]` |
 | Slots | `<slot>` elements in template literals + `@slot` JSDoc tag | `slots[]` |
 | CSS custom properties | `:host` + `@property` in templates, `@cssprop` JSDoc tag | `cssProperties[]` |
 | CSS shadow parts | `part="..."` in templates + `@csspart` JSDoc tag | `cssParts[]` |
@@ -22,13 +22,27 @@ description: Built-in detection for vanilla web components without any plugins.
 ## Usage
 
 ```ts
-import { generateCem } from "@cem-generator/core";
+import { generateCem } from "@wc-toolkit/cem-generator";
 
 const manifest = generateCem({
   tsConfigPath: "./tsconfig.json",
   // no plugins needed for vanilla components
 });
 ```
+
+### Automatic Events
+
+Core also detects statically named platform events dispatched from a component:
+
+```ts
+this.dispatchEvent(new CustomEvent("value-changed", {
+  detail: this.value,
+}));
+```
+
+The generated event includes `name: "value-changed"`, `type: "CustomEvent"`, and
+the statically inferred `detail` type when available. Dynamic event names are
+left for JSDoc documentation with `@event` or `@fires`.
 
 ## Example
 

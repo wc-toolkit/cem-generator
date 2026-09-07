@@ -17,8 +17,8 @@ Plugins let you add framework-specific detection, cross-file enrichment, or cust
 Plugins are passed to `generateCem()`:
 
 ```ts
-import { generateCem } from "@cem-generator/core";
-import { myPlugin } from "@cem-generator/plugin-my-framework";
+import { generateCem } from "@wc-toolkit/cem-generator";
+import { myPlugin } from "@wc-toolkit/plugin-my-framework";
 
 const manifest = generateCem({
   tsConfigPath: "./tsconfig.json",

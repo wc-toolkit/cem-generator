@@ -1,9 +1,9 @@
-# @cem-generator/bundler-plugin
+# @wc-toolkit/cem-generator-bundler
 
-Run `@cem-generator/core` from Vite, Rollup, Rolldown, or Webpack builds.
+Run `@wc-toolkit/cem-generator` from Vite, Rollup, Rolldown, or Webpack builds.
 
 ```ts
-import { cemGeneratorPlugin } from "@cem-generator/bundler-plugin/vite";
+import { cemGeneratorPlugin } from "@wc-toolkit/cem-generator-bundler/vite";
 
 export default {
   plugins: [

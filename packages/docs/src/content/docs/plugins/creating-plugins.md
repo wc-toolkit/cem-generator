@@ -60,7 +60,7 @@ interface AnnotatorPlugin {
 ## Minimal Detector Plugin
 
 ```ts
-import type { DetectorPlugin, FileContext, ClassFragment, ManifestFragment } from "@cem-generator/core";
+import type { DetectorPlugin, FileContext, ClassFragment, ManifestFragment } from "@wc-toolkit/cem-generator";
 
 export const myFrameworkPlugin = (): DetectorPlugin => ({
   name: "my-framework",
@@ -148,7 +148,7 @@ function extractClassFragment(
 Reuse core utilities for standard JSDoc parsing:
 
 ```ts
-import { getJSDocTagsNamed, getJSDocInfo } from "@cem-generator/core-utils";
+import { getJSDocTagsNamed, getJSDocInfo } from "@wc-toolkit/cem-generator-utils";
 
 function extractAttributes(node: ts.ClassDeclaration): ClassFragment["attributes"] {
   const tags = getJSDocTagsNamed(node, "attribute");
@@ -166,7 +166,7 @@ function extractAttributes(node: ts.ClassDeclaration): ClassFragment["attributes
 ```ts
 // my-plugin.ts
 import ts from "typescript";
-import type { DetectorPlugin, FileContext, ClassFragment, ManifestFragment } from "@cem-generator/core";
+import type { DetectorPlugin, FileContext, ClassFragment, ManifestFragment } from "@wc-toolkit/cem-generator";
 
 export const mySimplePlugin = (): DetectorPlugin => ({
   name: "my-simple-plugin",
@@ -222,7 +222,7 @@ function extractMembers(node: ts.ClassDeclaration, checker: ts.TypeChecker): Cla
 ## Using the Plugin
 
 ```ts
-import { generateCem } from "@cem-generator/core";
+import { generateCem } from "@wc-toolkit/cem-generator";
 import { mySimplePlugin } from "./my-plugin.js";
 
 const manifest = generateCem({
@@ -234,7 +234,7 @@ const manifest = generateCem({
 ## Annotator Plugin Example
 
 ```ts
-import type { AnnotatorPlugin, InternalManifest, ManifestPatch } from "@cem-generator/core";
+import type { AnnotatorPlugin, InternalManifest, ManifestPatch } from "@wc-toolkit/cem-generator";
 
 export const myAnnotatorPlugin = (): AnnotatorPlugin => ({
   name: "my-annotator",

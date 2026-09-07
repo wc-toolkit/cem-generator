@@ -3,14 +3,46 @@ title: Lit Plugin
 description: Reference detector plugin for Lit projects.
 ---
 
-@cem-generator/plugin-lit demonstrates framework-specific detection on top of core.
+@wc-toolkit/cem-generator-lit demonstrates framework-specific detection on top of the generator.
 
 ## Detects
 
 - classes extending `LitElement`
-- decorated fields from `@property(...)` and `@state(...)`
+- shared class API members, including fields, methods, parameters, and return types
+- decorated fields from `@property(...)` and `@state(...)`, including decorator aliases
+- `static properties` declarations
+- `@customElement("tag-name")` registrations
+- direct callable mixins such as `InputMixin(LitElement)`
 - class JSDoc tags (`@tag`, `@event`, `@cssprop`, etc.)
 - CSS parts from template `part="..."` attributes
+
+Lit lifecycle methods such as `render`, `updated`, and `requestUpdate` are
+excluded from the public API member list. Component methods that dispatch
+static `Event` or `CustomEvent` instances are detected by core automatically.
+
+## Properties
+
+Both decorator and legacy static-property forms are supported:
+
+```ts
+@property({ attribute: "value", reflect: true })
+value = "";
+
+static properties = {
+  disabled: { type: Boolean, reflect: true },
+};
+```
+
+The generated fields include their mapped attribute and reflection metadata.
+
+## Mixins
+
+Direct callable mixins are analyzed and their members are copied to the
+component with `inheritedFrom` metadata:
+
+```ts
+class MyButton extends InputMixin(LitElement) {}
+```
 
 ## CSS Custom Properties
 
@@ -80,8 +112,8 @@ Result:
 ## Usage
 
 ```ts
-import { generateCem } from "@cem-generator/core";
-import { litPlugin } from "@cem-generator/plugin-lit";
+import { generateCem } from "@wc-toolkit/cem-generator";
+import { litPlugin } from "@wc-toolkit/cem-generator-lit";
 
 const manifest = generateCem({
   tsConfigPath: "./tsconfig.json",

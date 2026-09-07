@@ -12,10 +12,10 @@
     "outDir": "dist",
     "baseUrl": ".",
     "paths": {
-      "@cem-generator/core-utils": ["packages/core-utils/src/index.ts"],
-      "@cem-generator/core": ["packages/core/src/index.ts"],
-      "@cem-generator/plugin-lit": ["packages/plugins/lit/src/index.ts"],
-      "@cem-generator/bundler-plugin": ["packages/bundler-plugin/src/index.ts"]
+      "@wc-toolkit/cem-generator-utils": ["packages/core-utils/src/index.ts"],
+      "@wc-toolkit/cem-generator": ["packages/core/src/index.ts"],
+      "@wc-toolkit/cem-generator-lit": ["packages/plugins/lit/src/index.ts"],
+      "@wc-toolkit/cem-generator-bundler": ["packages/bundler-plugin/src/index.ts"]
     }
   }
 }

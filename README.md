@@ -36,10 +36,10 @@ handful of deliberate departures from it.
   correctly handling multi-level inheritance and throwing on circular
   references.
 - **Shared logic (JSDoc extraction, inheritance resolution) lives in
-  `@cem-generator/core-utils`**, not duplicated per framework plugin — this was
+  `@wc-toolkit/cem-generator-utils`**, not duplicated per framework plugin — this was
   a specific pain point in the original tool's built-in framework handlers.
 - **Library/framework support ships as separate packages**
-  (`@cem-generator/plugin-vanilla`, `@cem-generator/plugin-lit`, ...), not bundled into
+  (`@wc-toolkit/cem-generator-vanilla`, `@wc-toolkit/cem-generator-lit`, ...), not bundled into
   core, so a project only installs what it needs.
 
 ## What's implemented in this prototype

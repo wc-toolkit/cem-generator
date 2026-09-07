@@ -1,5 +1,5 @@
 {
-  "name": "@cem-generator/core-utils",
+  "name": "@wc-toolkit/cem-generator-utils",
   "version": "0.1.0",
   "type": "module",
   "main": "./dist/index.js",

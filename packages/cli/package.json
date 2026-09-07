@@ -1,5 +1,5 @@
 {
-  "name": "@cem-generator/cli",
+  "name": "@wc-toolkit/cem-generator-cli",
   "version": "0.1.0",
   "type": "module",
   "bin": {
@@ -13,8 +13,8 @@
     "demo": "node dist/cli.js generate --config ../../examples/tsconfig.json --output ../../examples/custom-elements-demo.json --conflict-policy last-wins"
   },
   "dependencies": {
-    "@cem-generator/core": "workspace:*",
-    "@cem-generator/core-utils": "workspace:*",
+    "@wc-toolkit/cem-generator": "workspace:*",
+    "@wc-toolkit/cem-generator-utils": "workspace:*",
     "commander": "^12.1.0",
     "custom-elements-manifest": "^2.1.0"
   },

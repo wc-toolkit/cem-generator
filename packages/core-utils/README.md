@@ -1,4 +1,4 @@
-# @cem-generator/core-utils
+# @wc-toolkit/cem-generator-utils
 
 Framework-agnostic helper package for developers and agents extending `cem-generator`.
 

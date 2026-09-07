@@ -3,17 +3,17 @@ title: Bundler Plugin
 description: Generate custom-elements.json from Vite, Rollup, Rolldown, or Webpack.
 ---
 
-`@cem-generator/bundler-plugin` runs `@cem-generator/core` as part of a bundler
+`@wc-toolkit/cem-generator-bundler` runs `@wc-toolkit/cem-generator` as part of a bundler
 build. It generates `custom-elements.json` before a production build and
 reruns the generator when watched source files change.
 
 ## Installation
 
 ```bash
-npm install -D @cem-generator/bundler-plugin
+npm install -D @wc-toolkit/cem-generator-bundler
 ```
 
-The package depends on `@cem-generator/core`. You do not need to install a
+The package depends on `@wc-toolkit/cem-generator`. You do not need to install a
 separate generator CLI.
 
 ## Vite
@@ -23,7 +23,7 @@ The Vite adapter also works with Rollup and Rolldown configurations:
 ```ts
 // vite.config.ts
 import { defineConfig } from "vite";
-import { cemGeneratorPlugin } from "@cem-generator/bundler-plugin/vite";
+import { cemGeneratorPlugin } from "@wc-toolkit/cem-generator-bundler/vite";
 
 export default defineConfig({
   plugins: [
@@ -46,7 +46,7 @@ If no config file is found, the generator runs with its defaults and analyzes
 For Rollup or Rolldown, use the same plugin in the respective configuration:
 
 ```ts
-import { cemGeneratorPlugin } from "@cem-generator/bundler-plugin/vite";
+import { cemGeneratorPlugin } from "@wc-toolkit/cem-generator-bundler/vite";
 
 export default {
   input: "src/index.ts",
@@ -64,7 +64,7 @@ Webpack uses a class-based adapter:
 ```js
 // webpack.config.js
 const { CemGeneratorWebpackPlugin } = require(
-  "@cem-generator/bundler-plugin/webpack"
+  "@wc-toolkit/cem-generator-bundler/webpack"
 );
 
 module.exports = {

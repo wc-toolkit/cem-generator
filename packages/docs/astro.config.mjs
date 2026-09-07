@@ -11,8 +11,8 @@ export default defineConfig({
           label: "Guide",
           items: [
             { label: "Overview", link: "/guide/overview/" },
-            { label: "Configuration", link: "/guide/configuration/" },
             { label: "Documenting", link: "/guide/documenting/" },
+            { label: "Configuration", link: "/guide/configuration/" },
             { label: "CLI", link: "/guide/cli/" },
             { label: "Bundler Plugin", link: "/guide/bundler/" },
           ],

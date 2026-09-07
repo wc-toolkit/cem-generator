@@ -1,11 +1,11 @@
-# @cem-generator/cli
+# @wc-toolkit/cem-generator-cli
 
 CLI tool for generating Custom Elements Manifests.
 
 ## Installation
 
 ```bash
-pnpm add -w @cem-generator/cli
+pnpm add -w @wc-toolkit/cem-generator-cli
 ```
 
 ## Usage

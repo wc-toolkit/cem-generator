@@ -75,6 +75,7 @@ export interface ClassFragment {
     deprecated?: boolean | string;
     type?: string;
     parsedType?: string;
+    detail?: string;
   }>;
   omitInherited?: OmitInheritedMap;
   [k: string]: unknown;
