@@ -222,6 +222,13 @@ declare module 'astro:content' {
   collection: "docs";
   data: InferEntrySchema<"docs">
 } & { render(): Render[".md"] };
+"guide/features/validation.md": {
+	id: "guide/features/validation.md";
+  slug: "guide/features/validation";
+  body: string;
+  collection: "docs";
+  data: InferEntrySchema<"docs">
+} & { render(): Render[".md"] };
 "guide/features/vanilla-detection.md": {
 	id: "guide/features/vanilla-detection.md";
   slug: "guide/features/vanilla-detection";

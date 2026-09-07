@@ -59,6 +59,25 @@ handful of deliberate departures from it.
   resolving with zero plugins passed, plus a framework plugin opted in
   via `plugins: [myPlugin()]`
 
+### Generation validation
+
+Generation validates the assembled manifest before returning it. Invariants
+are enabled as errors by default and cover schema version, module paths, and
+declaration/export references. Exported-type validation is opt-in because
+imported types may be intentionally supplied by another package:
+
+```ts
+generateCem({
+  validation: {
+    exportTypes: "error", // "off" | "warning" | "error"
+  },
+});
+```
+
+The CLI equivalent is `cem generate --validate-exported-types error`. Warnings are
+reported without failing generation; errors throw `ManifestValidationError`
+and therefore also fail bundler builds.
+
 ### Inheritance documentation
 
 Inheritance materialization is enabled by default and runs after the complete

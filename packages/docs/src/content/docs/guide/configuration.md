@@ -83,6 +83,12 @@ const manifest = generateCem({
   // Optional: file filtering
   include: ["src/components/**/*.ts"],
   exclude: ["**/*.stories.ts", "**/*.test.ts"],
+
+  // Optional: validate the completed manifest during generation
+  validation: {
+    invariants: "error",
+    exportTypes: "error",
+  },
 });
 ```
 
@@ -96,6 +102,7 @@ const manifest = generateCem({
 | `inheritance` | `false \| InheritancePluginOptions` | `{}` | Built-in inheritance materialization. Set `false` to disable. |
 | `include` | `string[]` | `undefined` | Glob patterns limiting analyzed files. Omit for all non-declaration, non-node_modules files. |
 | `exclude` | `string[]` | `undefined` | Glob patterns removing files from analysis. Exclude wins over include. |
+| `validation` | `ManifestValidationOptions` | `{ invariants: "error", exportTypes: "off" }` | Validate generated manifest invariants and public type exports. |
 
 ## Inheritance Options
 
@@ -170,6 +177,8 @@ exclude: ["**/*.test.ts", "**/*.stories.ts"]
 | `--no-inheritance` | Disable inheritance | — |
 | `--plugin <paths...>` | Custom plugin paths | — |
 | `--conflict-policy <policy>` | `throw` \| `last-wins` | `last-wins` |
+| `--validate-exported-types <severity>` | `off` \| `warning` \| `error` | — |
+| `--validation-invariants <severity>` | `off` \| `warning` \| `error` | `error` |
 
 ```bash
 cem generate \

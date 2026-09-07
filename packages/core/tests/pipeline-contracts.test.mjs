@@ -4,6 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { generateCem } from "../dist/pipeline.js";
+import { validateGeneratedManifest } from "../dist/validation.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const fixturesTsConfig = path.resolve(__dirname, "fixtures/tsconfig.json");
@@ -165,5 +166,78 @@ test("annotator cannot overwrite existing fields", () => {
   assert.throws(
     () => generateCem({ tsConfigPath: fixturesTsConfig, plugins: [detector, annotator] }),
     /attempted to overwrite existing field/
+  );
+});
+
+test("exported-type validation rejects unexported local public types", () => {
+  assert.throws(
+    () => generateCem({
+      tsConfigPath: fixturesTsConfig,
+      include: ["parsed-types-element.ts"],
+      validation: { exportTypes: "error" },
+    }),
+    (error) =>
+      error?.name === "ManifestValidationError" &&
+      error.failures.some((failure) => failure.message.includes('local type "Mode"'))
+  );
+});
+
+test("exported-type warnings report failures without stopping generation", () => {
+  const warnings = [];
+  const manifest = generateCem({
+    tsConfigPath: fixturesTsConfig,
+    include: ["parsed-types-element.ts"],
+    validation: {
+      exportTypes: "warning",
+      onWarning(message) {
+        warnings.push(message);
+      },
+    },
+  });
+
+  assert.ok(manifest.modules.length > 0);
+  assert.equal(warnings.length, 2);
+  assert.ok(warnings.some((message) => message.includes('local type "Mode"')));
+});
+
+test("exported-type validation can be disabled", () => {
+  assert.doesNotThrow(() =>
+    generateCem({
+      tsConfigPath: fixturesTsConfig,
+      include: ["parsed-types-element.ts"],
+      validation: { exportTypes: "off" },
+    })
+  );
+});
+
+test("manifest invariant validation rejects broken export references", () => {
+  assert.throws(
+    () =>
+      validateGeneratedManifest(
+        {
+          schemaVersion: "2.1.0",
+          modules: [
+            {
+              kind: "javascript-module",
+              path: "dist/button.js",
+              declarations: [],
+              exports: [
+                {
+                  kind: "js",
+                  name: "ButtonElement",
+                  declaration: { name: "ButtonElement", module: "dist/button.js" },
+                },
+              ],
+            },
+          ],
+        },
+        { schemaVersion: "2.1.0", modules: [] },
+        {},
+        [],
+        { invariants: "error" }
+      ),
+    (error) =>
+      error?.name === "ManifestValidationError" &&
+      error.failures.some((failure) => failure.message.includes("missing declaration"))
   );
 });

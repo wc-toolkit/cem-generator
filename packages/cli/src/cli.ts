@@ -29,6 +29,8 @@ program
   .option("--conflict-policy <policy>", "Detector conflict policy: throw | last-wins", "last-wins")
   .option("--no-sort", "Disable alphabetical sorting of manifest entries")
   .option("--deprecated-last", "Move deprecated items to end of sorted lists")
+  .option("--validate-exported-types <severity>", "Exported-type validation: off | warning | error")
+  .option("--validation-invariants <severity>", "Manifest invariant validation: off | warning | error")
   .action(async (options) => {
     try {
       const cwd = process.cwd();
@@ -46,6 +48,23 @@ program
 
       if (options.deprecatedLast) {
         cliOptions.deprecatedLast = true;
+      }
+
+      if (options.validateExportedTypes) {
+        if (!["off", "warning", "error"].includes(options.validateExportedTypes)) {
+          throw new Error("--validate-exported-types must be one of: off, warning, error");
+        }
+        cliOptions.validation = { exportTypes: options.validateExportedTypes };
+      }
+
+      if (options.validationInvariants) {
+        if (!["off", "warning", "error"].includes(options.validationInvariants)) {
+          throw new Error("--validation-invariants must be one of: off, warning, error");
+        }
+        cliOptions.validation = {
+          ...(cliOptions.validation ?? {}),
+          invariants: options.validationInvariants,
+        };
       }
 
       if (options.inheritance === false) {

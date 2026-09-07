@@ -35,6 +35,10 @@ import {
   extractExternalModules,
   type InheritancePluginOptions,
 } from "./inheritance-plugin.js";
+import {
+  validateGeneratedManifest,
+  type ManifestValidationOptions,
+} from "./validation.js";
 
 export const TARGET_CEM_SCHEMA_VERSION = "2.1.0";
 
@@ -122,6 +126,8 @@ export interface RunOptions {
   customJsDocTags?: boolean | CustomTagOptions;
   /** Configure source-to-runtime module path resolution. */
   modulePathResolver?: ModulePathResolverOptions;
+  /** Validate the generated manifest before returning it. */
+  validation?: ManifestValidationOptions;
 }
 
 export function generateCem(options: RunOptions = {}): CemPackage {
@@ -136,6 +142,7 @@ const {
     deprecatedLast = true,
     customJsDocTags = false,
     modulePathResolver = {},
+    validation,
   } = options;
   const {
     modulePathTemplate,
@@ -201,13 +208,15 @@ const {
   applyBuiltInInheritance(manifest, inheritance);
   applyAnnotators(manifest, annotators);
 
-  return toCemPackage(manifest, {
+  const cem = toCemPackage(manifest, {
     sort,
     deprecatedLast,
     customJsDocTags: customJsDocTagsConfig,
     definitionPathTemplate: modulePathSkip ? undefined : definitionPathTemplate,
     excludedNames: new Set(modulePathExclude),
   });
+  validateGeneratedManifest(cem, manifest, checker, sourceFiles, validation);
+  return cem;
 }
 
 type ExportTarget = { key: string; types?: string; runtime?: string };

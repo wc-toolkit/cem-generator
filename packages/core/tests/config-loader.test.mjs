@@ -120,4 +120,16 @@ describe("config-loader", () => {
       externalManifests: ["ext.json"],
     });
   });
+
+  it("merges validation rules", () => {
+    const merged = mergeConfig(
+      { validation: { exportTypes: "warning" } },
+      { validation: { invariants: "off", exportTypes: "error" } }
+    );
+
+    assert.deepStrictEqual(merged.validation, {
+      invariants: "off",
+      exportTypes: "warning",
+    });
+  });
 });

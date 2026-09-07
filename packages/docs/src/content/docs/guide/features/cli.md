@@ -14,7 +14,8 @@ npx @wc-toolkit/cem-generator-cli generate \
   --tsconfig ./tsconfig.lib.json \
   --output ./dist/custom-elements.json \
   --include "src/**/*.ts" \
-  --deprecated-last
+  --deprecated-last \
+  --validate-exported-types error
 
 # Load custom plugins
 npx @wc-toolkit/cem-generator-cli generate --plugin ./my-plugin.js
@@ -51,3 +52,5 @@ CLI options override config file settings.
 | `--conflict-policy` | | `last-wins` or `throw` |
 | `--no-sort` | | Disable alphabetical sorting |
 | `--deprecated-last` | | Move deprecated to end |
+| `--validate-exported-types <severity>` | | `off`, `warning`, or `error` |
+| `--validation-invariants <severity>` | | Set invariant validation severity |

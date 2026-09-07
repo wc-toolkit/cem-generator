@@ -133,5 +133,13 @@ export function mergeConfig(cliOptions: RunOptions, fileOptions: RunOptions): Ru
     merged.inheritance = fileOptions.inheritance;
   }
 
+  if (cliOptions.validation && fileOptions.validation) {
+    merged.validation = { ...fileOptions.validation, ...cliOptions.validation };
+  } else if (cliOptions.validation) {
+    merged.validation = cliOptions.validation;
+  } else if (fileOptions.validation) {
+    merged.validation = fileOptions.validation;
+  }
+
   return merged;
 }
