@@ -47,6 +47,10 @@ depend directly on one another. Cross-plugin enrichment belongs in annotators.
 
 - [Lit Plugin](/plugins/lit/) — Detects `@customElement`, `@property`, `@state`, `@query`, `@eventOptions`, and Lit-specific JSDoc tags.
 
+## Build Integrations
+
+- [Bundler Plugin](/guide/bundler/) — Generates the manifest from Vite, Rollup, Rolldown, or Webpack builds.
+
 ## Built-in
 
 - **Vanilla Built-in Detector** — Always runs; detects standard custom element JSDoc tags on classes extending `HTMLElement`.

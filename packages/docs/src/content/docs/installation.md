@@ -54,7 +54,7 @@ The manifest includes:
 
 ## CLI
 
-For zero-config generation from the command line, see the [CLI](/cli/) reference.
+For zero-config generation from the command line, see the [CLI](/guide/cli/) reference.
 
 ## Next steps
 

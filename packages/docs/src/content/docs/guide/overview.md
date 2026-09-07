@@ -135,4 +135,4 @@ Framework-specific detection is opt-in via plugins. See the [Plugins](/plugins/)
 
 - [Configuration](/guide/configuration/) — All `generateCem()` options
 - [Documenting](/guide/documenting/) — JSDoc tags reference
-- [CLI](/cli/) — Command-line reference
+- [CLI](/guide/cli/) — Command-line reference

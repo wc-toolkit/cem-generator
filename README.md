@@ -51,6 +51,7 @@ handful of deliberate departures from it.
   `customElements.define()` tag-name mapping, public members, `@fires`
   JSDoc events
 - `packages/core-utils` — JSDoc extraction, inheritance resolution
+- `packages/bundler-plugin` — Vite/Rollup/Rolldown and Webpack integrations
 - `packages/plugins/lit` — an example framework plugin, kept as a
   demonstration of the extension point. Per current direction, no
   further plugins are being built right now — focus is on core.

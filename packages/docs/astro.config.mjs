@@ -13,6 +13,8 @@ export default defineConfig({
             { label: "Overview", link: "/guide/overview/" },
             { label: "Configuration", link: "/guide/configuration/" },
             { label: "Documenting", link: "/guide/documenting/" },
+            { label: "CLI", link: "/guide/cli/" },
+            { label: "Bundler Plugin", link: "/guide/bundler/" },
           ],
         },
         {
@@ -24,7 +26,6 @@ export default defineConfig({
             { label: "Type Parsing", link: "/guide/features/type-parsing/" },
             { label: "Inheritance", link: "/guide/features/inheritance/" },
             { label: "Module Paths", link: "/guide/features/module-paths/" },
-            { label: "CLI", link: "/guide/features/cli/" },
           ],
         },
         {

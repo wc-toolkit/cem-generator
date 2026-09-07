@@ -27,6 +27,12 @@ importers:
         specifier: ^5.9.0
         version: 5.9.3
 
+  packages/bundler-plugin:
+    dependencies:
+      '@cem-generator/core':
+        specifier: workspace:*
+        version: link:../core
+
   packages/cli:
     dependencies:
       '@cem-generator/core':
