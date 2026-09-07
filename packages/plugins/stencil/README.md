@@ -19,7 +19,6 @@ import { generateCem } from "@wc-toolkit/cem-generator";
 import { stencilPlugin } from "@wc-toolkit/cem-generator-stencil";
 
 const manifest = generateCem({
-  tsConfigPath: "./tsconfig.json",
   plugins: [stencilPlugin()],
 });
 ```

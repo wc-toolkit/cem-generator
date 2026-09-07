@@ -6,7 +6,6 @@ Vue detector plugin for custom elements created with `defineCustomElement`.
 import { vuePlugin } from "@wc-toolkit/cem-generator-vue";
 
 const manifest = generateCem({
-  tsConfigPath: "./tsconfig.json",
   plugins: [vuePlugin()],
 });
 ```

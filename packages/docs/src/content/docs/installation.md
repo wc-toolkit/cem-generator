@@ -22,9 +22,7 @@ Pass a config object to `generateCem`. The `tsConfigPath` option defaults to `./
 ```ts
 import { generateCem } from "@wc-toolkit/cem-generator";
 
-const manifest = generateCem({
-  tsConfigPath: "./tsconfig.json",
-});
+const manifest = generateCem();
 ```
 
 This writes a manifest with CEM 2.1.0 schema output.
@@ -37,7 +35,6 @@ Framework-specific detection is opt-in via plugins. Install the plugin you need 
 import { generateCem } from "@wc-toolkit/cem-generator";
 
 const manifest = generateCem({
-  tsConfigPath: "./tsconfig.json",
   plugins: [myPlugin],
 });
 ```

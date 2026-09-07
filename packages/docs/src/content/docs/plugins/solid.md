@@ -152,7 +152,6 @@ import { generateCem } from "@wc-toolkit/cem-generator";
 import { solidPlugin } from "@wc-toolkit/cem-generator-solid";
 
 const manifest = generateCem({
-  tsConfigPath: "./tsconfig.json",
   plugins: [solidPlugin()],
 });
 ```

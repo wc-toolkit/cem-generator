@@ -232,7 +232,6 @@ import { generateCem } from "@wc-toolkit/cem-generator";
 import { vuePlugin } from "@wc-toolkit/cem-generator-vue";
 
 const manifest = generateCem({
-  tsConfigPath: "./tsconfig.json",
   plugins: [vuePlugin()],
 });
 ```

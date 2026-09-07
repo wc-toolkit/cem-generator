@@ -8,7 +8,6 @@ import { cemGeneratorPlugin } from "@wc-toolkit/cem-generator-bundler/vite";
 export default {
   plugins: [
     cemGeneratorPlugin({
-      tsConfigPath: "tsconfig.json",
       output: "dist/custom-elements.json",
     }),
   ],

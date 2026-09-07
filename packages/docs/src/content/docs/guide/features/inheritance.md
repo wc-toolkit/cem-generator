@@ -27,7 +27,6 @@ leave collections exactly as detectors produced them:
 
 ```ts
 const manifest = generateCem({
-  tsConfigPath: "./tsconfig.json",
   inheritance: false,
 });
 ```

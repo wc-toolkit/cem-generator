@@ -7,7 +7,6 @@ Solid Element detector plugin for components registered with
 import { solidPlugin } from "@wc-toolkit/cem-generator-solid";
 
 const manifest = generateCem({
-  tsConfigPath: "./tsconfig.json",
   plugins: [solidPlugin()],
 });
 ```

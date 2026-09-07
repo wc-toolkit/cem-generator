@@ -120,7 +120,6 @@ import { generateCem } from "@wc-toolkit/cem-generator";
 import { sveltePlugin } from "@wc-toolkit/cem-generator-svelte";
 
 const manifest = generateCem({
-  tsConfigPath: "./tsconfig.json",
   plugins: [sveltePlugin()],
 });
 ```

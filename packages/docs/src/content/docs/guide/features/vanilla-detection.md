@@ -27,10 +27,7 @@ CSS metadata is parsed with the core CSS parser, so `:host` declarations and
 ```ts
 import { generateCem } from "@wc-toolkit/cem-generator";
 
-const manifest = generateCem({
-  tsConfigPath: "./tsconfig.json",
-  // no plugins needed for vanilla components
-});
+const manifest = generateCem();
 ```
 
 ### Automatic Events

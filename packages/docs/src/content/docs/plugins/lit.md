@@ -216,7 +216,6 @@ import { generateCem } from "@wc-toolkit/cem-generator";
 import { litPlugin } from "@wc-toolkit/cem-generator-lit";
 
 const manifest = generateCem({
-  tsConfigPath: "./tsconfig.json",
   plugins: [litPlugin()],
 });
 ```

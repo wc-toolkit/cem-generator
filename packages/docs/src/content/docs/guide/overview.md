@@ -24,9 +24,7 @@ npm install -D @wc-toolkit/cem-generator-cli
 import { generateCem } from "@wc-toolkit/cem-generator";
 import fs from "node:fs";
 
-const manifest = generateCem({
-  tsConfigPath: "./tsconfig.json",
-});
+const manifest = generateCem();
 
 fs.writeFileSync("custom-elements.json", JSON.stringify(manifest, null, 2));
 ```

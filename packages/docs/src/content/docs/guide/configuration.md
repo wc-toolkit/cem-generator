@@ -64,7 +64,7 @@ export default {
 import { generateCem } from "@wc-toolkit/cem-generator";
 
 const manifest = generateCem({
-  // Required: path to tsconfig.json
+  // Optional: defaults to ./tsconfig.json
   tsConfigPath: "./tsconfig.json",
 
   // Optional: additional plugins beyond built-in vanilla detector

@@ -250,7 +250,6 @@ import { generateCem } from "@wc-toolkit/cem-generator";
 import { preactPlugin } from "@wc-toolkit/cem-generator-preact";
 
 const manifest = generateCem({
-  tsConfigPath: "./tsconfig.json",
   plugins: [preactPlugin()],
 });
 ```

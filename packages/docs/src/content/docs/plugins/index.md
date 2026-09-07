@@ -21,7 +21,6 @@ import { generateCem } from "@wc-toolkit/cem-generator";
 import { myPlugin } from "@wc-toolkit/plugin-my-framework";
 
 const manifest = generateCem({
-  tsConfigPath: "./tsconfig.json",
   plugins: [myPlugin()],
 });
 ```

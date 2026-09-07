@@ -11,7 +11,6 @@ Use `@wc-toolkit/cem-generator-stencil` to detect Stencil components, props, and
 import { stencilPlugin } from "@wc-toolkit/cem-generator-stencil";
 
 generateCem({
-  tsConfigPath: "./tsconfig.json",
   plugins: [stencilPlugin()],
 });
 ```

@@ -226,7 +226,6 @@ import { generateCem } from "@wc-toolkit/cem-generator";
 import { mySimplePlugin } from "./my-plugin.js";
 
 const manifest = generateCem({
-  tsConfigPath: "./tsconfig.json",
   plugins: [mySimplePlugin()],
 });
 ```

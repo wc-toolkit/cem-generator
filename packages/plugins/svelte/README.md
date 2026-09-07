@@ -7,7 +7,6 @@ Svelte detector plugin for components compiled as custom elements with
 import { sveltePlugin } from "@wc-toolkit/cem-generator-svelte";
 
 const manifest = generateCem({
-  tsConfigPath: "./tsconfig.json",
   plugins: [sveltePlugin()],
 });
 ```

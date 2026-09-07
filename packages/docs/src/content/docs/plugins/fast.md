@@ -134,7 +134,6 @@ import { generateCem } from "@wc-toolkit/cem-generator";
 import { fastPlugin } from "@wc-toolkit/cem-generator-fast";
 
 const manifest = generateCem({
-  tsConfigPath: "./tsconfig.json",
   plugins: [fastPlugin()],
 });
 ```

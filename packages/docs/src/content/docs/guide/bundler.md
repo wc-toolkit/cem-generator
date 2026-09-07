@@ -70,7 +70,6 @@ const { CemGeneratorWebpackPlugin } = require(
 module.exports = {
   plugins: [
     new CemGeneratorWebpackPlugin({
-      tsConfigPath: "tsconfig.json",
       output: "dist/custom-elements.json",
       watchPaths: ["src"],
     }),
@@ -105,7 +104,6 @@ For larger generator configurations, use the auto-discovered config file:
 import { myFrameworkPlugin } from "./tools/my-framework-plugin.js";
 
 export default {
-  tsConfigPath: "tsconfig.json",
   include: ["src/**/*.ts"],
   exclude: ["src/**/*.test.ts", "src/**/*.stories.ts"],
   plugins: [myFrameworkPlugin()],
@@ -133,9 +131,8 @@ You can choose between three configuration approaches:
    configuration when a separate config file is unnecessary:
 
    ```ts
-   cemGeneratorPlugin({
-     tsConfigPath: "tsconfig.json",
-     include: ["src/**/*.ts"],
+    cemGeneratorPlugin({
+      include: ["src/**/*.ts"],
      output: "dist/custom-elements.json",
    });
    ```
