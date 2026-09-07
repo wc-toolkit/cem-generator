@@ -221,6 +221,9 @@ const {
     excludedNames: new Set(modulePathExclude),
   });
   validateGeneratedManifest(cem, manifest, checker, [...sourceFiles, ...additionalFiles], validation);
+  for (const plugin of allPlugins) {
+    plugin.afterOutput?.(cem);
+  }
   return cem;
 }
 

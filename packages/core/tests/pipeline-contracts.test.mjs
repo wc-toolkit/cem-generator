@@ -183,6 +183,28 @@ test("annotator cannot overwrite existing fields", () => {
   );
 });
 
+test("afterOutput receives the finalized CEM package after validation", () => {
+  let outputManifest;
+
+  const plugin = {
+    name: "output-plugin",
+    afterOutput(manifest) {
+      outputManifest = manifest;
+    },
+  };
+
+  const manifest = generateCem({
+    tsConfigPath: fixturesTsConfig,
+    include: ["inheritance-fixture.ts"],
+    plugins: [plugin],
+  });
+
+  assert.equal(outputManifest, manifest);
+  assert.equal(outputManifest.schemaVersion, "2.1.0");
+  assert.ok(outputManifest.modules[0].kind);
+  assert.ok(Array.isArray(outputManifest.modules[0].exports));
+});
+
 test("exported-type validation rejects unexported local public types", () => {
   assert.throws(
     () => generateCem({

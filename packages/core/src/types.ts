@@ -1,4 +1,5 @@
 import ts from "typescript";
+import type { Package as CemPackage } from "custom-elements-manifest/schema";
 
 export interface OmitInheritedMap {
   members?: string[];
@@ -110,6 +111,8 @@ export interface Plugin {
   afterAllFiles?(manifest: Readonly<InternalManifest>): ManifestPatch;
   /** Runs after detection and inheritance for cross-cutting enrichment. */
   afterManifest?(manifest: Readonly<InternalManifest>): ManifestPatch;
+  /** Runs after the internal manifest has been converted and validated as CEM output. */
+  afterOutput?(manifest: CemPackage): void;
 }
 
 /** Compatibility type for plugins that implement source detection. */
