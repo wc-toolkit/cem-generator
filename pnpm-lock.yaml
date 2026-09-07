@@ -137,6 +137,25 @@ importers:
         specifier: ^4.3.0
         version: 4.6.0(preact@10.29.8)
 
+  packages/plugins/solid:
+    dependencies:
+      '@wc-toolkit/cem-generator':
+        specifier: workspace:*
+        version: link:../../core
+      '@wc-toolkit/cem-generator-utils':
+        specifier: workspace:*
+        version: link:../../core-utils
+      typescript:
+        specifier: ^5.9.0
+        version: 5.9.3
+    devDependencies:
+      solid-element:
+        specifier: ^1.9.0
+        version: 1.9.2(solid-js@1.9.15)
+      solid-js:
+        specifier: ^1.9.0
+        version: 1.9.15
+
   packages/plugins/stencil:
     dependencies:
       '@wc-toolkit/cem-generator':
@@ -1226,6 +1245,9 @@ packages:
   common-ancestor-path@1.0.1:
     resolution: {integrity: sha512-L3sHRo1pXXEqX8VU28kfgUY+YGsk09hPqZiZmLacNib6XNTCM8ubYeT7ryXQw8asB1sKgcU5lkB7ONug08aB8w==}
 
+  component-register@0.8.8:
+    resolution: {integrity: sha512-djhwcxjY+X9dacaYUEOkOm7tda8uOEDiMDigWysu3xv54M8o6XDlsjR1qt5Y8QLGiKg51fqXFIR2HUTmt9ys0Q==}
+
   convert-source-map@2.0.0:
     resolution: {integrity: sha512-Kvp459HrV2FEJ1CAsi1Ku+MY3kasH19TFykTz2xWmMeq6bk2NU3XXvfJ+Q61m0xktWwt+1HSYf3JZsTms3aRJg==}
 
@@ -2100,6 +2122,16 @@ packages:
     engines: {node: '>=10'}
     hasBin: true
 
+  seroval-plugins@1.5.6:
+    resolution: {integrity: sha512-HXuLAX2pu/UByPpaeo/TaMfvMIi+1QqIoPJYCcAtU8QkVNwgR6MPlGuCQTErV1JwraaMbYaWVIBX7mppzGLATQ==}
+    engines: {node: '>=10'}
+    peerDependencies:
+      seroval: ^1.0
+
+  seroval@1.5.6:
+    resolution: {integrity: sha512-rVQVWjjSvlINzaQPZH5JFqsqEsIWdTxY3iJZCnTL/5gQbXIRooVZKI60tVCkOVfzcRPejboxO2t0P89dg5mQaA==}
+    engines: {node: '>=10'}
+
   sharp@0.33.5:
     resolution: {integrity: sha512-haPVm1EkS9pgvHrQ/F3Xy+hgcuMV0Wm9vfIBSiwZ05k+xgb0PkBQpGsAA/oWdDobNaZTH5ppvHtzCFbnSEwHVw==}
     engines: {node: ^18.17.0 || ^20.3.0 || >=21.0.0}
@@ -2121,6 +2153,14 @@ packages:
     resolution: {integrity: sha512-S6hzjGJSG3d6if0YoF5kTyeRJvia6FSTBroE5fQ0bu1QNxyJqhhinfUsXi9fH3MgtXODWvwo2BDyQSnhPQ88uQ==}
     engines: {node: '>=20.19.5', npm: '>=10.8.2'}
     hasBin: true
+
+  solid-element@1.9.2:
+    resolution: {integrity: sha512-+6bK9YGAf47lrwWyTFXUVKCkKTkof3bn6yxknHJPAE5MGSCvx4DJH1KE3ltUjIXeDWhS2gU5yjpynkH709+Xag==}
+    peerDependencies:
+      solid-js: ^1.9.14
+
+  solid-js@1.9.15:
+    resolution: {integrity: sha512-EeiY2xfpZJqPLjXspVEKjAII4yv8NyG//NxZ3IpOFHdUNnnTyL0uJOeS9LWGvA7cFCz5y94cjFwYlmw5Luncsg==}
 
   source-map-js@1.2.1:
     resolution: {integrity: sha512-UXWMKhLOwVKb728IUtQPXxfYU+usdybtUrK/8uGE8CQMvrhOpwvzDBwj0QhSL7MQc7vIsISBG8VQ8+IDQxpfQA==}
@@ -3442,6 +3482,8 @@ snapshots:
   commander@12.1.0: {}
 
   common-ancestor-path@1.0.1: {}
+
+  component-register@0.8.8: {}
 
   convert-source-map@2.0.0: {}
 
@@ -4840,6 +4882,12 @@ snapshots:
 
   semver@7.8.5: {}
 
+  seroval-plugins@1.5.6(seroval@1.5.6):
+    dependencies:
+      seroval: 1.5.6
+
+  seroval@1.5.6: {}
+
   sharp@0.33.5:
     dependencies:
       color: 4.2.3
@@ -4893,6 +4941,17 @@ snapshots:
       '@types/sax': 1.2.7
       arg: 5.0.2
       sax: 1.6.1
+
+  solid-element@1.9.2(solid-js@1.9.15):
+    dependencies:
+      component-register: 0.8.8
+      solid-js: 1.9.15
+
+  solid-js@1.9.15:
+    dependencies:
+      csstype: 3.2.3
+      seroval: 1.5.6
+      seroval-plugins: 1.5.6(seroval@1.5.6)
 
   source-map-js@1.2.1: {}
 

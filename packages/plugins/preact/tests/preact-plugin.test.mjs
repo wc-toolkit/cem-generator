@@ -23,4 +23,10 @@ test("detects preact-custom-element registrations and component props", () => {
     { name: "name", fieldName: "name" },
   ]);
   assert.equal(greeting?.members?.find(({ name }) => name === "name")?.attribute, "name");
+  assert.deepEqual(greeting?.slots?.map(({ name }) => name).sort(), ["", "label"]);
+  assert.equal(greeting?.slots?.find(({ name }) => name === "label")?.description, "Label content");
+  assert.deepEqual(greeting?.cssParts?.map(({ name }) => name), ["label"]);
+  assert.equal(greeting?.cssParts?.[0]?.description, "Greeting label");
+  assert.equal(greeting?.cssProperties?.[0]?.name, "--greeting-color");
+  assert.equal(greeting?.events?.[0]?.name, "greet");
 });

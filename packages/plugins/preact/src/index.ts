@@ -4,6 +4,7 @@ import {
   type DetectorPlugin,
   type FileContext,
   type ManifestFragment,
+  discoverFrameworkApis,
 } from "@wc-toolkit/cem-generator";
 import {
   getJSDocInfo,
@@ -44,6 +45,7 @@ export function preactPlugin(): DetectorPlugin {
           const name = component.text;
           const classDoc = parseCemClassTags(declaration);
           const members = getComponentMembers(declaration, context);
+          const discovered = discoverFrameworkApis(declaration, context.sourceFile);
           const observed = getObservedAttributes(node) ?? getStaticObservedAttributes(component, context);
           const attributes = observed?.map((attribute) => {
             const member = members?.find((candidate) => candidate.name === attribute);
@@ -67,11 +69,11 @@ export function preactPlugin(): DetectorPlugin {
             tagName: classDoc.tagName ?? tagName,
             members,
             attributes: attributes?.length ? attributes : undefined,
-            slots: classDoc.slots,
-            events: classDoc.events,
-            cssParts: classDoc.cssParts,
-            cssProperties: classDoc.cssProperties,
-            cssStates: classDoc.cssStates,
+             slots: mergeNamed(discovered.slots, classDoc.slots),
+             events: mergeNamed(discovered.events, classDoc.events),
+             cssParts: mergeNamed(discovered.cssParts, classDoc.cssParts),
+             cssProperties: mergeNamed(discovered.cssProperties, classDoc.cssProperties),
+             cssStates: mergeNamed(discovered.cssStates, classDoc.cssStates),
             omitInherited: classDoc.omitInherited,
             customJsDocTags: classDoc.customJsDocTags,
           } satisfies ClassFragment;
@@ -82,6 +84,13 @@ export function preactPlugin(): DetectorPlugin {
       return fragment;
     },
   };
+}
+
+function mergeNamed<T extends { name: string }>(discovered: T[] | undefined, documented: T[] | undefined): T[] | undefined {
+  const values = new Map<string, T>();
+  for (const item of discovered ?? []) values.set(item.name, item);
+  for (const item of documented ?? []) values.set(item.name, { ...values.get(item.name), ...item });
+  return values.size ? [...values.values()] : undefined;
 }
 
 function getRegisterNames(sourceFile: ts.SourceFile): Set<string> {

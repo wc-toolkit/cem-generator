@@ -31,7 +31,12 @@ test("detects Stencil components, props, events, and lifecycle methods", () => {
   assert.equal(declaration?.members?.find((member) => member.name === "message")?.reflects, true);
   assert.equal(declaration?.members?.some((member) => member.name === "componentDidLoad"), false);
   assert.equal(declaration?.members?.some((member) => member.name === "someMethod"), true);
-  assert.deepEqual(declaration?.events?.map((event) => event.name).sort(), ["foo", "todoCompleted"]);
+  assert.deepEqual(declaration?.events?.map((event) => event.name).sort(), ["foo", "panel-change", "todoCompleted"]);
+  assert.deepEqual(declaration?.slots?.map(({ name }) => name).sort(), ["", "header"]);
+  assert.equal(declaration?.slots?.find(({ name }) => name === "header")?.description, "Header");
+  assert.deepEqual(declaration?.cssParts?.map(({ name }) => name), ["panel"]);
+  assert.equal(declaration?.cssParts?.[0]?.description, "Panel");
+  assert.equal(declaration?.cssProperties?.[0]?.name, "--panel-color");
   assert.equal(
     manifest.modules[0].exports?.some(
       (entry) => entry.kind === "custom-element-definition" && entry.name === "todo-list"

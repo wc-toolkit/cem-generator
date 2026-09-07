@@ -3,6 +3,7 @@ import {
   detectClassMembers,
   detectClassEvents,
   mergeClassEvents,
+  discoverFrameworkApis,
   type ClassFragment,
   type DetectorPlugin,
   type FileContext,
@@ -36,6 +37,7 @@ export function fastPlugin(): DetectorPlugin {
           const tagName = getCustomElementTagName(node);
           const members = filterFastMembers(detectClassMembers(node, context));
           const attributes = getAttrMetadata(node, context, members);
+          const discovered = discoverFrameworkApis(node, context.sourceFile);
           const classFragment: ClassFragment = {
             name: className,
             exportName: getExportName(node),
@@ -47,17 +49,17 @@ export function fastPlugin(): DetectorPlugin {
             superclass: { name: "FASTElement", module: "@microsoft/fast-element" },
             members,
             attributes: mergeByName(attributes, classDoc.attributes),
-            slots: classDoc.slots,
+            slots: mergeByName(discovered.slots, classDoc.slots),
             events: mergeClassEvents(
-              mergeFastEvents(detectClassEvents(node, context), node, context),
+              mergeFastEvents(mergeClassEvents(discovered.events, detectClassEvents(node, context)), node, context),
               classDoc.events?.map((event) => ({
                 ...event,
                 parsedType: resolveParsedTypeFromText(event.type, context.sourceFile, context.checker),
               }))
             ),
-            cssParts: classDoc.cssParts,
-            cssProperties: classDoc.cssProperties,
-            cssStates: classDoc.cssStates,
+            cssParts: mergeByName(discovered.cssParts, classDoc.cssParts),
+            cssProperties: mergeByName(discovered.cssProperties, classDoc.cssProperties),
+            cssStates: mergeByName(discovered.cssStates, classDoc.cssStates),
             omitInherited: classDoc.omitInherited,
             customJsDocTags: classDoc.customJsDocTags,
           };

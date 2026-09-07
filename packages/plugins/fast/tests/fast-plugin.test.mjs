@@ -42,6 +42,11 @@ test("detects FAST elements, custom element decorators, and @attr metadata", () 
   const activated = booleanTest?.events?.find((event) => event.name === "button-activated");
   assert.equal(activated?.type?.text, "CustomEvent");
   assert.equal(activated?.detail?.text, "{ source: this; }");
+  assert.deepEqual(booleanTest?.slots?.map(({ name }) => name).sort(), ["", "label"]);
+  assert.equal(booleanTest?.slots?.find(({ name }) => name === "label")?.description, "Label");
+  assert.deepEqual(booleanTest?.cssParts?.map(({ name }) => name), ["indicator"]);
+  assert.equal(booleanTest?.cssParts?.[0]?.description, "Indicator");
+  assert.equal(booleanTest?.cssProperties?.[0]?.name, "--indicator-color");
   assert.equal(
     manifest.modules.find((module) => module.declarations.some((declaration) => declaration.name === "BooleanTest"))
       ?.exports?.some((entry) => entry.kind === "custom-element-definition" && entry.name === "boolean-test"),

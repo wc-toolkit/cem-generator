@@ -18,6 +18,7 @@
       "@wc-toolkit/cem-generator-stencil": ["./packages/plugins/stencil/src/index.ts"],
       "@wc-toolkit/cem-generator-preact": ["./packages/plugins/preact/src/index.ts"],
       "@wc-toolkit/cem-generator-vue": ["./packages/plugins/vue/src/index.ts"],
+      "@wc-toolkit/cem-generator-solid": ["./packages/plugins/solid/src/index.ts"],
       "@wc-toolkit/cem-generator-bundler": ["./packages/bundler-plugin/src/index.ts"]
     }
   }

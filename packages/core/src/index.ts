@@ -9,4 +9,5 @@ export { detectClassMembers } from "./api-members.js";
 export { detectClassEvents, mergeClassEvents } from "./api-events.js";
 export { detectCustomElementRegistrations } from "./registrations.js";
 export { parseCssMetadata } from "./css-metadata.js";
+export { discoverFrameworkApis } from "./framework-api-discovery.js";
 export { resolveInheritedCollection, getJSDocInfo, getJSDocTagsNamed } from "@wc-toolkit/cem-generator-utils";

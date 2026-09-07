@@ -5,6 +5,7 @@ import {
   type DetectorPlugin,
   type FileContext,
   type ManifestFragment,
+  discoverFrameworkApis,
 } from "@wc-toolkit/cem-generator";
 import {
   getJSDocInfo,
@@ -45,6 +46,7 @@ export function stencilPlugin(): DetectorPlugin {
           const members = detectClassMembers(node, context) ?? [];
           const props = getProps(node, context, members);
           const events = getEvents(node, context);
+          const discovered = discoverFrameworkApis(node, context.sourceFile);
           const eventNames = new Set(events.map((event) => event.fieldName));
           const filteredMembers = members
             .filter((member) => !STENCIL_LIFECYCLE.has(member.name) && !eventNames.has(member.name))
@@ -65,13 +67,15 @@ export function stencilPlugin(): DetectorPlugin {
             tagName: classDoc.tagName ?? getComponentTagName(node),
             members: filteredMembers.length ? filteredMembers : undefined,
             attributes: props.length ? props : undefined,
-            events: events.length
-              ? events.map(({ fieldName: _fieldName, ...event }) => event)
-              : undefined,
-            slots: classDoc.slots,
-            cssParts: classDoc.cssParts,
-            cssProperties: classDoc.cssProperties,
-            cssStates: classDoc.cssStates,
+            events: mergeNamed(
+              discovered.events,
+              events.map(({ fieldName: _fieldName, ...event }) => event),
+              classDoc.events
+            ),
+            slots: mergeNamed(discovered.slots, classDoc.slots),
+            cssParts: mergeNamed(discovered.cssParts, classDoc.cssParts),
+            cssProperties: mergeNamed(discovered.cssProperties, classDoc.cssProperties),
+            cssStates: mergeNamed(discovered.cssStates, classDoc.cssStates),
             omitInherited: classDoc.omitInherited,
             customJsDocTags: classDoc.customJsDocTags,
           };
@@ -84,6 +88,14 @@ export function stencilPlugin(): DetectorPlugin {
       return fragment;
     },
   };
+}
+
+function mergeNamed<T extends { name: string }>(...sources: Array<T[] | undefined>): T[] | undefined {
+  const values = new Map<string, T>();
+  for (const source of sources) {
+    for (const item of source ?? []) values.set(item.name, { ...values.get(item.name), ...item });
+  }
+  return values.size ? [...values.values()] : undefined;
 }
 
 type StencilAttribute = NonNullable<ClassFragment["attributes"]>[number] & {

@@ -16,7 +16,7 @@ generateCem({
 });
 ```
 
-The plugin supports `@Component({ tag })`, `@Prop()` and `@Event()` metadata, including custom prop attributes, reflected props, and event names.
+The plugin supports `@Component({ tag })`, `@Prop()` and `@Event()` metadata, including custom prop attributes, reflected props, and event names. It also auto-detects slots, parts, CSS custom properties, CSS states, and static events in class template literals and methods.
 
 ## Documenting Web Component APIs
 
@@ -70,3 +70,31 @@ Use `@Prop({ attribute: "...", reflect: true })` to document custom attribute
 names and reflection. Use `@default`, `@deprecated`, or `@internal` in JSDoc
 to refine the generated metadata. See
 [Documenting Components](/guide/documenting/) for the complete tag reference.
+
+## Automatic API Discovery
+
+The plugin scans template literals and methods in the Stencil class:
+
+```ts
+someMethod() {
+  const template = `
+    <!-- Panel wrapper -->
+    <div part="panel">
+    
+      <!-- Header content -->
+      <slot name="header"></slot>
+
+      <!-- Default content -->
+      <slot></slot>
+    </div>`;
+  const styles = `:host { /** Panel color. */ --panel-color: gray; }`;
+  document.dispatchEvent(new CustomEvent("panel-change"));
+}
+```
+
+This detects default/named slots, CSS parts, CSS custom properties, literal
+`.states.add("name")` CSS states, and static events. Dynamic names are skipped;
+HTML comments immediately before slots or parts become their CEM descriptions;
+CSS comments before custom property declarations become CSS property
+descriptions. Use `@slot`, `@csspart`, `@cssprop`, `@cssState`, or `@event` /
+`@fires` when explicit documentation is needed.

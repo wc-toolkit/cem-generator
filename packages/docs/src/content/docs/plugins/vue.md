@@ -17,6 +17,10 @@ pnpm add -D @wc-toolkit/cem-generator-vue vue
 The plugin reads Vue component options, including `props` and `emits`, and
 uses the tag passed to `customElements.define`:
 
+It also auto-detects slots and parts in string templates, CSS custom
+properties in `template`/`styles` strings, and static event dispatches in the
+component options.
+
 ```ts
 import { defineCustomElement } from "vue";
 
@@ -31,6 +35,38 @@ const Greeting = defineCustomElement({
 
 customElements.define("vue-greeting", Greeting);
 ```
+
+### Automatic API discovery
+
+The plugin scans Vue custom-element options for slots, parts, styles, and
+static events:
+
+```ts
+const Panel = defineCustomElement({
+  template: `
+    <!-- Panel wrapper -->
+    <section part="panel">
+
+      <!-- Header content -->
+      <slot name="header"></slot>
+
+      <!-- Main content -->
+      <slot></slot>
+    </section>
+  `,
+  styles: [`:host { /** Panel color. */ --panel-color: gray; }`],
+  mounted() {
+    this.$el.dispatchEvent(new CustomEvent("panel-ready"));
+  },
+});
+```
+
+This produces a default slot, a `header` slot, a `panel` CSS part, a
+`--panel-color` CSS property, and a `panel-ready` event. Vue `emits` entries
+and JSDoc event tags are merged with discovered events. Dynamic names are
+skipped and should be documented explicitly. HTML comments immediately before
+slots or parts become their CEM `description` fields, and CSS comments before
+custom property declarations become CSS property descriptions.
 
 ## Documenting APIs
 

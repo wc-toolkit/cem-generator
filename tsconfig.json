@@ -8,6 +8,7 @@
     { "path": "packages/plugins/stencil" },
     { "path": "packages/plugins/preact" },
     { "path": "packages/plugins/vue" },
+    { "path": "packages/plugins/solid" },
     { "path": "packages/bundler-plugin" },
     { "path": "packages/cli" }
   ],

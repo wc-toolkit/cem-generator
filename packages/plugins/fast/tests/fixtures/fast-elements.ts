@@ -19,5 +19,7 @@ export class BooleanTest extends FASTElement {
 
   activate() {
     this.$emit("button-activated", { source: this });
+    const template = `<!-- Indicator --> <div part="indicator"><!-- Label --><slot name="label"></slot><!-- Default --><slot></slot></div>`;
+    const styles = `:host { /** Indicator color. */ --indicator-color: green; }`;
   }
 }

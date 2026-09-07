@@ -172,6 +172,43 @@ Result:
 - JSDoc can enrich or override detected CSS part/property descriptions
 - when the same token appears in both a `@property` rule and a `:host` declaration, the two sources are merged (description/syntax/default from `@property` fills the gaps)
 
+## Automatic API Discovery
+
+Lit uses the same core discovery rules for HTML and CSS template literals:
+
+```ts
+render() {
+  return html`
+    <!-- Panel wrapper -->
+    <div part="container">
+
+      <!-- Header content -->
+      <slot name="header"></slot>
+
+      <!-- Default content -->
+      <slot></slot>
+    </div>
+    <style>
+      :host { 
+        /** Panel color. */ 
+        --panel-color: gray; 
+      }
+    </style>
+  `;
+}
+
+activate() {
+  this.dispatchEvent(new CustomEvent("activate"));
+}
+```
+
+This auto-detects default/named slots, CSS parts, CSS custom properties under
+`:host`, literal `.states.add("name")` CSS states, and static `Event` or
+`CustomEvent` dispatches. Dynamic names are skipped; use the standard JSDoc
+tags for dynamic or more richly documented APIs. HTML comments immediately
+before slots or parts become their CEM descriptions, and CSS comments before
+custom property declarations become CSS property descriptions.
+
 ## Usage
 
 ```ts

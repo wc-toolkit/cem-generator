@@ -4,6 +4,7 @@ import {
   type DetectorPlugin,
   type FileContext,
   type ManifestFragment,
+  discoverFrameworkApis,
 } from "@wc-toolkit/cem-generator";
 import { getJSDocInfo, parseCemClassTags } from "@wc-toolkit/cem-generator-utils";
 
@@ -39,6 +40,7 @@ export function vuePlugin(): DetectorPlugin {
         const options = resolveComponentOptions(component, context);
         const classDoc = declaration ? parseCemClassTags(declaration) : {};
         const props = options ? getProps(options, context) : undefined;
+        const discovered = options ? discoverFrameworkApis(options, context.sourceFile) : {};
         const attributes = props?.map(({ name: fieldName, ...member }) => ({
           name: fieldName,
           type: member.type,
@@ -57,11 +59,11 @@ export function vuePlugin(): DetectorPlugin {
           tagName: classDoc.tagName ?? tags.get(name),
           members: props?.length ? props.map(({ name: _name, ...member }) => ({ name: _name, ...member })) : undefined,
           attributes: attributes?.length ? attributes : undefined,
-          events: mergeEvents(events, classDoc.events),
-          slots: classDoc.slots,
-          cssParts: classDoc.cssParts,
-          cssProperties: classDoc.cssProperties,
-          cssStates: classDoc.cssStates,
+          events: mergeEvents(mergeEvents(events, discovered.events), classDoc.events),
+          slots: mergeNamed(discovered.slots, classDoc.slots),
+          cssParts: mergeNamed(discovered.cssParts, classDoc.cssParts),
+          cssProperties: mergeNamed(discovered.cssProperties, classDoc.cssProperties),
+          cssStates: mergeNamed(discovered.cssStates, classDoc.cssStates),
           omitInherited: classDoc.omitInherited,
           customJsDocTags: classDoc.customJsDocTags,
         } satisfies ClassFragment;
@@ -72,6 +74,13 @@ export function vuePlugin(): DetectorPlugin {
       return fragment;
     },
   };
+}
+
+function mergeNamed<T extends { name: string }>(discovered: T[] | undefined, documented: T[] | undefined): T[] | undefined {
+  const values = new Map<string, T>();
+  for (const item of discovered ?? []) values.set(item.name, item);
+  for (const item of documented ?? []) values.set(item.name, { ...values.get(item.name), ...item });
+  return values.size ? [...values.values()] : undefined;
 }
 
 function getDefineCustomElementNames(sourceFile: ts.SourceFile): Set<string> {

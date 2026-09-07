@@ -292,6 +292,13 @@ declare module 'astro:content' {
   collection: "docs";
   data: InferEntrySchema<"docs">
 } & { render(): Render[".md"] };
+"plugins/solid.md": {
+	id: "plugins/solid.md";
+  slug: "plugins/solid";
+  body: string;
+  collection: "docs";
+  data: InferEntrySchema<"docs">
+} & { render(): Render[".md"] };
 "plugins/stencil.md": {
 	id: "plugins/stencil.md";
   slug: "plugins/stencil";

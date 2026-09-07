@@ -12,6 +12,7 @@ description: Detector plugin for Microsoft FAST components.
 - `@attr` fields, including custom names from `@attr({ attribute: "..." })`
 - standard members, types, and JSDoc metadata through the core generator
 - literal `$emit("event-name", detail)` calls as `CustomEvent` entries
+- slots, parts, CSS custom properties, and CSS states in class template literals
 
 FAST lifecycle and infrastructure members such as `connectedCallback`,
 `disconnectedCallback`, `attributeChangedCallback`, `$fastController`, and
@@ -92,6 +93,39 @@ activate() {
 This produces an event named `button-activated` with a detail type of
 `{ source: this; }`. Dynamic event names cannot be determined statically and
 are not auto-documented; use `@event` or `@fires` JSDoc when needed.
+
+## Automatic API Discovery
+
+FAST components are scanned for HTML and CSS template literals anywhere in
+the component class:
+
+```ts
+activate() {
+  const template = html`
+    <!-- Status indicator -->
+    <div part="indicator">
+      <!-- Label content -->
+      <slot name="label"></slot>
+      <!-- Default content -->
+      <slot></slot>
+    </div>
+  `;
+  const styles = css`
+    :host { 
+      /** Indicator color. */ 
+      --indicator-color: green; 
+    }`;
+    
+  this.$emit("status-change", { status: "done" });
+}
+```
+
+This detects named/default slots, `part` tokens, CSS custom properties under
+`:host`, literal `.states.add("name")` CSS states, and literal `$emit` events.
+HTML comments immediately before slots or parts become their CEM
+`description` fields. CSS comments before custom property declarations become
+CSS property descriptions. Static names are required; use the standard JSDoc
+tags for dynamic names or richer metadata.
 
 ## Usage
 

@@ -38,6 +38,7 @@ export default defineConfig({
             { label: "FAST Plugin", link: "/plugins/fast/" },
             { label: "Preact Plugin", link: "/plugins/preact/" },
             { label: "Vue Plugin", link: "/plugins/vue/" },
+            { label: "Solid Plugin", link: "/plugins/solid/" },
             { label: "Stencil Plugin", link: "/plugins/stencil/" },
           ],
         },

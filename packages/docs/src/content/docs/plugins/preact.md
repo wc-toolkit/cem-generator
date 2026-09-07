@@ -20,6 +20,8 @@ pnpm add -D @wc-toolkit/cem-generator-preact preact-custom-element
 - observed attributes linked to their corresponding props
 - JSDoc descriptions on component props
 - static `tagName` and `observedAttributes` values on class components
+- JSX `<slot>` elements and `part` attributes
+- CSS custom properties in template-literal styles and static event dispatches
 
 For example:
 
@@ -71,6 +73,38 @@ register(Promo, "x-promo", ["message", "tone"]);
 
 This produces a `Promo` declaration with a summary and deprecation notice,
 plus documented `message` and `tone` members and attributes.
+
+## Automatic API Discovery
+
+The plugin scans the registered Preact component for native Web Component APIs
+in JSX and template literals:
+
+```tsx
+export function Message({ open }: { open: boolean }) {
+  document.dispatchEvent(new CustomEvent("message-opened"));
+
+  return (
+    <>
+      <style>{`:host { /** Accent color. */ --message-color: steelblue; }`}</style>
+      {/* Message container */}
+      <article part="container">
+        {/* Heading content */}
+        <slot name="heading" />
+        {/* Main message content */}
+        <slot />
+      </article>
+    </>
+  );
+}
+```
+
+The generated metadata includes default and named slots, `part` tokens, CSS
+custom properties under `:host`, and static `Event`/`CustomEvent` dispatches.
+Comments immediately before JSX slots or parts become their CEM
+`description` fields. A CSS comment immediately before a custom property
+declaration becomes its description.
+Static names are required. Dynamic names are skipped and can be documented
+with `@slot`, `@csspart`, `@cssprop`, or `@event` / `@fires`.
 
 ## Documenting Web Component APIs
 

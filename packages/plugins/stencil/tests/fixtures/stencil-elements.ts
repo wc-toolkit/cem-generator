@@ -13,7 +13,11 @@ export class TodoList {
   @Event() todoCompleted!: EventEmitter<Todo>;
   @Event({ eventName: "foo" }) fooEvent!: EventEmitter<Todo>;
 
-  someMethod() {}
+  someMethod() {
+    const template = `<!-- Panel --><div part="panel"><!-- Header --><slot name="header"></slot><!-- Default --><slot></slot></div>`;
+    const styles = `:host { /** Panel color. */ --panel-color: gray; }`;
+    document.dispatchEvent(new CustomEvent("panel-change"));
+  }
   componentWillLoad() {}
   componentDidLoad() {}
   componentShouldUpdate() {}
