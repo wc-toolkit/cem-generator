@@ -17,6 +17,57 @@ FAST lifecycle and infrastructure members such as `connectedCallback`,
 `disconnectedCallback`, `attributeChangedCallback`, `$fastController`, and
 `$emit` are excluded from the public member list.
 
+## Documenting Web Component APIs
+
+Document the element and its public APIs with JSDoc. FAST decorators provide
+property and attribute metadata; standard CEM tags cover the remaining Web
+Component APIs:
+
+```ts
+/**
+ * A status indicator for background work.
+ *
+ * @summary Shows whether a task is ready, busy, or finished.
+ * @tag status-indicator
+ * @slot - Optional status label.
+ * @event {CustomEvent} status-change - Fired when the status changes.
+ * @cssprop [--status-color=green] - Indicator color.
+ * @csspart indicator - The visual indicator.
+ * @cssState busy - The task is in progress.
+ */
+@customElement("status-indicator")
+export class StatusIndicator extends FASTElement {
+  /** Current status. */
+  @attr status = "ready";
+
+  /** Prevents updates from being announced. */
+  @attr({ mode: "boolean" }) muted = false;
+
+  /** Marks the task as complete. */
+  complete() {
+    this.$emit("status-change", { status: "complete" });
+  }
+}
+```
+
+The example documents the following manifest APIs:
+
+| Source | Manifest API |
+|---|---|
+| Class comment | `description`, `summary`, `tagName`, `deprecated` |
+| `@attr` and field JSDoc | `members` and `attributes` |
+| Method JSDoc and signature | Member description, parameters, return type |
+| `$emit("name", detail)` or `@event` / `@fires` | `events` |
+| `@slot` | `slots` |
+| `@csspart` | `cssParts` |
+| `@cssprop` | `cssProperties` |
+| `@cssState` | `cssStates` |
+
+Use `@default`, `@attr`, `@reflect`, `@deprecated`, or `@internal` to refine
+member metadata. Literal `$emit` calls are inferred automatically; use
+`@event` or `@fires` for dynamic event names. See
+[Documenting Components](/guide/documenting/) for all supported tags.
+
 FAST's `mode: "boolean"` option does not need special CEM metadata. The field type remains the source of truth:
 
 ```ts

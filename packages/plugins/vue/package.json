@@ -1,0 +1,19 @@
+{
+  "name": "@wc-toolkit/cem-generator-vue",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "test": "node --test tests/*.test.mjs",
+    "demo": "tsx demo/run.ts"
+  },
+  "dependencies": {
+    "@wc-toolkit/cem-generator": "workspace:*",
+    "@wc-toolkit/cem-generator-utils": "workspace:*",
+    "typescript": "^5.9.0"
+  },
+  "devDependencies": {
+    "vue": "^3.5.0"
+  }
+}

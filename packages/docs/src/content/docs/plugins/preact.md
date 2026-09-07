@@ -72,6 +72,62 @@ register(Promo, "x-promo", ["message", "tone"]);
 This produces a `Promo` declaration with a summary and deprecation notice,
 plus documented `message` and `tone` members and attributes.
 
+## Documenting Web Component APIs
+
+Use the component function's JSDoc for element-level metadata and the props
+interface for members and attributes. Standard CEM tags document the other
+Web Component APIs:
+
+```tsx
+/**
+ * A message with optional actions.
+ *
+ * @summary Displays a message to the user.
+ * @tag message-card
+ * @slot - Message content.
+ * @slot actions - Optional action buttons.
+ * @event {CustomEvent} dismiss - Fired when dismissed.
+ * @cssprop [--message-card-color=black] - Message text color.
+ * @csspart card - The card wrapper.
+ * @cssState expanded - The actions are visible.
+ */
+export function MessageCard({ message, expanded }: MessageProps) {
+  return (
+    <article part="card">
+      <slot></slot>
+      {expanded && <div><slot name="actions"></slot></div>}
+    </article>
+  );
+}
+
+interface MessageProps {
+  /** Message content. */
+  message: string;
+  /** Shows the actions slot. */
+  expanded?: boolean;
+}
+
+register(MessageCard, "message-card", ["message", "expanded"]);
+```
+
+The example documents the following manifest APIs:
+
+| Source | Manifest API |
+|---|---|
+| Function comment | `description`, `summary`, `tagName`, `deprecated` |
+| Props interface and property JSDoc | `members` and `attributes` |
+| `@event` / `@fires` | `events` |
+| `@slot` | `slots` |
+| `@csspart` | `cssParts` |
+| `@cssprop` | `cssProperties` |
+| `@cssState` | `cssStates` |
+
+Preact function props are the source of truth for member types. The attribute
+list passed as the third argument to `register()` controls which props become
+manifest attributes. Use `@default`, `@deprecated`, or `@internal` in the
+relevant JSDoc comments when needed. See
+[Documenting Components](/guide/documenting/) for the complete tag reference.
+
 ## Registration Arguments
 
 `preact-custom-element` accepts the component, tag name, observed attributes,

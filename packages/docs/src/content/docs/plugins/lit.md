@@ -20,6 +20,69 @@ Lit lifecycle methods such as `render`, `updated`, and `requestUpdate` are
 excluded from the public API member list. Component methods that dispatch
 static `Event` or `CustomEvent` instances are detected by core automatically.
 
+## Documenting Web Component APIs
+
+Use the component JSDoc comment for element-level metadata and API contracts.
+Lit property decorators provide member and attribute metadata; standard CEM
+tags document events, slots, and styling APIs:
+
+```ts
+/**
+ * A button with an icon and loading state.
+ *
+ * @summary Activates an action when pressed.
+ * @tag icon-button
+ * @slot icon - Optional icon content.
+ * @slot - Button label.
+ * @event {CustomEvent} activate - Fired after activation.
+ * @cssprop [--icon-button-color=currentColor] - Icon color.
+ * @csspart button - The native button element.
+ * @cssState loading - The button is processing an action.
+ */
+@customElement("icon-button")
+export class IconButton extends LitElement {
+  /** Accessible label. */
+  @property({ attribute: "aria-label" }) label = "";
+
+  /** Prevents activation. */
+  @property({ type: Boolean, reflect: true }) disabled = false;
+
+  /** Internal loading state. */
+  @state() loading = false;
+
+  /** Activates the button. */
+  activate() {
+    this.dispatchEvent(new CustomEvent("activate"));
+  }
+
+  render() {
+    return html`
+      <button part="button" ?disabled=${this.disabled}>
+        <slot name="icon"></slot><slot></slot>
+      </button>
+    `;
+  }
+}
+```
+
+The example documents the following manifest APIs:
+
+| Source | Manifest API |
+|---|---|
+| Class comment | `description`, `summary`, `tagName`, `deprecated` |
+| `@property` / `static properties` | `members` and `attributes` |
+| Method JSDoc and signature | Member description, parameters, return type |
+| `@event` / `@fires` or static dispatch | `events` |
+| `<slot>` or `@slot` | `slots` |
+| `part="..."` or `@csspart` | `cssParts` |
+| `@cssprop` or `static styles` | `cssProperties` |
+| `@cssState` | `cssStates` |
+
+Document individual properties and methods immediately above their
+declarations. Use `@default`, `@attr`, `@reflect`, `@deprecated`, or
+`@internal` when the inferred metadata needs to be refined. See
+[Documenting Components](/guide/documenting/) for the complete tag reference.
+
 ## Properties
 
 Both decorator and legacy static-property forms are supported:

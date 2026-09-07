@@ -18,6 +18,8 @@
     "demo:fast": "pnpm --filter @wc-toolkit/cem-generator-fast demo",
     "demo:stencil": "pnpm --filter @wc-toolkit/cem-generator-stencil demo",
     "demo:preact": "pnpm --filter @wc-toolkit/cem-generator-preact demo",
+    "demo:vue": "pnpm --filter @wc-toolkit/cem-generator-vue demo",
+    "test:vue": "pnpm --filter @wc-toolkit/cem-generator-vue test",
     "test:preact": "pnpm --filter @wc-toolkit/cem-generator-preact test",
     "demo:cli": "pnpm --filter @wc-toolkit/cem-generator-cli demo",
     "demo:all": "pnpm -r --filter './packages/**' --if-present demo",

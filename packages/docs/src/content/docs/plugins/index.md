@@ -48,6 +48,7 @@ depend directly on one another. Cross-plugin enrichment belongs in annotators.
 - [Lit Plugin](/plugins/lit/) — Detects `@customElement`, `@property`, `@state`, `@query`, `@eventOptions`, and Lit-specific JSDoc tags.
 - [FAST Plugin](/plugins/fast/) — Detects FAST elements, decorators, attributes, and emitted events.
 - [Preact Plugin](/plugins/preact/) — Detects `preact-custom-element` registrations and typed Preact component props.
+- [Vue Plugin](/plugins/vue/) — Detects Vue custom elements created with `defineCustomElement`.
 - [Stencil Plugin](/plugins/stencil/) — Detects Stencil components, props, and events.
 
 ## Build Integrations

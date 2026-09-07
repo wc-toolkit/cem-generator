@@ -37,6 +37,7 @@ export default defineConfig({
             { label: "Lit Plugin", link: "/plugins/lit/" },
             { label: "FAST Plugin", link: "/plugins/fast/" },
             { label: "Preact Plugin", link: "/plugins/preact/" },
+            { label: "Vue Plugin", link: "/plugins/vue/" },
             { label: "Stencil Plugin", link: "/plugins/stencil/" },
           ],
         },
