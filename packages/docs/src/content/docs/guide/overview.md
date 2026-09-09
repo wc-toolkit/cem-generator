@@ -5,7 +5,23 @@ description: What cem-generator does, why it helps, and how to get started.
 
 `cem-generator` generates a **Custom Elements Manifest (CEM)** — a machine-readable JSON file describing your custom elements. This manifest powers documentation sites, IDE autocomplete, and tooling across the web components ecosystem.
 
-## Install
+## Quick Setup
+
+Initialize the project before generating a manifest. The command first asks
+whether you want to use the CLI or code, then lets you select any framework
+plugins:
+
+```bash
+npx @wc-toolkit/cem-generator-cli init
+```
+
+Both workflows create `cem-generator.config.mjs`. The code workflow also
+creates `generate-cem.ts`, which imports the shared config. Vanilla component
+projects can press Enter to continue without a framework plugin. For framework
+projects, the initializer offers to install the selected plugin packages.
+
+
+## Manually Install
 
 ```bash
 # Core only (vanilla components)
@@ -36,8 +52,7 @@ npx tsx generate-cem.ts
 ### CLI
 
 ```bash
-# Zero-config (uses ./tsconfig.json -> ./custom-elements.json)
-npx @wc-toolkit/cem-generator-cli generate
+cem generate
 ```
 
 ## Demo
@@ -122,6 +137,6 @@ Framework-specific detection is opt-in via plugins. See the [Plugins](/plugins/)
 
 ## Next steps
 
-- [Configuration](/guide/configuration/) — All `generateCem()` options
 - [Documenting](/guide/documenting/) — JSDoc tags reference
+- [Configuration](/guide/configuration/) — All `generateCem()` options
 - [CLI](/guide/cli/) — Command-line reference

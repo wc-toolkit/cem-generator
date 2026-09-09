@@ -11,6 +11,12 @@ pnpm add -w @wc-toolkit/cem-generator-cli
 ## Usage
 
 ```bash
+# Create a config and choose framework plugins interactively
+cem init
+
+# Create a config with selected plugins without prompting
+cem init --plugin lit svelte
+
 # Generate manifest using tsconfig.json in current directory
 cem generate
 
@@ -28,6 +34,9 @@ cem generate --no-inheritance
 ```
 
 ## Options
+
+`cem init` writes `cem-generator.config.mjs` and supports `--plugin <names...>`,
+`--yes`, `--force`, and `--config <path>`.
 
 | Option | Description | Default |
 |--------|-------------|---------|
