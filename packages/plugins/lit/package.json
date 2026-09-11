@@ -11,6 +11,7 @@
   "bugs": {
     "url": "https://github.com/wc-toolkit/cem-generator/issues"
   },
+  "homepage": "https://wc-toolkit.github.io/cem-generator/plugins/lit/",
   "keywords": ["custom-elements", "custom-elements-manifest", "web-components", "lit"],
   "type": "module",
   "main": "./dist/index.js",
