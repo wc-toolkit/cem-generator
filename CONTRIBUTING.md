@@ -106,7 +106,18 @@ Use the example run as an additional smoke check after major changes.
 5. Open a PR with:
    - What changed
    - Why it changed
-   - How you validated it
+    - How you validated it
+
+## Releases
+
+Add a changeset to a package change:
+
+```sh
+pnpm changeset
+```
+
+The release workflow creates a release pull request from changesets merged to
+`main`. Merging that pull request publishes the public packages to npm.
 
 ## Plugin contribution guidance
 

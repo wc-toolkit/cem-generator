@@ -1,9 +1,22 @@
 {
   "name": "@wc-toolkit/cem-generator-fast",
   "version": "0.1.0",
+  "description": "FAST detector plugin for generating Custom Elements Manifests.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wc-toolkit/cem-generator.git",
+    "directory": "packages/plugins/fast"
+  },
+  "bugs": {
+    "url": "https://github.com/wc-toolkit/cem-generator/issues"
+  },
+  "keywords": ["custom-elements", "custom-elements-manifest", "web-components", "fast"],
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "files": ["dist"],
+  "publishConfig": { "access": "public", "provenance": true },
   "scripts": {
     "test": "node --test tests/*.test.mjs",
     "demo": "tsx demo/run.ts"

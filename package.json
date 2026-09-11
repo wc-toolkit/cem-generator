@@ -1,6 +1,8 @@
 {
   "name": "@wc-toolkit/cem-workspace",
   "private": true,
+  "license": "MIT",
+  "packageManager": "pnpm@11.10.0",
   "workspaces": [
     "packages/*",
     "packages/*/*",
@@ -27,11 +29,14 @@
     "test:preact": "pnpm --filter @wc-toolkit/cem-generator-preact test",
     "demo:cli": "pnpm --filter @wc-toolkit/cem-generator-cli demo",
     "demo:all": "pnpm -r --filter './packages/**' --if-present demo",
-    "test": "pnpm build && pnpm -r --filter './packages/**' --if-present test"
+    "test": "pnpm build && pnpm -r --filter './packages/**' --if-present test",
+    "version": "changeset version",
+    "release": "pnpm build && changeset publish"
   },
   "devDependencies": {
     "@types/node": "^26.4.1",
     "ajv": "^8.20.0",
+    "@changesets/cli": "^2.29.7",
     "custom-elements-manifest": "^2.1.0",
     "ts-node": "^10.9.2",
     "tsx": "^4.23.13",

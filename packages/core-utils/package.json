@@ -1,9 +1,22 @@
 {
   "name": "@wc-toolkit/cem-generator-utils",
   "version": "0.1.0",
+  "description": "Framework-agnostic utilities for generating Custom Elements Manifests.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wc-toolkit/cem-generator.git",
+    "directory": "packages/core-utils"
+  },
+  "bugs": {
+    "url": "https://github.com/wc-toolkit/cem-generator/issues"
+  },
+  "keywords": ["custom-elements", "custom-elements-manifest", "web-components"],
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "files": ["dist"],
+  "publishConfig": { "access": "public", "provenance": true },
   "scripts": {
     "demo": "tsx demo/run.ts"
   },

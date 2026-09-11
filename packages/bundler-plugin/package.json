@@ -1,9 +1,22 @@
 {
   "name": "@wc-toolkit/cem-generator-bundler",
   "version": "0.1.0",
+  "description": "Vite, Rollup, Rolldown, and Webpack plugins for generating Custom Elements Manifests.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wc-toolkit/cem-generator.git",
+    "directory": "packages/bundler-plugin"
+  },
+  "bugs": {
+    "url": "https://github.com/wc-toolkit/cem-generator/issues"
+  },
+  "keywords": ["custom-elements", "custom-elements-manifest", "web-components", "vite", "webpack"],
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "files": ["dist"],
+  "publishConfig": { "access": "public", "provenance": true },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
