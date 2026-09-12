@@ -19,7 +19,7 @@ This guide walks through building a detector plugin from scratch. The same princ
 5. Materialize built-in inheritance.
 6. Run annotators with the complete manifest.
 7. Convert the internal manifest to CEM 2.1.0 output.
-8. Validate the generated CEM and run output hooks.
+8. Validate the generated CEM and run completion hooks.
 
 Detector plugins should stay isolated and return fragments for the classes they
 detect. Use `afterAllFiles` for cross-file detection that still belongs to the
@@ -43,7 +43,7 @@ interface Plugin {
   onFile?(context: FileContext): ManifestFragment;
   afterAllFiles?(manifest: Readonly<InternalManifest>): ManifestPatch;
   afterManifest?(manifest: Readonly<InternalManifest>): ManifestPatch;
-  afterOutput?(manifest: Package): void;
+  afterGenerate?(manifest: Package): void;
 }
 ```
 
@@ -60,7 +60,7 @@ const metadataPlugin: Plugin = {
 };
 ```
 
-`afterOutput` receives the finalized CEM package after conversion and
+`afterGenerate` receives the finalized CEM package after conversion and
 validation. Use it for side effects such as generating framework integration
 files. It does not patch the manifest.
 

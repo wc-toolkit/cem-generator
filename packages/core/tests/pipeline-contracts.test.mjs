@@ -183,12 +183,12 @@ test("annotator cannot overwrite existing fields", () => {
   );
 });
 
-test("afterOutput receives the finalized CEM package after validation", () => {
+test("afterGenerate receives the finalized CEM package after validation", () => {
   let outputManifest;
 
   const plugin = {
     name: "output-plugin",
-    afterOutput(manifest) {
+    afterGenerate(manifest) {
       outputManifest = manifest;
     },
   };

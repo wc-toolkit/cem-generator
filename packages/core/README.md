@@ -21,7 +21,7 @@ Core engine package for developers and agents building CEM analysis flows.
 - `shouldAnalyze(sourceText, filePath)` runs once per detector per file as a cheap prefilter
 - `onFile(context)` runs for analyzed files and returns class fragments
 - `afterAllFiles(manifest)` runs once for cross-file detector enrichment with additive-only patch semantics
-- `afterOutput(manifest)` runs after CEM conversion and validation for output-side effects such as generated integration files
+- `afterGenerate(manifest)` runs after CEM conversion and validation for output-side effects such as generated integration files
 - Annotators run after detectors and are also additive-only
 
 ## Main exports

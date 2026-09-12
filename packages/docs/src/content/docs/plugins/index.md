@@ -37,7 +37,7 @@ The pipeline separates plugin responsibilities from manifest assembly:
   post-processing.
 - **Core utilities** provide shared JSDoc parsing and inheritance resolution.
 - **Output** converts the internal manifest into the CEM 2.1.0 package shape.
-- **Output hooks** receive the finalized CEM package for integrations that
+- **Completion hooks** receive the finalized CEM package for integrations that
   generate files or perform other output-side effects.
 
 The built-in vanilla detector handles standard `HTMLElement` components without

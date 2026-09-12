@@ -222,7 +222,7 @@ const {
   });
   validateGeneratedManifest(cem, manifest, checker, [...sourceFiles, ...additionalFiles], validation);
   for (const plugin of allPlugins) {
-    plugin.afterOutput?.(cem);
+    plugin.afterGenerate?.(cem);
   }
   return cem;
 }

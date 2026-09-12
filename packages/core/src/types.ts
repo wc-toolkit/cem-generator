@@ -112,7 +112,7 @@ export interface Plugin {
   /** Runs after detection and inheritance for cross-cutting enrichment. */
   afterManifest?(manifest: Readonly<InternalManifest>): ManifestPatch;
   /** Runs after the internal manifest has been converted and validated as CEM output. */
-  afterOutput?(manifest: CemPackage): void;
+  afterGenerate?(manifest: CemPackage): void;
 }
 
 /** Compatibility type for plugins that implement source detection. */
