@@ -1,6 +1,6 @@
 {
   "name": "@wc-toolkit/cem-generator-solid",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Solid detector plugin for generating Custom Elements Manifests.",
   "license": "MIT",
   "repository": {
@@ -12,12 +12,22 @@
     "url": "https://github.com/wc-toolkit/cem-generator/issues"
   },
   "homepage": "https://wc-toolkit.github.io/cem-generator/plugins/solid/",
-  "keywords": ["custom-elements", "custom-elements-manifest", "web-components", "solid"],
+  "keywords": [
+    "custom-elements",
+    "custom-elements-manifest",
+    "web-components",
+    "solid"
+  ],
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "files": ["dist"],
-  "publishConfig": { "access": "public", "provenance": true },
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
   "scripts": {
     "test": "node --test tests/*.test.mjs",
     "demo": "tsx demo/run.ts"
