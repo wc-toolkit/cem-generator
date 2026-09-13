@@ -29,6 +29,10 @@
     "test:preact": "pnpm --filter @wc-toolkit/cem-generator-preact test",
     "demo:cli": "pnpm --filter @wc-toolkit/cem-generator-cli demo",
     "demo:all": "pnpm -r --filter './packages/**' --if-present demo",
+    "test:core": "pnpm --filter @wc-toolkit/cem-generator test",
+    "test:cli": "pnpm --filter @wc-toolkit/cem-generator-cli test",
+    "test:bundler": "pnpm --dir packages/bundler-plugin exec node --test tests/*.test.mjs",
+    "test:plugins": "pnpm -r --filter './packages/plugins/*' --if-present test",
     "test": "pnpm build && pnpm -r --filter './packages/**' --if-present test",
     "version": "changeset version",
     "release": "pnpm build && changeset publish"
