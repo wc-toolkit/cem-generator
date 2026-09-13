@@ -14,7 +14,7 @@ import {
   getNodeTypeText,
   getParsedTypeText,
   parseCemClassTags,
-  resolveParsedTypeFromText,
+  resolveMeaningfulParsedTypeFromText,
 } from "@wc-toolkit/cem-generator-utils";
 
 export function fastPlugin(): DetectorPlugin {
@@ -54,7 +54,9 @@ export function fastPlugin(): DetectorPlugin {
               mergeFastEvents(mergeClassEvents(discovered.events, detectClassEvents(node, context)), node, context),
               classDoc.events?.map((event) => ({
                 ...event,
-                parsedType: resolveParsedTypeFromText(event.type, context.sourceFile, context.checker),
+                parsedType: context.typeParsing === "none"
+                  ? undefined
+                  : resolveMeaningfulParsedTypeFromText(event.type, context.sourceFile, context.checker),
               }))
             ),
             cssParts: mergeByName(discovered.cssParts, classDoc.cssParts),
@@ -65,7 +67,9 @@ export function fastPlugin(): DetectorPlugin {
           };
 
           for (const attr of classFragment.attributes ?? []) {
-            attr.parsedType ??= resolveParsedTypeFromText(attr.type, context.sourceFile, context.checker);
+          if (context.typeParsing !== "none") {
+            attr.parsedType ??= resolveMeaningfulParsedTypeFromText(attr.type, context.sourceFile, context.checker);
+          }
           }
           fragment[className] = classFragment;
         }

@@ -28,6 +28,11 @@ jobs:
           node-version: 24
           cache: pnpm
 
+      - name: Configure npm trusted publishing
+        run: npm config set registry https://registry.npmjs.org/
+        env:
+          NPM_CONFIG_PROVENANCE: true
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
@@ -38,3 +43,5 @@ jobs:
           publish: pnpm release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_CONFIG_REGISTRY: https://registry.npmjs.org/
+          NPM_CONFIG_PROVENANCE: true

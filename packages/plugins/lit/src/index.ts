@@ -14,9 +14,10 @@ import {
   getJSDocInfo,
   getNodeTypeText,
   getParsedTypeText,
-  resolveParsedTypeFromText,
+  resolveMeaningfulParsedTypeFromText,
   parseCemClassTags,
   parseCemMemberTags,
+  areTypeTextsEquivalent,
 } from "@wc-toolkit/cem-generator-utils";
 
 export function litPlugin(): DetectorPlugin {
@@ -26,29 +27,39 @@ export function litPlugin(): DetectorPlugin {
     name: "lit",
 
     shouldAnalyze(sourceText) {
-      return /from\s+['"]lit['"]/.test(sourceText) ||
+      return (
+        /from\s+['"]lit['"]/.test(sourceText) ||
         /extends\s+LitElement/.test(sourceText) ||
-        /customElements\.define\s*\(/.test(sourceText);
+        /customElements\.define\s*\(/.test(sourceText)
+      );
     },
 
     onFile(context: FileContext): ManifestFragment {
       const fragment: ManifestFragment = {};
       const mixins = new Map<string, LitMixin>();
-      const registrations = detectCustomElementRegistrations(context.sourceFile);
-      for (const [className, tagName] of registrations) registeredTags.set(className, tagName);
+      const registrations = detectCustomElementRegistrations(
+        context.sourceFile,
+      );
+      for (const [className, tagName] of registrations)
+        registeredTags.set(className, tagName);
 
       ts.forEachChild(context.sourceFile, function visit(node) {
-        if (ts.isClassDeclaration(node) && node.name && extendsLitElement(node, context.checker)) {
+        if (
+          ts.isClassDeclaration(node) &&
+          node.name &&
+          extendsLitElement(node, context.checker)
+        ) {
           const className = node.name.text;
           const jsdoc = getJSDocInfo(node);
           const classDoc = parseCemClassTags(node);
           const mixinNames = getLitMixinNames(node);
-          for (const name of mixinNames) resolveLitMixin(name, node, context, mixins, new Set());
+          for (const name of mixinNames)
+            resolveLitMixin(name, node, context, mixins, new Set());
           addMixinFragments(fragment, mixins);
           const ownMembers = mergeLitMembers(
             filterLitMembers(detectClassMembers(node, context)),
             getDecoratedProperties(node, context),
-            getStaticPropertyMetadata(node)
+            getStaticPropertyMetadata(node),
           );
           const baseMembers = getLitBaseClassMembers(node, context, mixins);
           const members = mergeLitMembers(
@@ -58,7 +69,7 @@ export function litPlugin(): DetectorPlugin {
             }),
             baseMembers,
             ownMembers,
-            undefined
+            undefined,
           );
 
           fragment[className] = {
@@ -68,10 +79,18 @@ export function litPlugin(): DetectorPlugin {
             description: jsdoc.description || undefined,
             summary: classDoc.summary,
             deprecated: classDoc.deprecated,
-            tagName: classDoc.tagName ?? getCustomElementTagName(node) ?? registrations.get(className),
+            tagName:
+              classDoc.tagName ??
+              getCustomElementTagName(node) ??
+              registrations.get(className),
             superclass: { name: "LitElement", module: "lit" },
             ...(mixinNames.length
-              ? { mixins: mixinNames.map((name) => ({ name, module: context.filePath })) }
+              ? {
+                  mixins: mixinNames.map((name) => ({
+                    name,
+                    module: context.filePath,
+                  })),
+                }
               : {}),
             members,
             slots: classDoc.slots,
@@ -79,18 +98,35 @@ export function litPlugin(): DetectorPlugin {
               detectClassEvents(node, context),
               classDoc.events?.map((event) => ({
                 ...event,
-                parsedType: resolveParsedTypeFromText(event.type, context.sourceFile, context.checker),
-              }))
+                parsedType:
+                  context.typeParsing === "none"
+                    ? undefined
+                    : resolveMeaningfulParsedTypeFromText(
+                        event.type,
+                        context.sourceFile,
+                        context.checker,
+                      ),
+              })),
             ),
             cssParts: mergeCssParts(extractCssParts(node), classDoc.cssParts),
             cssStates: classDoc.cssStates,
-            cssProperties: mergeCssProperties(extractCssCustomProps(node), classDoc.cssProperties),
+            cssProperties: mergeCssProperties(
+              extractCssCustomProps(node),
+              classDoc.cssProperties,
+            ),
             omitInherited: classDoc.omitInherited,
             attributes: classDoc.attributes,
           };
 
           for (const attr of fragment[className].attributes ?? []) {
-            attr.parsedType = resolveParsedTypeFromText(attr.type, context.sourceFile, context.checker);
+            attr.parsedType =
+              context.typeParsing === "none"
+                ? undefined
+                : resolveMeaningfulParsedTypeFromText(
+                    attr.type,
+                    context.sourceFile,
+                    context.checker,
+                  );
           }
 
           applyMemberToAttributeLinks(fragment[className], classDoc);
@@ -120,20 +156,31 @@ function extractCssParts(node: ts.ClassDeclaration): ClassFragment["cssParts"] {
   const attrMatches = [...text.matchAll(/\bpart\s*=\s*(["'])([^"']+)\1/g)];
   if (attrMatches.length === 0) return undefined;
 
-  const byName = new Map<string, NonNullable<ClassFragment["cssParts"]>[number]>();
+  const byName = new Map<
+    string,
+    NonNullable<ClassFragment["cssParts"]>[number]
+  >();
   for (const [, , rawValue] of attrMatches) {
-    for (const token of rawValue.split(/\s+/).map((v) => v.trim()).filter(Boolean)) {
+    for (const token of rawValue
+      .split(/\s+/)
+      .map((v) => v.trim())
+      .filter(Boolean)) {
       if (!byName.has(token)) byName.set(token, { name: token });
     }
   }
 
   const commentBeforePartElement = [
-    ...text.matchAll(/<!--([\s\S]*?)-->\s*<[^>]*\bpart\s*=\s*(["'])([^"']+)\2[^>]*>/g),
+    ...text.matchAll(
+      /<!--([\s\S]*?)-->\s*<[^>]*\bpart\s*=\s*(["'])([^"']+)\2[^>]*>/g,
+    ),
   ];
   for (const [, rawComment, , rawValue] of commentBeforePartElement) {
     const description = parseTemplateComment(rawComment);
     if (!description) continue;
-    for (const token of rawValue.split(/\s+/).map((v) => v.trim()).filter(Boolean)) {
+    for (const token of rawValue
+      .split(/\s+/)
+      .map((v) => v.trim())
+      .filter(Boolean)) {
       const existing = byName.get(token);
       if (!existing) continue;
       if (!existing.description) existing.description = description;
@@ -155,15 +202,22 @@ function parseTemplateComment(raw: string | undefined): string | undefined {
 }
 
 function getExportName(node: ts.ClassDeclaration): string | undefined {
-  const modifiers = ts.canHaveModifiers(node) ? ts.getModifiers(node) : undefined;
-  if (!modifiers?.some((m) => m.kind === ts.SyntaxKind.ExportKeyword)) return undefined;
-  if (modifiers.some((m) => m.kind === ts.SyntaxKind.DefaultKeyword)) return "default";
+  const modifiers = ts.canHaveModifiers(node)
+    ? ts.getModifiers(node)
+    : undefined;
+  if (!modifiers?.some((m) => m.kind === ts.SyntaxKind.ExportKeyword))
+    return undefined;
+  if (modifiers.some((m) => m.kind === ts.SyntaxKind.DefaultKeyword))
+    return "default";
   return node.name?.text;
 }
 
 type LitMixin = { members: ClassFragment["members"]; exportName?: string };
 
-function addMixinFragments(fragment: ManifestFragment, mixins: Map<string, LitMixin>): void {
+function addMixinFragments(
+  fragment: ManifestFragment,
+  mixins: Map<string, LitMixin>,
+): void {
   for (const [name, mixin] of mixins) {
     if (fragment[name]) continue;
     fragment[name] = {
@@ -171,7 +225,9 @@ function addMixinFragments(fragment: ManifestFragment, mixins: Map<string, LitMi
       kind: "mixin",
       customElement: false,
       exportName: mixin.exportName,
-      members: mixin.members?.map(({ inheritedFrom: _inheritedFrom, ...member }) => member),
+      members: mixin.members?.map(
+        ({ inheritedFrom: _inheritedFrom, ...member }) => member,
+      ),
       parameters: [{ name: "superClass" }],
     };
   }
@@ -182,7 +238,7 @@ function resolveLitMixin(
   anchor: ts.ClassLikeDeclaration,
   context: FileContext,
   mixins: Map<string, LitMixin>,
-  resolving: Set<string>
+  resolving: Set<string>,
 ): LitMixin | undefined {
   const existing = mixins.get(name);
   if (existing) return existing;
@@ -190,14 +246,21 @@ function resolveLitMixin(
   resolving.add(name);
 
   const identifier = findMixinIdentifier(anchor, name);
-  const symbol = identifier ? context.checker.getSymbolAtLocation(identifier) : undefined;
-  const resolvedSymbol = symbol && symbol.flags & ts.SymbolFlags.Alias
-    ? context.checker.getAliasedSymbol(symbol)
-    : symbol;
+  const symbol = identifier
+    ? context.checker.getSymbolAtLocation(identifier)
+    : undefined;
+  const resolvedSymbol =
+    symbol && symbol.flags & ts.SymbolFlags.Alias
+      ? context.checker.getAliasedSymbol(symbol)
+      : symbol;
   const declaration = resolvedSymbol?.declarations?.find(
-    (candidate) => ts.isFunctionDeclaration(candidate) || ts.isVariableDeclaration(candidate)
+    (candidate) =>
+      ts.isFunctionDeclaration(candidate) ||
+      ts.isVariableDeclaration(candidate),
   );
-  const implementation = declaration ? findMixinImplementation(declaration) : undefined;
+  const implementation = declaration
+    ? findMixinImplementation(declaration)
+    : undefined;
   if (!declaration || !implementation) {
     resolving.delete(name);
     return undefined;
@@ -209,30 +272,46 @@ function resolveLitMixin(
     sourceText: sourceFile.getFullText(),
     sourceFile,
     checker: context.checker,
+    typeParsing: context.typeParsing,
   };
   const nestedNames = getLitMixinNames(implementation);
   const nestedMembers = nestedNames.flatMap((nestedName) => {
-    const nested = resolveLitMixin(nestedName, implementation, mixinContext, mixins, resolving);
+    const nested = resolveLitMixin(
+      nestedName,
+      implementation,
+      mixinContext,
+      mixins,
+      resolving,
+    );
     return nested?.members ? [nested.members] : [];
   });
   const ownMembers = mergeLitMembers(
     filterLitMembers(detectClassMembers(implementation, mixinContext)),
     getDecoratedProperties(implementation, mixinContext),
-    getStaticPropertyMetadata(implementation)
+    getStaticPropertyMetadata(implementation),
   );
-  const members = mergeLitMembers(...nestedMembers, ownMembers)?.map((member) => ({
-    ...member,
-    inheritedFrom: member.inheritedFrom ?? { name, module: sourceFile.fileName },
-  }));
+  const members = mergeLitMembers(...nestedMembers, ownMembers)?.map(
+    (member) => ({
+      ...member,
+      inheritedFrom: member.inheritedFrom ?? {
+        name,
+        module: sourceFile.fileName,
+      },
+    }),
+  );
   if (!members?.length) {
     resolving.delete(name);
     return undefined;
   }
 
-  const declarationModifiers = ts.canHaveModifiers(declaration) ? ts.getModifiers(declaration) : undefined;
+  const declarationModifiers = ts.canHaveModifiers(declaration)
+    ? ts.getModifiers(declaration)
+    : undefined;
   const result: LitMixin = {
     members,
-    exportName: declarationModifiers?.some((modifier) => modifier.kind === ts.SyntaxKind.ExportKeyword)
+    exportName: declarationModifiers?.some(
+      (modifier) => modifier.kind === ts.SyntaxKind.ExportKeyword,
+    )
       ? name
       : undefined,
   };
@@ -241,13 +320,21 @@ function resolveLitMixin(
   return result;
 }
 
-function findMixinIdentifier(node: ts.ClassLikeDeclaration, name: string): ts.Identifier | undefined {
-  const heritage = node.heritageClauses?.find((clause) => clause.token === ts.SyntaxKind.ExtendsKeyword);
+function findMixinIdentifier(
+  node: ts.ClassLikeDeclaration,
+  name: string,
+): ts.Identifier | undefined {
+  const heritage = node.heritageClauses?.find(
+    (clause) => clause.token === ts.SyntaxKind.ExtendsKeyword,
+  );
   let result: ts.Identifier | undefined;
   function visit(expression: ts.Expression) {
     if (result) return;
     if (ts.isCallExpression(expression)) {
-      if (ts.isIdentifier(expression.expression) && expression.expression.text === name) {
+      if (
+        ts.isIdentifier(expression.expression) &&
+        expression.expression.text === name
+      ) {
         result = expression.expression;
         return;
       }
@@ -261,10 +348,14 @@ function findMixinIdentifier(node: ts.ClassLikeDeclaration, name: string): ts.Id
   return result;
 }
 
-function findMixinImplementation(declaration: ts.FunctionDeclaration | ts.VariableDeclaration): ts.ClassDeclaration | ts.ClassExpression | undefined {
+function findMixinImplementation(
+  declaration: ts.FunctionDeclaration | ts.VariableDeclaration,
+): ts.ClassDeclaration | ts.ClassExpression | undefined {
   const callable = ts.isFunctionDeclaration(declaration)
     ? declaration
-    : declaration.initializer && (ts.isArrowFunction(declaration.initializer) || ts.isFunctionExpression(declaration.initializer))
+    : declaration.initializer &&
+        (ts.isArrowFunction(declaration.initializer) ||
+          ts.isFunctionExpression(declaration.initializer))
       ? declaration.initializer
       : undefined;
   if (!callable || callable.parameters.length === 0) return undefined;
@@ -273,8 +364,16 @@ function findMixinImplementation(declaration: ts.FunctionDeclaration | ts.Variab
   function visit(node: ts.Node) {
     if (implementation) return;
     if (ts.isClassDeclaration(node) || ts.isClassExpression(node)) {
-      const heritage = node.heritageClauses?.find((clause) => clause.token === ts.SyntaxKind.ExtendsKeyword);
-      if (heritage?.types[0] && expressionContainsIdentifier(heritage.types[0].expression, parameterName)) {
+      const heritage = node.heritageClauses?.find(
+        (clause) => clause.token === ts.SyntaxKind.ExtendsKeyword,
+      );
+      if (
+        heritage?.types[0] &&
+        expressionContainsIdentifier(
+          heritage.types[0].expression,
+          parameterName,
+        )
+      ) {
         implementation = node;
         return;
       }
@@ -285,32 +384,53 @@ function findMixinImplementation(declaration: ts.FunctionDeclaration | ts.Variab
   return implementation;
 }
 
-function expressionContainsIdentifier(expression: ts.Expression, name: string): boolean {
+function expressionContainsIdentifier(
+  expression: ts.Expression,
+  name: string,
+): boolean {
   if (ts.isIdentifier(expression)) return expression.text === name;
   let found = false;
   ts.forEachChild(expression, (child) => {
-    if (!found && ts.isExpression(child)) found = expressionContainsIdentifier(child, name);
+    if (!found && ts.isExpression(child))
+      found = expressionContainsIdentifier(child, name);
   });
   return found;
 }
 
-function getLitMixinNames(node: ts.ClassLikeDeclaration, checker?: ts.TypeChecker): string[] {
+function getLitMixinNames(
+  node: ts.ClassLikeDeclaration,
+  checker?: ts.TypeChecker,
+): string[] {
   const names: string[] = [];
-  const heritage = node.heritageClauses?.find((clause) => clause.token === ts.SyntaxKind.ExtendsKeyword);
+  const heritage = node.heritageClauses?.find(
+    (clause) => clause.token === ts.SyntaxKind.ExtendsKeyword,
+  );
   const visit = (expression: ts.Expression) => {
     if (!ts.isCallExpression(expression)) return;
-    if (ts.isIdentifier(expression.expression) && expression.expression.text !== "LitElement") {
+    if (
+      ts.isIdentifier(expression.expression) &&
+      expression.expression.text !== "LitElement"
+    ) {
       names.push(expression.expression.text);
     }
     for (const argument of expression.arguments) {
       if (ts.isCallExpression(argument)) {
         visit(argument);
-      } else if (checker && ts.isIdentifier(argument) && argument.text !== "LitElement") {
+      } else if (
+        checker &&
+        ts.isIdentifier(argument) &&
+        argument.text !== "LitElement"
+      ) {
         const symbol = checker.getSymbolAtLocation(argument);
-        const resolved = symbol && symbol.flags & ts.SymbolFlags.Alias ? checker.getAliasedSymbol(symbol) : symbol;
+        const resolved =
+          symbol && symbol.flags & ts.SymbolFlags.Alias
+            ? checker.getAliasedSymbol(symbol)
+            : symbol;
         const declaration = resolved?.declarations?.find(ts.isClassDeclaration);
         if (declaration) {
-          const base = declaration.heritageClauses?.find((clause) => clause.token === ts.SyntaxKind.ExtendsKeyword);
+          const base = declaration.heritageClauses?.find(
+            (clause) => clause.token === ts.SyntaxKind.ExtendsKeyword,
+          );
           if (base?.types[0]) visit(base.types[0].expression);
         }
       }
@@ -324,9 +444,11 @@ function getLitMixinNames(node: ts.ClassLikeDeclaration, checker?: ts.TypeChecke
 function getLitBaseClassMembers(
   node: ts.ClassDeclaration,
   context: FileContext,
-  mixins: Map<string, LitMixin>
+  mixins: Map<string, LitMixin>,
 ): ClassFragment["members"] {
-  const heritage = node.heritageClauses?.find((clause) => clause.token === ts.SyntaxKind.ExtendsKeyword);
+  const heritage = node.heritageClauses?.find(
+    (clause) => clause.token === ts.SyntaxKind.ExtendsKeyword,
+  );
   const baseMembers: ClassFragment["members"][] = [];
 
   function visit(expression: ts.Expression) {
@@ -334,20 +456,33 @@ function getLitBaseClassMembers(
       for (const argument of expression.arguments) visit(argument);
       return;
     }
-    if (!ts.isIdentifier(expression) || expression.text === "LitElement") return;
+    if (!ts.isIdentifier(expression) || expression.text === "LitElement")
+      return;
     const symbol = context.checker.getSymbolAtLocation(expression);
-    const resolved = symbol && symbol.flags & ts.SymbolFlags.Alias ? context.checker.getAliasedSymbol(symbol) : symbol;
+    const resolved =
+      symbol && symbol.flags & ts.SymbolFlags.Alias
+        ? context.checker.getAliasedSymbol(symbol)
+        : symbol;
     const declaration = resolved?.declarations?.find(ts.isClassDeclaration);
     if (!declaration) return;
 
-    const nestedMembers = getLitMixinNames(declaration, context.checker).flatMap((name) => {
-      const mixin = resolveLitMixin(name, declaration, context, mixins, new Set());
+    const nestedMembers = getLitMixinNames(
+      declaration,
+      context.checker,
+    ).flatMap((name) => {
+      const mixin = resolveLitMixin(
+        name,
+        declaration,
+        context,
+        mixins,
+        new Set(),
+      );
       return mixin?.members ? [mixin.members] : [];
     });
     const ownMembers = mergeLitMembers(
       filterLitMembers(detectClassMembers(declaration, context)),
       getDecoratedProperties(declaration, context),
-      getStaticPropertyMetadata(declaration)
+      getStaticPropertyMetadata(declaration),
     );
     const members = mergeLitMembers(...nestedMembers, ownMembers);
     if (members) baseMembers.push(members);
@@ -358,21 +493,33 @@ function getLitBaseClassMembers(
   return mergeLitMembers(...baseMembers);
 }
 
-function extendsLitElement(node: ts.ClassDeclaration, checker: ts.TypeChecker): boolean {
-  const heritage = node.heritageClauses?.find((clause) => clause.token === ts.SyntaxKind.ExtendsKeyword);
+function extendsLitElement(
+  node: ts.ClassDeclaration,
+  checker: ts.TypeChecker,
+): boolean {
+  const heritage = node.heritageClauses?.find(
+    (clause) => clause.token === ts.SyntaxKind.ExtendsKeyword,
+  );
   const seen = new Set<ts.Node>();
   const containsLitElement = (expression: ts.Expression): boolean => {
     if (seen.has(expression)) return false;
     seen.add(expression);
     if (expression.getText() === "LitElement") return true;
     if (ts.isCallExpression(expression)) {
-      return expression.arguments.some((argument) => containsLitElement(argument));
+      return expression.arguments.some((argument) =>
+        containsLitElement(argument),
+      );
     }
     if (ts.isIdentifier(expression)) {
       const symbol = checker.getSymbolAtLocation(expression);
-      const resolved = symbol && symbol.flags & ts.SymbolFlags.Alias ? checker.getAliasedSymbol(symbol) : symbol;
+      const resolved =
+        symbol && symbol.flags & ts.SymbolFlags.Alias
+          ? checker.getAliasedSymbol(symbol)
+          : symbol;
       const declaration = resolved?.declarations?.find(ts.isClassDeclaration);
-      const base = declaration?.heritageClauses?.find((clause) => clause.token === ts.SyntaxKind.ExtendsKeyword);
+      const base = declaration?.heritageClauses?.find(
+        (clause) => clause.token === ts.SyntaxKind.ExtendsKeyword,
+      );
       return !!base?.types[0] && containsLitElement(base.types[0].expression);
     }
     return false;
@@ -381,7 +528,10 @@ function extendsLitElement(node: ts.ClassDeclaration, checker: ts.TypeChecker): 
 }
 
 /** Detects `@property({...}) name: Type;` and `@state() name: Type;` fields. */
-function getDecoratedProperties(node: ts.ClassLikeDeclaration, context: FileContext): ClassFragment["members"] {
+function getDecoratedProperties(
+  node: ts.ClassLikeDeclaration,
+  context: FileContext,
+): ClassFragment["members"] {
   const members: NonNullable<ClassFragment["members"]> = [];
 
   for (const member of node.members) {
@@ -403,7 +553,10 @@ function getDecoratedProperties(node: ts.ClassLikeDeclaration, context: FileCont
     });
     if (!propertyDecorator) continue;
 
-    const decoratorName = getDecoratorName(propertyDecorator, node.getSourceFile());
+    const decoratorName = getDecoratorName(
+      propertyDecorator,
+      node.getSourceFile(),
+    );
     const isInternal = [
       "state",
       "internalProperty",
@@ -419,23 +572,44 @@ function getDecoratedProperties(node: ts.ClassLikeDeclaration, context: FileCont
     const jsdoc = getJSDocInfo(member);
     const memberDoc = parseCemMemberTags(member);
     if (memberDoc.internal) continue;
-    const modifiers = ts.canHaveModifiers(member) ? ts.getModifiers(member) : undefined;
+    const modifiers = ts.canHaveModifiers(member)
+      ? ts.getModifiers(member)
+      : undefined;
     const typeText = getNodeTypeText(member, context.checker);
-    const parsedTypeText = getParsedTypeText(member, context.checker);
+    const parsedTypeText = shouldParseDecoratedType(
+      member,
+      modifiers,
+      context.typeParsing,
+    )
+      ? getParsedTypeText(member, context.checker)
+      : undefined;
 
     members.push({
       name: nameText,
       kind: "field",
       type: typeText,
-      parsedType: parsedTypeText && parsedTypeText !== typeText ? parsedTypeText : undefined,
+      parsedType:
+        parsedTypeText &&
+        !areTypeTextsEquivalent(parsedTypeText, typeText, {
+          ignoreUndefined: true,
+        })
+          ? parsedTypeText
+          : undefined,
       description: jsdoc.description || undefined,
       summary: memberDoc.summary,
       deprecated: memberDoc.deprecated,
       privacy: getPrivacy(modifiers),
-      static: modifiers?.some((mod) => mod.kind === ts.SyntaxKind.StaticKeyword) || undefined,
-      readonly: modifiers?.some((mod) => mod.kind === ts.SyntaxKind.ReadonlyKeyword) || undefined,
+      static:
+        modifiers?.some((mod) => mod.kind === ts.SyntaxKind.StaticKeyword) ||
+        undefined,
+      readonly:
+        modifiers?.some((mod) => mod.kind === ts.SyntaxKind.ReadonlyKeyword) ||
+        undefined,
       internal: isInternal || memberDoc.internal || undefined,
-      attribute: isInternal || options.noAttribute ? undefined : options.attribute ?? memberDoc.attribute ?? nameText,
+      attribute:
+        isInternal || options.noAttribute
+          ? undefined
+          : (options.attribute ?? memberDoc.attribute ?? nameText),
       reflects: options.reflect ?? memberDoc.reflects,
       default: memberDoc.default,
     });
@@ -444,31 +618,64 @@ function getDecoratedProperties(node: ts.ClassLikeDeclaration, context: FileCont
   return members;
 }
 
+function shouldParseDecoratedType(
+  member: ts.PropertyDeclaration,
+  modifiers: readonly ts.Modifier[] | undefined,
+  mode: FileContext["typeParsing"],
+): boolean {
+  if (mode === "none") return false;
+  if (mode === "all") return true;
+  return !modifiers?.some(
+    (modifier) =>
+      modifier.kind === ts.SyntaxKind.PrivateKeyword ||
+      modifier.kind === ts.SyntaxKind.ProtectedKeyword ||
+      modifier.kind === ts.SyntaxKind.StaticKeyword,
+  );
+}
+
 function mergeLitMembers(
   ...sources: ClassFragment["members"][]
 ): ClassFragment["members"] {
-  const byName = new Map<string, NonNullable<ClassFragment["members"]>[number]>();
+  const byName = new Map<
+    string,
+    NonNullable<ClassFragment["members"]>[number]
+  >();
   for (const source of sources) {
-    for (const member of source ?? []) byName.set(member.name, { ...byName.get(member.name), ...member });
+    for (const member of source ?? [])
+      byName.set(member.name, { ...byName.get(member.name), ...member });
   }
   return byName.size ? [...byName.values()] : undefined;
 }
 
-type LitPropertyOptions = { attribute?: string; noAttribute?: boolean; reflect?: boolean; type?: string };
+type LitPropertyOptions = {
+  attribute?: string;
+  noAttribute?: boolean;
+  reflect?: boolean;
+  type?: string;
+};
 
-function getDecoratorName(decorator: ts.Decorator, sourceFile: ts.SourceFile): string | undefined {
+function getDecoratorName(
+  decorator: ts.Decorator,
+  sourceFile: ts.SourceFile,
+): string | undefined {
   const expression = ts.isCallExpression(decorator.expression)
     ? decorator.expression.expression
     : decorator.expression;
   if (!ts.isIdentifier(expression)) return undefined;
 
   for (const statement of sourceFile.statements) {
-    if (!ts.isImportDeclaration(statement) || !ts.isStringLiteral(statement.moduleSpecifier)) continue;
+    if (
+      !ts.isImportDeclaration(statement) ||
+      !ts.isStringLiteral(statement.moduleSpecifier)
+    )
+      continue;
     const moduleName = statement.moduleSpecifier.text;
     if (moduleName !== "lit" && moduleName !== "lit/decorators.js") continue;
     const named = statement.importClause?.namedBindings;
     if (!named || !ts.isNamedImports(named)) continue;
-    const imported = named.elements.find((element) => element.name.text === expression.text);
+    const imported = named.elements.find(
+      (element) => element.name.text === expression.text,
+    );
     if (imported) return imported.propertyName?.text ?? imported.name.text;
   }
 
@@ -482,15 +689,20 @@ function getDecoratorOptions(decorator: ts.Decorator): LitPropertyOptions {
 
   const result: LitPropertyOptions = {};
   for (const property of options.properties) {
-    if (!ts.isPropertyAssignment(property) || !ts.isIdentifier(property.name)) continue;
+    if (!ts.isPropertyAssignment(property) || !ts.isIdentifier(property.name))
+      continue;
     const name = property.name.text;
     if (name === "attribute") {
       if (property.initializer.kind === ts.SyntaxKind.FalseKeyword) {
         result.noAttribute = true;
         continue;
       }
-      if (ts.isStringLiteralLike(property.initializer)) result.attribute = property.initializer.text;
-    } else if (name === "reflect" && property.initializer.kind === ts.SyntaxKind.TrueKeyword) {
+      if (ts.isStringLiteralLike(property.initializer))
+        result.attribute = property.initializer.text;
+    } else if (
+      name === "reflect" &&
+      property.initializer.kind === ts.SyntaxKind.TrueKeyword
+    ) {
       result.reflect = true;
     } else if (name === "type") {
       result.type = getLitTypeText(property.initializer);
@@ -499,20 +711,24 @@ function getDecoratorOptions(decorator: ts.Decorator): LitPropertyOptions {
   return result;
 }
 
-function getStaticPropertyMetadata(node: ts.ClassLikeDeclaration): ClassFragment["members"] {
+function getStaticPropertyMetadata(
+  node: ts.ClassLikeDeclaration,
+): ClassFragment["members"] {
   const properties = node.members.find(
     (member): member is ts.PropertyDeclaration | ts.GetAccessorDeclaration =>
-      (ts.isPropertyDeclaration(member) || ts.isGetAccessorDeclaration(member)) &&
+      (ts.isPropertyDeclaration(member) ||
+        ts.isGetAccessorDeclaration(member)) &&
       member.name.getText() === "properties" &&
-      !!(ts.canHaveModifiers(member) ? ts.getModifiers(member) : undefined)?.some(
-        (modifier) => modifier.kind === ts.SyntaxKind.StaticKeyword
-      )
+      !!(
+        ts.canHaveModifiers(member) ? ts.getModifiers(member) : undefined
+      )?.some((modifier) => modifier.kind === ts.SyntaxKind.StaticKeyword),
   );
   if (!properties) return undefined;
   const initializer = ts.isPropertyDeclaration(properties)
     ? properties.initializer
     : properties?.body?.statements.find(ts.isReturnStatement)?.expression;
-  if (!initializer || !ts.isObjectLiteralExpression(initializer)) return undefined;
+  if (!initializer || !ts.isObjectLiteralExpression(initializer))
+    return undefined;
   const constructorDefaults = getConstructorPropertyDefaults(node);
 
   const members: NonNullable<ClassFragment["members"]> = [];
@@ -526,7 +742,7 @@ function getStaticPropertyMetadata(node: ts.ClassLikeDeclaration): ClassFragment
       name,
       kind: "field",
       type: options.type,
-      attribute: options.noAttribute ? undefined : options.attribute ?? name,
+      attribute: options.noAttribute ? undefined : (options.attribute ?? name),
       reflects: options.reflect,
       default: options.default ?? constructorDefaults.get(name),
     });
@@ -534,31 +750,48 @@ function getStaticPropertyMetadata(node: ts.ClassLikeDeclaration): ClassFragment
   return members;
 }
 
-function getConstructorPropertyDefaults(node: ts.ClassLikeDeclaration): Map<string, string> {
+function getConstructorPropertyDefaults(
+  node: ts.ClassLikeDeclaration,
+): Map<string, string> {
   const defaults = new Map<string, string>();
   const constructor = node.members.find(ts.isConstructorDeclaration);
   for (const statement of constructor?.body?.statements ?? []) {
-    if (!ts.isExpressionStatement(statement) || !ts.isBinaryExpression(statement.expression)) continue;
+    if (
+      !ts.isExpressionStatement(statement) ||
+      !ts.isBinaryExpression(statement.expression)
+    )
+      continue;
     const assignment = statement.expression;
     if (assignment.operatorToken.kind !== ts.SyntaxKind.EqualsToken) continue;
-    if (!ts.isPropertyAccessExpression(assignment.left) || assignment.left.expression.kind !== ts.SyntaxKind.ThisKeyword) continue;
+    if (
+      !ts.isPropertyAccessExpression(assignment.left) ||
+      assignment.left.expression.kind !== ts.SyntaxKind.ThisKeyword
+    )
+      continue;
     defaults.set(assignment.left.name.text, assignment.right.getText());
   }
   return defaults;
 }
 
-function getObjectOptions(object: ts.ObjectLiteralExpression): LitPropertyOptions & { default?: string } {
+function getObjectOptions(
+  object: ts.ObjectLiteralExpression,
+): LitPropertyOptions & { default?: string } {
   const result: LitPropertyOptions & { default?: string } = {};
   for (const property of object.properties) {
-    if (!ts.isPropertyAssignment(property) || !ts.isIdentifier(property.name)) continue;
+    if (!ts.isPropertyAssignment(property) || !ts.isIdentifier(property.name))
+      continue;
     const name = property.name.text;
     if (name === "attribute") {
       if (property.initializer.kind === ts.SyntaxKind.FalseKeyword) {
         result.noAttribute = true;
         continue;
       }
-      if (ts.isStringLiteralLike(property.initializer)) result.attribute = property.initializer.text;
-    } else if (name === "reflect" && property.initializer.kind === ts.SyntaxKind.TrueKeyword) {
+      if (ts.isStringLiteralLike(property.initializer))
+        result.attribute = property.initializer.text;
+    } else if (
+      name === "reflect" &&
+      property.initializer.kind === ts.SyntaxKind.TrueKeyword
+    ) {
       result.reflect = true;
     } else if (name === "type") {
       result.type = getLitTypeText(property.initializer);
@@ -569,19 +802,37 @@ function getObjectOptions(object: ts.ObjectLiteralExpression): LitPropertyOption
 
 function getLitTypeText(node: ts.Expression): string | undefined {
   const name = node.getText();
-  return ({ String: "string", Number: "number", Boolean: "boolean", Object: "object", Array: "array" } as Record<string, string>)[name] ?? name;
+  return (
+    (
+      {
+        String: "string",
+        Number: "number",
+        Boolean: "boolean",
+        Object: "object",
+        Array: "array",
+      } as Record<string, string>
+    )[name] ?? name
+  );
 }
 
-function getCustomElementTagName(node: ts.ClassDeclaration): string | undefined {
+function getCustomElementTagName(
+  node: ts.ClassDeclaration,
+): string | undefined {
   for (const decorator of ts.getDecorators?.(node) ?? []) {
-    if (getDecoratorName(decorator, node.getSourceFile()) !== "customElement" || !ts.isCallExpression(decorator.expression)) continue;
+    if (
+      getDecoratorName(decorator, node.getSourceFile()) !== "customElement" ||
+      !ts.isCallExpression(decorator.expression)
+    )
+      continue;
     const tag = decorator.expression.arguments[0];
     if (tag && ts.isStringLiteralLike(tag)) return tag.text;
   }
   return undefined;
 }
 
-function filterLitMembers(members: ClassFragment["members"]): ClassFragment["members"] {
+function filterLitMembers(
+  members: ClassFragment["members"],
+): ClassFragment["members"] {
   const frameworkMembers = new Set([
     "properties",
     "styles",
@@ -606,21 +857,30 @@ function filterLitMembers(members: ClassFragment["members"]): ClassFragment["mem
     "hostConnected",
     "hostDisconnected",
   ]);
-  const filtered = members?.filter((member) => !frameworkMembers.has(member.name));
+  const filtered = members?.filter(
+    (member) => !frameworkMembers.has(member.name),
+  );
   return filtered?.length ? filtered : undefined;
 }
 
-function getPrivacy(modifiers: readonly ts.Modifier[] | undefined): "public" | "private" | "protected" | undefined {
+function getPrivacy(
+  modifiers: readonly ts.Modifier[] | undefined,
+): "public" | "private" | "protected" | undefined {
   if (!modifiers) return undefined;
-  if (modifiers.some((m) => m.kind === ts.SyntaxKind.PrivateKeyword)) return "private";
-  if (modifiers.some((m) => m.kind === ts.SyntaxKind.ProtectedKeyword)) return "protected";
-  if (modifiers.some((m) => m.kind === ts.SyntaxKind.PublicKeyword)) return "public";
+  if (modifiers.some((m) => m.kind === ts.SyntaxKind.PrivateKeyword))
+    return "private";
+  if (modifiers.some((m) => m.kind === ts.SyntaxKind.ProtectedKeyword))
+    return "protected";
+  if (modifiers.some((m) => m.kind === ts.SyntaxKind.PublicKeyword))
+    return "public";
   return undefined;
 }
 
 function applyMemberToAttributeLinks(
   classFragment: ManifestFragment[string],
-  classDoc: { properties?: Array<{ name: string; description?: string; type?: string }> }
+  classDoc: {
+    properties?: Array<{ name: string; description?: string; type?: string }>;
+  },
 ) {
   if (!classFragment.members) return;
 
@@ -650,7 +910,8 @@ function applyMemberToAttributeLinks(
       existingAttr = { name: attr };
       attrs.push(existingAttr);
     }
-    existingAttr.type = existingAttr.type ?? (typeof m.type === "string" ? m.type : undefined);
+    existingAttr.type =
+      existingAttr.type ?? (typeof m.type === "string" ? m.type : undefined);
     (existingAttr as Record<string, unknown>).parsedType =
       (existingAttr as Record<string, unknown>).parsedType ??
       (typeof m.parsedType === "string" ? m.parsedType : undefined);
@@ -665,24 +926,38 @@ function applyMemberToAttributeLinks(
 
 function mergeCssProperties(
   a: ClassFragment["cssProperties"],
-  b: ClassFragment["cssProperties"]
+  b: ClassFragment["cssProperties"],
 ): ClassFragment["cssProperties"] {
-  const merged = new Map<string, NonNullable<ClassFragment["cssProperties"]>[number]>();
+  const merged = new Map<
+    string,
+    NonNullable<ClassFragment["cssProperties"]>[number]
+  >();
   for (const item of a ?? []) merged.set(item.name, item);
-  for (const item of b ?? []) merged.set(item.name, { ...merged.get(item.name), ...item });
+  for (const item of b ?? [])
+    merged.set(item.name, { ...merged.get(item.name), ...item });
   return merged.size ? [...merged.values()] : undefined;
 }
 
-function mergeCssParts(a: ClassFragment["cssParts"], b: ClassFragment["cssParts"]): ClassFragment["cssParts"] {
-  const merged = new Map<string, NonNullable<ClassFragment["cssParts"]>[number]>();
+function mergeCssParts(
+  a: ClassFragment["cssParts"],
+  b: ClassFragment["cssParts"],
+): ClassFragment["cssParts"] {
+  const merged = new Map<
+    string,
+    NonNullable<ClassFragment["cssParts"]>[number]
+  >();
   for (const item of a ?? []) merged.set(item.name, item);
-  for (const item of b ?? []) merged.set(item.name, { ...merged.get(item.name), ...item });
+  for (const item of b ?? [])
+    merged.set(item.name, { ...merged.get(item.name), ...item });
   return merged.size ? [...merged.values()] : undefined;
 }
 
-function extractCssCustomProps(node: ts.ClassDeclaration): ClassFragment["cssProperties"] {
+function extractCssCustomProps(
+  node: ts.ClassDeclaration,
+): ClassFragment["cssProperties"] {
   const stylesMember = node.members.find((m) => {
-    if (!ts.isPropertyDeclaration(m) || m.name.getText() !== "styles") return false;
+    if (!ts.isPropertyDeclaration(m) || m.name.getText() !== "styles")
+      return false;
     const modifiers = ts.canHaveModifiers(m) ? ts.getModifiers(m) : undefined;
     return modifiers?.some((mod) => mod.kind === ts.SyntaxKind.StaticKeyword);
   });

@@ -1,6 +1,8 @@
 import ts from "typescript";
 import type { Package as CemPackage } from "custom-elements-manifest/schema";
 
+export type TypeParsingMode = "none" | "public" | "all";
+
 export interface OmitInheritedMap {
   members?: string[];
   attributes?: string[];
@@ -16,6 +18,7 @@ export interface FileContext {
   sourceText: string;
   sourceFile: ts.SourceFile;
   checker: ts.TypeChecker;
+  typeParsing: TypeParsingMode;
 }
 
 /** One class/element declaration's worth of manifest data. */
