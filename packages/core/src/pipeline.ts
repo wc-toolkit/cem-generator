@@ -290,6 +290,14 @@ function createRuntimeResolver(projectDir: string, compilerOptions: ts.CompilerO
   if (targets.length === 0) return (sourceFile) => sourceFile;
   return (sourceFile) => {
     const relativeSource = toPosixPath(path.relative(packageRoot, sourceFile));
+    const sourceRoot = compilerOptions.rootDir
+      ? path.resolve(packageRoot, compilerOptions.rootDir)
+      : projectDir;
+    const rootRelative = toPosixPath(path.relative(sourceRoot, sourceFile))
+      .replace(/\.(tsx?|mts|cts|jsx?|mjs|cjs)$/, "");
+    const exportResolved = resolveExportedSourcePath(targets, rootRelative);
+    if (exportResolved) return exportResolved;
+
     const runtimeCandidates = outputCandidates(relativeSource, projectDir, packageRoot, compilerOptions);
     const runtimeCandidate = runtimeCandidates.find((candidate) => candidate.endsWith(".js"));
     const declarationCandidate = runtimeCandidate
@@ -313,6 +321,35 @@ function createRuntimeResolver(projectDir: string, compilerOptions: ts.CompilerO
 
     return runtimeCandidates.find((candidate) => candidate.endsWith(".js")) ?? sourceFile;
   };
+}
+
+function resolveExportedSourcePath(targets: ExportTarget[], rootRelative: string): string | undefined {
+  for (const target of targets) {
+    if (!target.runtime?.includes("*")) continue;
+    const runtimeTarget = target.runtime.replace(/^\.\//, "");
+    const wildcardIndex = runtimeTarget.indexOf("*");
+    const prefix = runtimeTarget.slice(0, wildcardIndex);
+    const prefixSegments = prefix.split("/").filter(Boolean);
+    const rootSegments = rootRelative.split("/").filter(Boolean);
+    let wildcard = rootRelative;
+    let matchedPrefix = prefixSegments.length <= 1;
+
+    for (let index = 0; index < prefixSegments.length; index += 1) {
+      const suffix = prefixSegments.slice(index).join("/");
+      if (rootRelative === suffix || rootRelative.startsWith(`${suffix}/`)) {
+        wildcard = rootRelative.slice(suffix.length).replace(/^\//, "");
+        matchedPrefix = true;
+        break;
+      }
+    }
+
+    if (!matchedPrefix) continue;
+
+    let candidate = normalizeModulePath(runtimeTarget.replace("*", wildcard));
+    if (!path.posix.extname(candidate)) candidate += ".js";
+    if (candidate && rootSegments.length > 0) return candidate;
+  }
+  return undefined;
 }
 
 function findPackageRoot(startDir: string): string | undefined {
