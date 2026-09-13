@@ -76,6 +76,10 @@ This creates both `cem-generator.config.mjs` and `generate-cem.ts`. The
 generated script imports the shared config, calls `generateCem()`, and writes
 `custom-elements.json`. Run it with `tsx generate-cem.ts`.
 
+After `cem init` completes, it prints the `package.json` script to add and the
+appropriate package-manager command to run it. CLI mode uses `cem generate`,
+while code mode uses `tsx` for the generated script.
+
 ## Initialize a project
 
 Available plugin names are `lit`, `fast`, `stencil`, `preact`, `vue`, `solid`,

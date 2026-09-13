@@ -214,13 +214,27 @@ function firstTagValue(tags: JSDocTagInfo[], names: string[]): string | undefine
 }
 
 function stripLeadingType(text: string): string {
-  return text.replace(/^\s*\{[^}]+\}\s*/, "").trim();
+  return readLeadingType(text).rest.trim();
 }
 
 function readLeadingType(text: string): { type?: string; rest: string } {
-  const match = text.match(/^\s*\{([^}]+)\}\s*(.*)$/);
-  if (!match) return { rest: text };
-  return { type: match[1]?.trim() || undefined, rest: match[2] ?? "" };
+  const start = text.search(/\{/);
+  if (start < 0 || text.slice(0, start).trim()) return { rest: text };
+
+  let depth = 0;
+  for (let index = start; index < text.length; index += 1) {
+    if (text[index] === "{") depth += 1;
+    if (text[index] !== "}") continue;
+    depth -= 1;
+    if (depth === 0) {
+      return {
+        type: text.slice(start + 1, index).trim() || undefined,
+        rest: text.slice(index + 1),
+      };
+    }
+  }
+
+  return { rest: text };
 }
 
 function parseNamedTag(rawText: string): { name?: string; description?: string } | undefined {
@@ -328,10 +342,8 @@ function parseCssPropertyTag(rawText: string):
 }
 
 function parseEventTag(rawText: string): { name?: string; description?: string; type?: string } | undefined {
-  const typeMatch = rawText.match(/^\s*\{([^}]+)\}\s*(.*)$/);
-  const type = typeMatch?.[1]?.trim();
-  const withoutType = typeMatch ? typeMatch[2] : rawText;
-  const named = parseNamedTag(withoutType);
+  const { type, rest } = readLeadingType(rawText);
+  const named = parseNamedTag(rest);
   if (!named?.name) return undefined;
   return { name: named.name, description: named.description, type: type || undefined };
 }

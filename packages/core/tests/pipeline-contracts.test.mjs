@@ -5,6 +5,10 @@ import { fileURLToPath } from "node:url";
 
 import { generateCem } from "../dist/pipeline.js";
 import { validateGeneratedManifest } from "../dist/validation.js";
+import ts from "typescript";
+import { getParsedTypeText } from "../../core-utils/dist/index.js";
+import { createProgramFromTsConfig } from "../dist/program.js";
+import { detectClassMembers } from "../dist/api-members.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const fixturesTsConfig = path.resolve(__dirname, "fixtures/tsconfig.json");
@@ -232,7 +236,7 @@ test("exported-type warnings report failures without stopping generation", () =>
   });
 
   assert.ok(manifest.modules.length > 0);
-  assert.equal(warnings.length, 2);
+  assert.equal(warnings.length, 3);
   assert.ok(warnings.some((message) => message.includes('local type "Mode"')));
 });
 
@@ -244,6 +248,70 @@ test("exported-type validation can be disabled", () => {
       validation: { exportTypes: "off" },
     })
   );
+});
+
+test("parsed type expansion remains bounded for recursive types", () => {
+  const fixturePath = path.resolve(__dirname, "fixtures/large-type.ts");
+  const program = ts.createProgram([fixturePath], { strict: true, skipLibCheck: true });
+  const sourceFile = program.getSourceFile(fixturePath);
+  const checker = program.getTypeChecker();
+  const declaration = sourceFile.statements.find(
+    (statement) => ts.isVariableStatement(statement) && statement.declarationList.declarations[0]?.name.getText() === "largeValue",
+  );
+  const variable = declaration.declarationList.declarations[0];
+
+  const parsed = getParsedTypeText(variable, checker);
+
+  assert.ok(parsed);
+  assert.ok(parsed.length < 100_000);
+});
+
+test("typeParsing none disables parsed type expansion", () => {
+  const manifest = generateCem({
+    tsConfigPath: fixturesTsConfig,
+    include: ["parsed-types-element.ts"],
+    typeParsing: "none",
+  });
+  const declaration = manifest.modules.flatMap((module) => module.declarations)
+    .find((item) => item.name === "ParsedTypesElement");
+
+  assert.ok(declaration);
+  assert.equal(declaration.members?.find((member) => member.name === "mode")?.parsedType, undefined);
+  assert.equal(declaration.events?.find((event) => event.name === "payload-change")?.parsedType, undefined);
+});
+
+test("reuses class member analysis for the same declaration and checker", () => {
+  const result = createProgramFromTsConfig(fixturesTsConfig);
+  const sourceFile = result.sourceFiles.find((file) => file.fileName.endsWith("inheritance-fixture.ts"));
+  const declaration = sourceFile.statements.find(
+    (statement) => ts.isClassDeclaration(statement) && statement.name?.text === "BaseElement",
+  );
+  let typeLookups = 0;
+  const checker = new Proxy(result.checker, {
+    get(target, property) {
+      const value = target[property];
+      if (property === "getTypeAtLocation") {
+        return (...args) => {
+          typeLookups += 1;
+          return value.apply(target, args);
+        };
+      }
+      return typeof value === "function" ? value.bind(target) : value;
+    },
+  });
+  const context = {
+    filePath: sourceFile.fileName,
+    sourceText: sourceFile.getFullText(),
+    sourceFile,
+    checker,
+  };
+
+  detectClassMembers(declaration, context);
+  const firstLookupCount = typeLookups;
+  detectClassMembers(declaration, context);
+
+  assert.ok(firstLookupCount > 0);
+  assert.equal(typeLookups, firstLookupCount);
 });
 
 test("manifest invariant validation rejects broken export references", () => {

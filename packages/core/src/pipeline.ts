@@ -128,6 +128,8 @@ export interface RunOptions {
   modulePathResolver?: ModulePathResolverOptions;
   /** Validate the generated manifest before returning it. */
   validation?: ManifestValidationOptions;
+  /** Type expansion policy. @default "public" */
+  typeParsing?: "none" | "public" | "all";
 }
 
 export function generateCem(options: RunOptions = {}): CemPackage {
@@ -143,6 +145,7 @@ const {
     customJsDocTags = false,
     modulePathResolver = {},
     validation,
+    typeParsing = "public",
   } = options;
   const {
     modulePathTemplate,
@@ -181,7 +184,7 @@ const {
   const manifest: InternalManifest = { schemaVersion: TARGET_CEM_SCHEMA_VERSION, modules: [] };
 
   for (const sourceFile of filteredFiles) {
-      const moduleDeclarations = analyzeFile(sourceFile, checker, detectors, conflictPolicy);
+      const moduleDeclarations = analyzeFile(sourceFile, checker, detectors, conflictPolicy, typeParsing);
     if (moduleDeclarations.length > 0) {
       const pathDeclaration = moduleDeclarations.find(
         (declaration) => declaration.tagName && !modulePathExclude.includes(declaration.name)
@@ -220,11 +223,20 @@ const {
     definitionPathTemplate: modulePathSkip ? undefined : definitionPathTemplate,
     excludedNames: new Set(modulePathExclude),
   });
+  normalizeSourcePaths(cem, projectDir);
   validateGeneratedManifest(cem, manifest, checker, [...sourceFiles, ...additionalFiles], validation);
   for (const plugin of allPlugins) {
     plugin.afterGenerate?.(cem);
   }
   return cem;
+}
+
+function normalizeSourcePaths(cem: CemPackage, projectDir: string): void {
+  for (const module of cem.modules ?? []) {
+    const source = (module as unknown as { source?: string }).source;
+    if (!source || !path.isAbsolute(source)) continue;
+    (module as unknown as { source: string }).source = normalizeModulePath(path.relative(projectDir, source));
+  }
 }
 
 function getAdditionalPluginFiles(
@@ -278,6 +290,14 @@ function createRuntimeResolver(projectDir: string, compilerOptions: ts.CompilerO
   if (targets.length === 0) return (sourceFile) => sourceFile;
   return (sourceFile) => {
     const relativeSource = toPosixPath(path.relative(packageRoot, sourceFile));
+    const sourceRoot = compilerOptions.rootDir
+      ? path.resolve(packageRoot, compilerOptions.rootDir)
+      : projectDir;
+    const rootRelative = toPosixPath(path.relative(sourceRoot, sourceFile))
+      .replace(/\.(tsx?|mts|cts|jsx?|mjs|cjs)$/, "");
+    const exportResolved = resolveExportedSourcePath(targets, rootRelative);
+    if (exportResolved) return exportResolved;
+
     const runtimeCandidates = outputCandidates(relativeSource, projectDir, packageRoot, compilerOptions);
     const runtimeCandidate = runtimeCandidates.find((candidate) => candidate.endsWith(".js"));
     const declarationCandidate = runtimeCandidate
@@ -301,6 +321,35 @@ function createRuntimeResolver(projectDir: string, compilerOptions: ts.CompilerO
 
     return runtimeCandidates.find((candidate) => candidate.endsWith(".js")) ?? sourceFile;
   };
+}
+
+function resolveExportedSourcePath(targets: ExportTarget[], rootRelative: string): string | undefined {
+  for (const target of targets) {
+    if (!target.runtime?.includes("*")) continue;
+    const runtimeTarget = target.runtime.replace(/^\.\//, "");
+    const wildcardIndex = runtimeTarget.indexOf("*");
+    const prefix = runtimeTarget.slice(0, wildcardIndex);
+    const prefixSegments = prefix.split("/").filter(Boolean);
+    const rootSegments = rootRelative.split("/").filter(Boolean);
+    let wildcard = rootRelative;
+    let matchedPrefix = prefixSegments.length <= 1;
+
+    for (let index = 0; index < prefixSegments.length; index += 1) {
+      const suffix = prefixSegments.slice(index).join("/");
+      if (rootRelative === suffix || rootRelative.startsWith(`${suffix}/`)) {
+        wildcard = rootRelative.slice(suffix.length).replace(/^\//, "");
+        matchedPrefix = true;
+        break;
+      }
+    }
+
+    if (!matchedPrefix) continue;
+
+    let candidate = normalizeModulePath(runtimeTarget.replace("*", wildcard));
+    if (!path.posix.extname(candidate)) candidate += ".js";
+    if (candidate && rootSegments.length > 0) return candidate;
+  }
+  return undefined;
 }
 
 function findPackageRoot(startDir: string): string | undefined {
@@ -593,10 +642,11 @@ function analyzeFile(
   sourceFile: ts.SourceFile,
   checker: ts.TypeChecker,
   detectors: DetectorPlugin[],
-  conflictPolicy: "throw" | "last-wins"
+  conflictPolicy: "throw" | "last-wins",
+  typeParsing: "none" | "public" | "all"
 ): ClassFragment[] {
   const sourceText = sourceFile.getFullText();
-  const context: FileContext = { filePath: sourceFile.fileName, sourceText, sourceFile, checker };
+  const context: FileContext = { filePath: sourceFile.fileName, sourceText, sourceFile, checker, typeParsing };
   const claimedByPlugin = new Map<DetectorPlugin, boolean>();
 
   function claimed(plugin: DetectorPlugin): boolean {

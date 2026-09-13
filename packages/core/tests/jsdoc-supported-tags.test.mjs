@@ -34,7 +34,7 @@ test("supports standard component API JSDoc tags", () => {
 
   assert.ok(decl.attributes?.some((a) => a.name === "disabled"));
   assert.ok(decl.events?.some((e) => e.name === "custom-event"));
-  assert.ok(decl.events?.some((e) => e.name === "typed-event" && e.type?.text === "Event"));
+  assert.ok(decl.events?.some((e) => e.name === "typed-event" && e.type?.text === "{ item: StandardTagsElement }"));
   assert.ok(decl.slots?.some((s) => s.name === ""));
   assert.ok(decl.slots?.some((s) => s.name === "container"));
   assert.ok(decl.cssProperties?.some((p) => p.name === "--text-color"));
@@ -296,6 +296,26 @@ test("emits parsed types for fields, attributes, events, method params, and retu
   assert.equal(modeMember.type?.text, "Mode");
   assert.equal(modeMember.parsedType?.text, "'primary' | 'secondary' | undefined");
 
+  const hostMember = decl.members?.find((m) => m.name === "host");
+  assert.ok(hostMember, "Expected host member");
+  assert.equal(hostMember.type?.text, "HTMLElement");
+  assert.equal(hostMember.parsedType, undefined, "Named types should not be expanded");
+
+  const controllerMember = decl.members?.find((m) => m.name === "controller");
+  assert.equal(controllerMember?.type?.text, "LocalizeController");
+  assert.equal(controllerMember?.parsedType, undefined, "Class types should not be expanded");
+
+  const observerMember = decl.members?.find((m) => m.name === "observer");
+  assert.equal(observerMember?.type?.text, "MutationObserver | null");
+  assert.equal(observerMember?.parsedType, undefined, "Equivalent union types should not be repeated");
+
+  const optionalHost = decl.members?.find((m) => m.name === "optionalHost");
+  assert.equal(optionalHost?.parsedType, undefined, "Union ordering should not create duplicate parsed types");
+
+  const positionMember = decl.members?.find((m) => m.name === "position");
+  assert.equal(positionMember?.type?.text, '"top" | "top-start" | "top-end" | "bottom" | "bottom-start" | "bottom-end"');
+  assert.equal(positionMember?.parsedType, undefined, "Union formatting should not create duplicate parsed types");
+
   const modeAttr = decl.attributes?.find((a) => a.name === "mode");
   assert.ok(modeAttr, "Expected mode attribute");
   assert.equal(modeAttr.type?.text, "Mode");
@@ -335,6 +355,14 @@ test("emits parsed types for fields, attributes, events, method params, and retu
 
   assert.equal(sharedMethod.return?.type?.text, "SharedPayload");
   assert.ok(sharedMethod.return?.parsedType?.text?.includes("id: string"));
+
+  const waitForUpdate = decl.members?.find((m) => m.name === "waitForUpdate");
+  assert.equal(waitForUpdate?.return?.type?.text, "Promise<void>");
+  assert.equal(waitForUpdate?.return?.parsedType, undefined);
+
+  const focus = decl.members?.find((m) => m.name === "focus");
+  assert.equal(focus?.parameters?.[0]?.type?.text, "FocusOptions");
+  assert.equal(focus?.parameters?.[0]?.parsedType, undefined);
 });
 
 test("materializes inheritance and omits inherited APIs via JSDoc tags", () => {

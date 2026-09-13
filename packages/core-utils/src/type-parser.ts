@@ -1,6 +1,15 @@
 import ts from "typescript";
 
 const typeLookupCache = new WeakMap<ts.SourceFile, Map<string, ts.Node>>();
+const nodeTypeTextCache = new WeakMap<ts.Node, WeakMap<ts.TypeChecker, string | undefined>>();
+const parsedTypeTextCache = new WeakMap<ts.Node, WeakMap<ts.TypeChecker, string | undefined>>();
+const MAX_EXPANDED_TYPE_LENGTH = 100_000;
+const MAX_EXPANDED_TYPE_PROPERTIES = 500;
+
+type FormatState = {
+  visited: Set<ts.Type>;
+  remaining: number;
+};
 
 /**
  * Shared type extraction helper used by detectors.
@@ -12,18 +21,27 @@ const typeLookupCache = new WeakMap<ts.SourceFile, Map<string, ts.Node>>();
 export function getNodeTypeText(node: ts.Node, checker: ts.TypeChecker): string | undefined {
   const maybeTyped = node as { type?: ts.TypeNode };
   if (maybeTyped.type) {
-    const text = maybeTyped.type.getText().trim();
+    const text = normalizeTypeText(maybeTyped.type.getText());
     if (text) return text;
   }
 
   try {
+    const cachedByChecker = nodeTypeTextCache.get(node);
+    if (cachedByChecker?.has(checker)) return cachedByChecker.get(checker);
     const type = checker.getTypeAtLocation(node);
     const text = checker.typeToString(type).trim();
-    if (!text || text === "any" || text === "unknown") return undefined;
-    return text;
+    const result = !text || text === "any" || text === "unknown" ? undefined : text;
+    const byChecker = nodeTypeTextCache.get(node) ?? new WeakMap<ts.TypeChecker, string | undefined>();
+    byChecker.set(checker, result);
+    nodeTypeTextCache.set(node, byChecker);
+    return result;
   } catch {
     return undefined;
   }
+}
+
+export function normalizeTypeText(text: string): string {
+  return text.replace(/\s+/g, " ").replace(/^\s*\|\s*/, "").trim();
 }
 
 /**
@@ -33,16 +51,118 @@ export function getNodeTypeText(node: ts.Node, checker: ts.TypeChecker): string 
  */
 export function getParsedTypeText(node: ts.Node, checker: ts.TypeChecker): string | undefined {
   try {
+    const annotation = (node as { type?: ts.TypeNode }).type;
+    if (annotation && isOpaqueTypeReference(annotation, checker)) return undefined;
+    const cachedByChecker = parsedTypeTextCache.get(node);
+    if (cachedByChecker?.has(checker)) return cachedByChecker.get(checker);
     const type = checker.getTypeAtLocation(node);
     const expanded = getParsedTypeTextFromType(type, checker);
-    return expanded || undefined;
+    const result = expanded || undefined;
+    const byChecker = parsedTypeTextCache.get(node) ?? new WeakMap<ts.TypeChecker, string | undefined>();
+    byChecker.set(checker, result);
+    parsedTypeTextCache.set(node, byChecker);
+    return result;
   } catch {
     return undefined;
   }
 }
 
+function isOpaqueTypeReference(node: ts.TypeNode, checker: ts.TypeChecker): boolean {
+  if (!ts.isTypeReferenceNode(node)) return false;
+  const symbol = checker.getSymbolAtLocation(node.typeName);
+  return symbol?.declarations?.some((declaration) => {
+    const fileName = declaration.getSourceFile().fileName;
+    return declaration.getSourceFile().isDeclarationFile && /[\\/]node_modules[\\/]|[\\/]lib\.[^/\\]+\.d\.ts$/.test(fileName);
+  }) ?? false;
+}
+
 export function getParsedTypeTextFromType(type: ts.Type, checker: ts.TypeChecker): string {
-  return normalizeUnionText(formatType(type, checker, new Set(), 0));
+  const state: FormatState = { visited: new Set(), remaining: MAX_EXPANDED_TYPE_LENGTH };
+  return normalizeUnionText(formatType(type, checker, state, 0));
+}
+
+export function areTypeTextsEquivalent(
+  first: string | undefined,
+  second: string | undefined,
+  options: { ignoreUndefined?: boolean } = {},
+): boolean {
+  if (!first || !second) return false;
+  return canonicalizeTypeText(first, options) === canonicalizeTypeText(second, options);
+}
+
+function canonicalizeTypeText(text: string, options: { ignoreUndefined?: boolean }): string {
+  const normalized = stripOuterParentheses(text.trim())
+    .replace(/\s+/g, " ")
+    .replace(/"([^"\\]*(?:\\.[^"\\]*)*)"/g, "'$1'");
+  const union = splitTopLevelOperator(normalized, "|");
+  if (union.length > 1) {
+    const parts = union
+      .map((part) => canonicalizeTypeText(part, options))
+      .filter((part) => part && (!options.ignoreUndefined || part !== "undefined"))
+      .sort();
+    if (parts.includes("true") && parts.includes("false")) {
+      return [...parts.filter((part) => part !== "true" && part !== "false"), "boolean"].sort().join("|");
+    }
+    return parts.join("|");
+  }
+
+  const intersection = splitTopLevelOperator(normalized, "&");
+  if (intersection.length > 1) {
+    return intersection.map((part) => canonicalizeTypeText(part, options)).sort().join("&");
+  }
+
+  return normalized
+    .replace(/\s*;\s*}/g, "}")
+    .replace(/\s*;\s*$/g, "");
+}
+
+function stripOuterParentheses(text: string): string {
+  if (!text.startsWith("(") || !text.endsWith(")")) return text;
+  let depth = 0;
+  for (let index = 0; index < text.length; index += 1) {
+    if (text[index] === "(") depth += 1;
+    if (text[index] === ")") depth -= 1;
+    if (depth === 0 && index < text.length - 1) return text;
+  }
+  return text.slice(1, -1).trim();
+}
+
+function splitTopLevelOperator(text: string, operator: "|" | "&"): string[] {
+  const parts: string[] = [];
+  let start = 0;
+  let angle = 0;
+  let curly = 0;
+  let square = 0;
+  let paren = 0;
+  let quote: string | undefined;
+
+  for (let index = 0; index < text.length; index += 1) {
+    const character = text[index];
+    if (quote) {
+      if (character === quote && text[index - 1] !== "\\") quote = undefined;
+      continue;
+    }
+    if (character === "'" || character === '"' || character === "`") {
+      quote = character;
+      continue;
+    }
+    if (character === "<") angle += 1;
+    else if (character === ">" && angle > 0) angle -= 1;
+    else if (character === "{") curly += 1;
+    else if (character === "}" && curly > 0) curly -= 1;
+    else if (character === "[") square += 1;
+    else if (character === "]" && square > 0) square -= 1;
+    else if (character === "(") paren += 1;
+    else if (character === ")" && paren > 0) paren -= 1;
+    else if (character === operator && angle === 0 && curly === 0 && square === 0 && paren === 0) {
+      parts.push(text.slice(start, index).trim());
+      start = index + 1;
+    }
+  }
+
+  if (parts.length === 0) return [text];
+  parts.push(text.slice(start).trim());
+  return parts;
 }
 
 export function resolveParsedTypeFromText(
@@ -71,24 +191,34 @@ export function resolveParsedTypeFromText(
   return normalizeUnionText(resolved.join(" | "));
 }
 
+export function resolveMeaningfulParsedTypeFromText(
+  typeText: string | undefined,
+  sourceFile: ts.SourceFile,
+  checker: ts.TypeChecker,
+): string | undefined {
+  const resolved = resolveParsedTypeFromText(typeText, sourceFile, checker);
+  return resolved && !areTypeTextsEquivalent(resolved, typeText, { ignoreUndefined: true }) ? resolved : undefined;
+}
+
 function formatType(
   type: ts.Type,
   checker: ts.TypeChecker,
-  visited: Set<ts.Type>,
+  state: FormatState,
   depth: number
 ): string {
-  if (depth > 8 || visited.has(type)) {
-    return checker.typeToString(type);
+  if (state.remaining <= 0) return "unknown";
+  if (depth > 8 || state.visited.has(type)) {
+    return safeTypeToString(type, checker);
   }
-  visited.add(type);
+  state.visited.add(type);
 
   if (type.isUnion()) {
-    const parts = type.types.map((t) => formatType(t, checker, visited, depth + 1));
+    const parts = type.types.map((t) => formatType(t, checker, state, depth + 1));
     return normalizeUnionParts(parts).join(" | ");
   }
 
   if (type.isIntersection()) {
-    return type.types.map((t) => formatType(t, checker, visited, depth + 1)).join(" & ");
+    return type.types.map((t) => formatType(t, checker, state, depth + 1)).join(" & ");
   }
 
   if (type.flags & ts.TypeFlags.StringLiteral) {
@@ -105,39 +235,76 @@ function formatType(
     return intrinsic === "true" || intrinsic === "false" ? intrinsic : "boolean";
   }
 
+  // Keep framework/library types opaque, including imported aliases, so
+  // declarations from Lit, FAST, Preact, and similar packages are not expanded.
+  if ((type.symbol || type.aliasSymbol) && (isOpaqueLibraryType(type) || isClassType(type))) {
+    return safeTypeToString(type, checker);
+  }
+
   if (type.aliasSymbol) {
     const aliasDeclared = checker.getDeclaredTypeOfSymbol(type.aliasSymbol);
     if (aliasDeclared && aliasDeclared !== type) {
-      return formatType(aliasDeclared, checker, visited, depth + 1);
+      return formatType(aliasDeclared, checker, state, depth + 1);
     }
   }
 
   if (checker.isArrayType?.(type)) {
     const [element] = checker.getTypeArguments(type as ts.TypeReference);
     if (!element) return "unknown[]";
-    return `${formatType(element, checker, visited, depth + 1)}[]`;
+    return `${formatType(element, checker, state, depth + 1)}[]`;
   }
 
   if (checker.isTupleType?.(type)) {
     const args = checker.getTypeArguments(type as ts.TypeReference);
-    return `[${args.map((t) => formatType(t, checker, visited, depth + 1)).join(", ")}]`;
+    return `[${args.map((t) => formatType(t, checker, state, depth + 1)).join(", ")}]`;
   }
 
   if (type.flags & ts.TypeFlags.Object) {
     const props = checker.getPropertiesOfType(type);
     if (props.length > 0) {
-      const members = props.map((prop) => {
+      const members = props.slice(0, MAX_EXPANDED_TYPE_PROPERTIES).map((prop) => {
         const decl = prop.valueDeclaration ?? prop.getDeclarations()?.[0];
         if (!decl) return `${prop.name}: unknown`;
         const propType = checker.getTypeOfSymbolAtLocation(prop, decl);
         const optional = (prop.flags & ts.SymbolFlags.Optional) !== 0 ? "?" : "";
-        return `${prop.name}${optional}: ${formatType(propType, checker, visited, depth + 1)}`;
+        state.remaining -= prop.name.length + 8;
+        return `${prop.name}${optional}: ${formatType(propType, checker, state, depth + 1)}`;
       });
+      if (props.length > MAX_EXPANDED_TYPE_PROPERTIES) members.push("...: unknown");
       return `{ ${members.join("; ")} }`;
     }
   }
 
-  return checker.typeToString(type, undefined, ts.TypeFormatFlags.NoTruncation);
+  return safeTypeToString(type, checker);
+}
+
+function safeTypeToString(type: ts.Type, checker: ts.TypeChecker): string {
+  try {
+    const text = checker.typeToString(type, undefined, ts.TypeFormatFlags.NoTruncation);
+    return text.length <= MAX_EXPANDED_TYPE_LENGTH ? text : "unknown";
+  } catch {
+    return "unknown";
+  }
+}
+
+function isOpaqueLibraryType(type: ts.Type): boolean {
+  const declarations = [
+    ...(type.symbol?.declarations ?? []),
+    ...(type.aliasSymbol?.declarations ?? []),
+  ];
+  return declarations.some((declaration) => {
+    const fileName = declaration.getSourceFile().fileName;
+    return (
+      declaration.getSourceFile().isDeclarationFile &&
+      (/[\\/]lib\.[^/\\]+\.d\.ts$/.test(fileName) || /[\\/]node_modules[\\/]/.test(fileName))
+    );
+  }) ?? false;
+}
+
+function isClassType(type: ts.Type): boolean {
+  return type.symbol?.declarations?.some(
+    (declaration) => ts.isClassDeclaration(declaration) || ts.isClassExpression(declaration),
+  ) ?? false;
 }
 
 function normalizeUndefinedLast(text: string): string {

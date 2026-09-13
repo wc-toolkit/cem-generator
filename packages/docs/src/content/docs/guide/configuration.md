@@ -17,6 +17,10 @@ export default {
   include: ["src/components/**/*.ts"],
   // Optional: glob patterns removing files from analysis
   exclude: ["**/*.stories.ts", "**/*.test.ts"],
+
+  // Optional: parsed TypeScript type expansion
+  // "none" | "public" (default) | "all"
+  typeParsing: "public",
   // Optional: how to handle detector conflicts
   conflictPolicy: "last-wins",
   // Optional: inheritance materialization
@@ -102,6 +106,7 @@ const manifest = generateCem({
 | `inheritance` | `false \| InheritancePluginOptions` | `{}` | Built-in inheritance materialization. Set `false` to disable. |
 | `include` | `string[]` | `undefined` | Glob patterns limiting analyzed files. Omit for all non-declaration, non-node_modules files. |
 | `exclude` | `string[]` | `undefined` | Glob patterns removing files from analysis. Exclude wins over include. |
+| `typeParsing` | `"none" \| "public" \| "all"` | `"public"` | Whether to expand parsed types for no APIs, public instance APIs, or all APIs. |
 | `validation` | `ManifestValidationOptions` | `{ invariants: "error", exportTypes: "off" }` | Validate generated manifest invariants and public type exports. |
 
 ## Inheritance Options

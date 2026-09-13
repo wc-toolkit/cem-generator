@@ -39,16 +39,16 @@ test("preserves source and resolves exact and wildcard package exports", () => {
     ],
   });
 
-  const root = manifest.modules.find((module) => module.source?.endsWith("/src/index.ts"));
-  const button = manifest.modules.find((module) => module.source?.endsWith("/src/components/button.ts"));
-  const legacy = manifest.modules.find((module) => module.source?.endsWith("/src/legacy.ts"));
+  const root = manifest.modules.find((module) => module.source === "src/index.ts");
+  const button = manifest.modules.find((module) => module.source === "src/components/button.ts");
+  const legacy = manifest.modules.find((module) => module.source === "src/legacy.ts");
 
   assert.equal(root?.path, "dist/index.js");
   assert.equal(button?.path, "dist/components/button.js");
   assert.equal(button?.declarations?.[0]?.superclass?.module, "dist/index.js");
   assert.equal(legacy?.path, "dist/legacy.js");
-  assert.ok(root?.source?.endsWith("/src/index.ts"));
-  assert.ok(button?.source?.endsWith("/src/components/button.ts"));
+  assert.equal(root?.source, "src/index.ts");
+  assert.equal(button?.source, "src/components/button.ts");
   assert.equal(root?.exports?.[0]?.declaration.module, "dist/index.js");
   assert.equal(button?.exports?.[0]?.declaration.module, "dist/components/button.js");
 });
@@ -79,8 +79,8 @@ test("supports configurable module, definition, and type paths", () => {
     ],
   });
 
-  const button = manifest.modules.find((module) => module.source?.endsWith("/src/components/button.ts"));
-  const multi = manifest.modules.find((module) => module.source?.endsWith("/src/components/multi.ts"));
+  const button = manifest.modules.find((module) => module.source === "src/components/button.ts");
+  const multi = manifest.modules.find((module) => module.source === "src/components/multi.ts");
   const definition = manifest.modules.find((module) => module.path === "./published/x-button/index.js");
 
   assert.equal(button?.path, "./published/x-button/ButtonElement.js");

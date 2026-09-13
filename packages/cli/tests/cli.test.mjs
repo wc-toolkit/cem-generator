@@ -19,6 +19,33 @@ test("documents validation severity CLI options", () => {
   assert.match(result.stdout, /--validation-invariants <severity>/);
 });
 
+test("generate uses source defaults and excludes common non-component files", () => {
+  const projectDir = fs.mkdtempSync(path.join(os.tmpdir(), "cem-generate-"));
+  fs.mkdirSync(path.join(projectDir, "src"), { recursive: true });
+  fs.writeFileSync(
+    path.join(projectDir, "tsconfig.json"),
+    JSON.stringify({ compilerOptions: { target: "ES2022" }, include: ["src/**/*.ts"] }),
+  );
+  fs.writeFileSync(
+    path.join(projectDir, "src/component.ts"),
+    "export class ComponentElement extends HTMLElement {}\ncustomElements.define(\"x-component\", ComponentElement);\n",
+  );
+  fs.writeFileSync(
+    path.join(projectDir, "src/component.test.ts"),
+    "export class TestElement extends HTMLElement {}\ncustomElements.define(\"x-test\", TestElement);\n",
+  );
+
+  const result = spawnSync(process.execPath, [cliPath, "generate", "--output", "manifest.json"], {
+    cwd: projectDir,
+    encoding: "utf8",
+  });
+
+  assert.equal(result.status, 0, result.stderr);
+  const manifest = JSON.parse(fs.readFileSync(path.join(projectDir, "manifest.json"), "utf8"));
+  const names = manifest.modules.flatMap((module) => module.declarations.map((declaration) => declaration.name));
+  assert.deepEqual(names, ["ComponentElement"]);
+});
+
 test("documents init installation option", () => {
   const result = spawnSync(process.execPath, [cliPath, "init", "--help"], {
     encoding: "utf8",
@@ -41,6 +68,8 @@ test("init creates a config with selected plugins", () => {
   assert.match(config, /import \{ sveltePlugin \} from "@wc-toolkit\/cem-generator-svelte"/);
   assert.match(config, /litPlugin\(\)/);
   assert.match(config, /sveltePlugin\(\)/);
+  assert.match(result.stdout, /"cem": "cem generate"/);
+  assert.match(result.stdout, /Run it with: npm run cem/);
 });
 
 test("init creates a code workflow with selected plugins", () => {
@@ -57,6 +86,44 @@ test("init creates a code workflow with selected plugins", () => {
   assert.match(source, /import \{ generateCem \} from "@wc-toolkit\/cem-generator"/);
   assert.match(source, /import config from "\.\/cem-generator\.config\.mjs"/);
   assert.match(source, /generateCem\(config\)/);
+  assert.match(result.stdout, /"cem": "tsx \.\/generate-cem\.ts"/);
+  assert.match(result.stdout, /Run it with: npm run cem/);
+});
+
+test("interactive init creates selected integrations with default options", () => {
+  const projectDir = fs.mkdtempSync(path.join(os.tmpdir(), "cem-init-"));
+  fs.mkdirSync(path.join(projectDir, "src"));
+  const result = spawnSync(process.execPath, [cliPath, "init", "--mode", "cli"], {
+    cwd: projectDir,
+    input: "\n2,3,4\nn\n",
+    encoding: "utf8",
+  });
+
+  assert.equal(result.status, 0, result.stderr);
+  const config = fs.readFileSync(path.join(projectDir, "cem-generator.config.mjs"), "utf8");
+  assert.match(config, /import \{ jsxTypesGeneratorPlugin \} from "@wc-toolkit\/jsx-types"/);
+  assert.match(config, /jsxTypesGeneratorPlugin\(\{ outdir: "\.\/types", stronglyTypedEvents: true \}\)/);
+  assert.match(config, /vuejsTypesGeneratorPlugin\(\{ outdir: "\.\/types", stronglyTypedEvents: true \}\)/);
+  assert.match(config, /svelteTypesGeneratorPlugin\(\{ outdir: "\.\/types", stronglyTypedEvents: true \}\)/);
+  assert.doesNotMatch(config, /reactWrapperGeneratorPlugin/);
+  assert.match(config, /include: \["src\/\*\*\/\*\.\{ts,tsx,js,jsx\}"\]/);
+  assert.match(config, /exclude: \[/);
+  assert.match(config, /\*\*\/\*\.test\.\*/);
+  assert.match(config, /\*\*\/\*\.spec\.\*/);
+  assert.match(config, /\*\*\/\*\.stories\.\*/);
+});
+
+test("interactive init configures React wrappers with typed events", () => {
+  const projectDir = fs.mkdtempSync(path.join(os.tmpdir(), "cem-init-"));
+  const result = spawnSync(process.execPath, [cliPath, "init", "--mode", "cli"], {
+    cwd: projectDir,
+    input: "\n1\nn\n",
+    encoding: "utf8",
+  });
+
+  assert.equal(result.status, 0, result.stderr);
+  const config = fs.readFileSync(path.join(projectDir, "cem-generator.config.mjs"), "utf8");
+  assert.match(config, /reactWrapperGeneratorPlugin\(\{ stronglyTypedEvents: true \}\)/);
 });
 
 test("init does not overwrite an existing config by default", () => {

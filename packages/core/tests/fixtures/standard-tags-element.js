@@ -12,7 +12,7 @@
  * @csspart bar - Styles the color of bar
  * @cssState open - reflects internal open state
  * @fires custom-event - emitted when work is done
- * @event {Event} typed-event - typed event example
+ * @event {{ item: StandardTagsElement }} typed-event - typed event example
  * @prop {string} externalTitle - property from JSDoc only
  * @since 2.0.0
  * @license MIT

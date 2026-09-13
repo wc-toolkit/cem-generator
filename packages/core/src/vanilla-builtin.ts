@@ -2,7 +2,7 @@ import ts from "typescript";
 import type { DetectorPlugin, FileContext, ManifestFragment, ClassFragment } from "./types.js";
 import {
   getJSDocInfo,
-  resolveParsedTypeFromText,
+  resolveMeaningfulParsedTypeFromText,
   parseCemClassTags,
 } from "@wc-toolkit/cem-generator-utils";
 import { detectClassMembers } from "./api-members.js";
@@ -57,13 +57,17 @@ export function vanillaBuiltin(): DetectorPlugin {
               detectClassEvents(node, context),
               classDoc.events?.map((event) => ({
                 ...event,
-                parsedType: resolveParsedTypeFromText(event.type, context.sourceFile, context.checker),
+                parsedType: context.typeParsing === "none"
+                  ? undefined
+                  : resolveMeaningfulParsedTypeFromText(event.type, context.sourceFile, context.checker),
               }))
             ),
           };
 
           for (const attr of classFragment.attributes ?? []) {
-            attr.parsedType = resolveParsedTypeFromText(attr.type, context.sourceFile, context.checker);
+            attr.parsedType = context.typeParsing === "none"
+              ? undefined
+              : resolveMeaningfulParsedTypeFromText(attr.type, context.sourceFile, context.checker);
           }
 
           applyMemberToAttributeLinks(classFragment, classDoc, context);
@@ -215,7 +219,7 @@ function applyMemberToAttributeLinks(
     const rec = attr as Record<string, unknown>;
     rec.parsedType =
       (typeof rec.parsedType === "string" ? rec.parsedType : undefined) ??
-      resolveParsedTypeFromText(typeof rec.type === "string" ? rec.type : undefined, context.sourceFile, context.checker);
+      resolveMeaningfulParsedTypeFromText(typeof rec.type === "string" ? rec.type : undefined, context.sourceFile, context.checker);
   }
 }
 
