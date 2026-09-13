@@ -193,9 +193,7 @@ const {
       const resolvedPath = modulePathSkip
         ? sourcePath
         : modulePathTemplate
-          ? pathDeclaration
-            ? normalizeModulePath(modulePathTemplate(sourcePath, pathDeclaration.name, pathDeclaration.tagName))
-            : sourcePath
+          ? normalizeModulePath(modulePathTemplate(sourcePath, pathDeclaration?.name, pathDeclaration?.tagName))
           : runtimeResolver(sourcePath);
       manifest.modules.push({
         source: sourcePath,
@@ -428,10 +426,13 @@ function outputCandidates(
   const sourceRelativeToRoot = toPosixPath(path.relative(sourceRoot, sourcePath));
   const rootRelative = sourceRelativeToRoot.replace(/\.(tsx?|mts|cts|jsx?|mjs|cjs)$/, "");
   const relativeToProject = toPosixPath(path.relative(projectDir, sourcePath));
+  const outputRelative = compilerOptions.outDir
+    ? rootRelative
+    : relativeToProject.replace(/\.(tsx?|mts|cts|jsx?|mjs|cjs)$/, "");
   const candidates = [
-    toPosixPath(path.relative(packageRoot, path.join(outputRoot, `${rootRelative}.js`))),
-    toPosixPath(path.relative(packageRoot, path.join(outputRoot, `${rootRelative}.mjs`))),
-    toPosixPath(path.relative(packageRoot, path.join(outputRoot, `${rootRelative}.cjs`))),
+    toPosixPath(path.relative(projectDir, path.join(outputRoot, `${outputRelative}.js`))),
+    toPosixPath(path.relative(projectDir, path.join(outputRoot, `${outputRelative}.mjs`))),
+    toPosixPath(path.relative(projectDir, path.join(outputRoot, `${outputRelative}.cjs`))),
     `${relativeToProject.replace(/\.(tsx?|mts|cts|jsx?|mjs|cjs)$/, ".js")}`,
   ];
   return [...new Set(candidates)];

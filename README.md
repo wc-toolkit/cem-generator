@@ -54,8 +54,12 @@ handful of deliberate departures from it.
 - `packages/bundler-plugin` — Vite/Rollup/Rolldown and Webpack integrations
 - `packages/plugins/lit` — an example framework plugin, kept as a
   demonstration of the extension point.
+- `packages/plugins/fast` — detects FAST elements, attributes, members, and emitted events.
 - `packages/plugins/preact` — detects `preact-custom-element` registrations and
   typed Preact component props.
+- `packages/plugins/stencil` — detects Stencil components, props, attributes, and events.
+- `packages/plugins/vue` — detects Vue custom elements, props, and emitted events.
+- `packages/plugins/solid` — detects `solid-element` registrations, props, slots, parts, and events.
 - `packages/plugins/svelte` — detects Svelte components compiled as custom
   elements, including props, slots, parts, styles, and events.
 - `examples/` — fixture components and a runnable script showing vanilla
@@ -104,6 +108,31 @@ pnpm example
 ```
 
 This writes a manifest file to `examples/custom-elements.json`.
+
+## CLI
+
+The CLI supports both interactive setup and direct generation:
+
+```sh
+pnpm --filter @wc-toolkit/cem-generator-cli build
+cem init
+cem generate
+```
+
+`cem init` can create either a CLI or programmatic workflow, install selected
+plugins, and optionally add the generated manifest to `package.json` as the
+`customElements` property. `cem generate` writes to
+`./custom-elements.json` by default. Set `filePath` in
+`cem-generator.config.mjs`, or use `--output` for a one-off override:
+
+```js
+export default {
+  filePath: "./dist/custom-elements.json",
+};
+```
+
+See [`packages/cli/README.md`](packages/cli/README.md) for the complete CLI
+reference.
 
 ## Documentation site
 

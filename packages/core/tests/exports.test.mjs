@@ -8,6 +8,10 @@ import { generateCem } from "../dist/pipeline.js";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const fixtureRoot = path.resolve(__dirname, "exports-fixture");
 const tsConfigPath = path.join(fixtureRoot, "tsconfig.json");
+const nestedPackageTsConfigPath = path.resolve(
+  __dirname,
+  "nested-package-fixture/packages/webawesome/tsconfig.json"
+);
 
 test("preserves source and resolves exact and wildcard package exports", () => {
   const manifest = generateCem({
@@ -87,4 +91,13 @@ test("supports configurable module, definition, and type paths", () => {
   assert.equal(button?.typeDefinitionPath, "./types/x-button.d.ts");
   assert.equal(definition?.exports?.[0]?.declaration.module, "./published/x-button/ButtonElement.js");
   assert.equal(multi?.path, "./published/multi-first/MultiFirstElement.js");
+});
+
+test("keeps runtime paths relative to the project when it is nested in a workspace", () => {
+  const manifest = generateCem({ tsConfigPath: nestedPackageTsConfigPath });
+  const module = manifest.modules.find(
+    (candidate) => candidate.source === "src/components/accordion-item/accordion-item.ts"
+  );
+
+  assert.equal(module?.path, "src/components/accordion-item/accordion-item.js");
 });

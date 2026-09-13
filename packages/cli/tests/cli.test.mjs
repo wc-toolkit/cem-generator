@@ -46,6 +46,29 @@ test("generate uses source defaults and excludes common non-component files", ()
   assert.deepEqual(names, ["ComponentElement"]);
 });
 
+test("generate uses the file path from config when the CLI flag is omitted", () => {
+  const projectDir = fs.mkdtempSync(path.join(os.tmpdir(), "cem-generate-config-"));
+  fs.mkdirSync(path.join(projectDir, "src"), { recursive: true });
+  fs.writeFileSync(
+    path.join(projectDir, "tsconfig.json"),
+    JSON.stringify({ compilerOptions: { target: "ES2022" }, include: ["src/**/*.ts"] }),
+  );
+  fs.writeFileSync(
+    path.join(projectDir, "src/component.ts"),
+    "export class ComponentElement extends HTMLElement {}\ncustomElements.define(\"x-component\", ComponentElement);\n",
+  );
+  fs.writeFileSync(path.join(projectDir, "cem-generator.config.mjs"), 'export default { filePath: "dist/manifest.json" };\n');
+
+  const result = spawnSync(process.execPath, [cliPath, "generate"], {
+    cwd: projectDir,
+    encoding: "utf8",
+  });
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(fs.existsSync(path.join(projectDir, "dist/manifest.json")), true);
+  assert.equal(fs.existsSync(path.join(projectDir, "custom-elements.json")), false);
+});
+
 test("documents init installation option", () => {
   const result = spawnSync(process.execPath, [cliPath, "init", "--help"], {
     encoding: "utf8",
@@ -70,6 +93,21 @@ test("init creates a config with selected plugins", () => {
   assert.match(config, /sveltePlugin\(\)/);
   assert.match(result.stdout, /"cem": "cem generate"/);
   assert.match(result.stdout, /Run it with: npm run cem/);
+});
+
+test("init optionally adds the manifest path to package.json", () => {
+  const projectDir = fs.mkdtempSync(path.join(os.tmpdir(), "cem-init-package-"));
+  fs.writeFileSync(path.join(projectDir, "package.json"), JSON.stringify({ name: "fixture", private: true }));
+  const result = spawnSync(process.execPath, [cliPath, "init", "--mode", "cli", "--plugin", "lit"], {
+    cwd: projectDir,
+    input: "y\n",
+    encoding: "utf8",
+  });
+
+  assert.equal(result.status, 0, result.stderr);
+  const packageJson = JSON.parse(fs.readFileSync(path.join(projectDir, "package.json"), "utf8"));
+  assert.equal(packageJson.customElements, "custom-elements.json");
+  assert.equal(packageJson.private, true);
 });
 
 test("init creates a code workflow with selected plugins", () => {

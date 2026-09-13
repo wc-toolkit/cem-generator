@@ -50,6 +50,7 @@ const INTEGRATION_CHOICES = [
 ] as const;
 
 const DEFAULT_SOURCE_INCLUDE = ["src/**/*.{ts,tsx,js,jsx}"];
+const DEFAULT_MANIFEST_PATH = "./custom-elements.json";
 const DEFAULT_SOURCE_EXCLUDE = [
   "**/*.test.*",
   "**/*.spec.*",
@@ -72,7 +73,7 @@ program
   .description("Generate a Custom Elements Manifest")
   .option("--tsconfig <path>", "Path to tsconfig.json", "./tsconfig.json")
   .option("-c, --config <path>", "Path to cem-generator config file (auto-detected if omitted)")
-  .option("-o, --output <path>", "Output file path", "./custom-elements.json")
+  .option("-o, --output <path>", "Output file path")
   .option("--include <patterns...>", "Glob patterns to include")
   .option("--exclude <patterns...>", "Glob patterns to exclude")
   .option("--no-inheritance", "Disable inheritance materialization")
@@ -149,7 +150,7 @@ program
 
       const manifest = generateCem(mergedOptions);
 
-      const outputPath = path.resolve(options.output);
+      const outputPath = path.resolve(options.output ?? mergedOptions.filePath ?? "./custom-elements.json");
       const outputDir = path.dirname(outputPath);
       if (!fs.existsSync(outputDir)) {
         fs.mkdirSync(outputDir, { recursive: true });
@@ -225,6 +226,8 @@ program
         installPluginDependencies(packagesToInstall);
       }
 
+      const addManifestToPackageJson = !options.yes && await promptForPackageManifest(cwd);
+
       fs.writeFileSync(
         configPath,
         createConfigSource(selectedPlugins, selectedIntegrations, getDefaultInclude(cwd), DEFAULT_SOURCE_EXCLUDE),
@@ -234,6 +237,9 @@ program
       if (mode === "code") {
         fs.writeFileSync(outputPath, createCodeSource(configPath, outputPath), "utf-8");
         console.log(`Created code file at ${outputPath}`);
+      }
+      if (addManifestToPackageJson) {
+        updatePackageJsonManifestPath(cwd, DEFAULT_MANIFEST_PATH);
       }
       printNextSteps(mode, configPath, outputPath);
     } catch (error) {
@@ -351,6 +357,39 @@ async function promptForInstall(): Promise<boolean> {
   } finally {
     prompt.close();
   }
+}
+
+async function promptForPackageManifest(cwd: string): Promise<boolean> {
+  const packageJsonPath = path.join(cwd, "package.json");
+  if (!fs.existsSync(packageJsonPath)) return false;
+
+  if (isInteractiveTerminal()) {
+    const { addManifest } = await inquirer.prompt<{ addManifest: boolean }>({
+      type: "confirm",
+      name: "addManifest",
+      message: `Add \"customElements\": \"${DEFAULT_MANIFEST_PATH.slice(2)}\" to package.json?`,
+      default: false,
+    });
+    return addManifest;
+  }
+
+  const prompt = readline.createInterface({ input, output });
+  try {
+    const answer = await prompt.question(
+      `Add "customElements": "${DEFAULT_MANIFEST_PATH.slice(2)}" to package.json? (y/N): `,
+    );
+    return /^y(es)?$/i.test(answer.trim());
+  } finally {
+    prompt.close();
+  }
+}
+
+function updatePackageJsonManifestPath(cwd: string, manifestPath: string): void {
+  const packageJsonPath = path.join(cwd, "package.json");
+  const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf-8")) as Record<string, unknown>;
+  packageJson.customElements = manifestPath.replace(/^\.\//, "");
+  fs.writeFileSync(packageJsonPath, `${JSON.stringify(packageJson, null, 2)}\n`, "utf-8");
+  console.log(`Updated package.json with customElements: ${packageJson.customElements}`);
 }
 
 function installPluginDependencies(packages: string[]): void {

@@ -28,6 +28,7 @@ Create `cem-generator.config.js` in your project root:
 ```js
 export default {
   tsConfigPath: "./tsconfig.lib.json",
+  filePath: "./dist/custom-elements.json",
   plugins: [],
   conflictPolicy: "last-wins",
   include: ["src/**/*.ts"],
@@ -38,13 +39,16 @@ export default {
 
 CLI options override config file settings.
 
+`cem init` asks whether to add `customElements` to an existing `package.json`.
+The prompt is opt-in and is skipped by `cem init --yes`.
+
 ## Options reference
 
 | Option | Alias | Description |
 |--------|-------|-------------|
 | `--tsconfig` | | Path to tsconfig.json |
 | `--config`, `-c` | | Path to config file |
-| `--output`, `-o` | | Output file path |
+| `--output`, `-o` | | Output file path; overrides config `filePath` |
 | `--include` | | Glob patterns to include |
 | `--exclude` | | Glob patterns to exclude |
 | `--no-inheritance` | | Disable inheritance |
@@ -54,3 +58,6 @@ CLI options override config file settings.
 | `--deprecated-last` | | Move deprecated to end |
 | `--validate-exported-types <severity>` | | `off`, `warning`, or `error` |
 | `--validation-invariants <severity>` | | Set invariant validation severity |
+
+The config file's `filePath` controls the default manifest location when
+`--output` is omitted.
