@@ -35,7 +35,7 @@
     "build": "tsc",
     "test": "node --test tests/*.test.mjs",
     "dev": "tsx src/cli.ts",
-    "demo": "node dist/cli.js generate --config ../../examples/tsconfig.json --output ../../examples/custom-elements-demo.json --conflict-policy last-wins"
+    "demo": "node dist/cli.js generate --tsconfig ../../examples/tsconfig.json --output ../../examples/custom-elements-demo.json --conflict-policy last-wins"
   },
   "dependencies": {
     "@wc-toolkit/cem-generator": "workspace:*",

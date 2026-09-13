@@ -3,6 +3,8 @@ import fs from "node:fs";
 import { fileURLToPath } from "node:url";
 import type { RunOptions } from "./pipeline.js";
 
+export type GeneratorConfig = RunOptions & { filePath?: string };
+
 const CONFIG_FILENAMES = [
   "cem-generator.config.mjs",
   "cem-generator.config.js",
@@ -20,7 +22,7 @@ function findConfigFile(searchDir: string): string | undefined {
   return undefined;
 }
 
-async function loadConfigFile(configPath: string): Promise<RunOptions> {
+async function loadConfigFile(configPath: string): Promise<GeneratorConfig> {
   const resolvedPath = path.resolve(configPath);
   const isTypeScript = configPath.endsWith(".ts");
 
@@ -41,13 +43,13 @@ async function loadConfigFile(configPath: string): Promise<RunOptions> {
     configModule = await import(moduleUrl);
   }
 
-  const config = (configModule as { default?: RunOptions }).default ?? configModule;
+  const config = (configModule as { default?: GeneratorConfig }).default ?? configModule;
 
   if (!config || typeof config !== "object") {
     throw new Error(`Config file "${configPath}" must export a default object`);
   }
 
-  return config as RunOptions;
+  return config as GeneratorConfig;
 }
 
 function pathToFileURL(filePath: string): URL {
@@ -63,7 +65,7 @@ export interface LoadConfigOptions {
 
 export interface LoadConfigResult {
   /** The loaded config options */
-  options: RunOptions;
+  options: GeneratorConfig;
   /** Path to the config file that was loaded, if any */
   configPath: string | undefined;
 }
@@ -98,7 +100,7 @@ export async function loadConfig(options: LoadConfigOptions = {}): Promise<LoadC
  * Merges CLI options with config file options.
  * CLI options take precedence over config file options.
  */
-export function mergeConfig(cliOptions: RunOptions, fileOptions: RunOptions): RunOptions {
+export function mergeConfig(cliOptions: RunOptions, fileOptions: GeneratorConfig): GeneratorConfig {
   const merged: RunOptions = { ...fileOptions, ...cliOptions };
 
   if (cliOptions.plugins && fileOptions.plugins) {

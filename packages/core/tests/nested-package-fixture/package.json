@@ -1,0 +1,7 @@
+{
+  "name": "nested-package-fixture",
+  "type": "module",
+  "exports": {
+    ".": "./dist/index.js"
+  }
+}

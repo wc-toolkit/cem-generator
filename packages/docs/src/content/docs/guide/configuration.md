@@ -5,7 +5,9 @@ description: All generateCem() options, CLI flags, and config file format.
 
 ## Config File
 
-cem-generator automatically loads configuration from a `cem-generator.config.{js,mjs,cjs,ts}` file in the current working directory (or a custom path via `--cem-config`).
+cem-generator automatically loads configuration from a
+`cem-generator.config.{js,mjs,cjs,ts}` file in the current working directory (or
+a custom path via `--config`).
 
 ```js
 // cem-generator.config.mjs
@@ -13,6 +15,8 @@ cem-generator automatically loads configuration from a `cem-generator.config.{js
 const externalCem = loadManifest("./other-manifest.json");
 
 export default {
+  // CLI-only: path written by `cem generate`; --output overrides it
+  filePath: "./dist/custom-elements.json",
   // Optional: glob patterns limiting analyzed files
   include: ["src/components/**/*.ts"],
   // Optional: glob patterns removing files from analysis
@@ -53,13 +57,13 @@ The config file can use TypeScript syntax and import types from `@wc-toolkit/cem
 
 ```ts
 // cem-generator.config.ts
-import type { RunOptions } from "@wc-toolkit/cem-generator";
+import type { GeneratorConfig } from "@wc-toolkit/cem-generator";
 
 export default {
   include: ["src/**/*.ts"],
   exclude: ["**/*.test.ts"],
   conflictPolicy: "last-wins",
-} satisfies RunOptions;
+} satisfies GeneratorConfig;
 ```
 
 ## generateCem() Options
@@ -108,6 +112,10 @@ const manifest = generateCem({
 | `exclude` | `string[]` | `undefined` | Glob patterns removing files from analysis. Exclude wins over include. |
 | `typeParsing` | `"none" \| "public" \| "all"` | `"public"` | Whether to expand parsed types for no APIs, public instance APIs, or all APIs. |
 | `validation` | `ManifestValidationOptions` | `{ invariants: "error", exportTypes: "off" }` | Validate generated manifest invariants and public type exports. |
+
+`filePath` is a CLI config option and is not passed to `generateCem()`. It
+controls where `cem generate` writes the returned manifest. Use `--output` to
+override it for one invocation.
 
 ## Inheritance Options
 
@@ -176,7 +184,7 @@ exclude: ["**/*.test.ts", "**/*.stories.ts"]
 |------|-------------|---------|
 | `--tsconfig <path>` | tsconfig.json path | `./tsconfig.json` |
 | `-c, --config <path>` | cem-generator config file path (auto-detected if omitted) | — |
-| `-o, --output <path>` | Output file | `./custom-elements.json` |
+| `-o, --output <path>` | Output file; overrides config `filePath` | `./custom-elements.json` |
 | `--include <patterns...>` | Include globs | — |
 | `--exclude <patterns...>` | Exclude globs | — |
 | `--no-inheritance` | Disable inheritance | — |

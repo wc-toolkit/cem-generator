@@ -34,6 +34,9 @@ After plugin selection, the interactive flow asks whether to install the
 selected plugin packages. It detects `pnpm`, `yarn`, `bun`, or `npm` from the
 project lockfile.
 
+If the project has a `package.json`, init also asks whether to add the default
+manifest location as its `customElements` property. `--yes` skips this prompt.
+
 For a non-interactive CLI setup, pass the mode and plugin names directly:
 
 ```bash
@@ -61,6 +64,17 @@ export default {
   plugins: [litPlugin()],
 };
 ```
+
+Set the generated manifest path in the config with `filePath`:
+
+```js
+export default {
+  filePath: "./dist/custom-elements.json",
+  plugins: [litPlugin()],
+};
+```
+
+The `--output` flag overrides `filePath` for a single invocation.
 
 Use `cem init --mode cli --yes` to create a vanilla-only config without
 prompting. An existing config is not overwritten unless `--force` is provided.
@@ -102,15 +116,16 @@ and `svelte`.
 cem generate
 
 # With options
-cem generate --config tsconfig.json --output custom-elements.json
+cem generate --tsconfig tsconfig.json --output custom-elements.json
 ```
 
 ## Options
 
 | Option | Description | Default |
 |--------|-------------|---------|
-| `-c, --config <path>` | Path to `tsconfig.json` | `./tsconfig.json` |
-| `-o, --output <path>` | Output file path | `./custom-elements.json` |
+| `--tsconfig <path>` | Path to `tsconfig.json` | `./tsconfig.json` |
+| `-c, --config <path>` | Path to generator config file | auto-detected |
+| `-o, --output <path>` | Output file path; overrides config `filePath` | `./custom-elements.json` |
 | `--include <patterns...>` | Glob patterns to include | — |
 | `--exclude <patterns...>` | Glob patterns to exclude | — |
 | `--no-inheritance` | Disable inheritance materialization | — |
@@ -152,7 +167,7 @@ Add to your build scripts:
 ```json
 {
   "scripts": {
-    "build:cem": "cem generate --config tsconfig.json --output custom-elements.json",
+    "build:cem": "cem generate --tsconfig tsconfig.json --output custom-elements.json",
     "prepare": "npm run build:cem"
   }
 }

@@ -21,7 +21,7 @@ cem init --plugin lit svelte
 cem generate
 
 # Specify custom tsconfig and output path
-cem generate --config ./tsconfig.json --output ./custom-elements.json
+cem generate --tsconfig ./tsconfig.json --output ./custom-elements.json
 
 # Include/exclude specific files
 cem generate --include "src/components/**" --exclude "**/*.test.ts"
@@ -39,12 +39,26 @@ cem generate --no-inheritance
 which parser plugins to use, then presents a multi-select list of integrations:
 `react-wrappers`, `jsx-types`, `vuejs-types`, and `svelte-types`. The type
 integrations use `./types` and strongly typed events by default. The command
-also supports `--plugin <names...>`,
+also asks whether to add the generated manifest to `package.json` as the
+`customElements` property. It supports `--plugin <names...>`,
 `--yes`, `--force`, and `--config <path>`.
+
+When accepted, the package.json property uses the default manifest path:
+
+```json
+{
+  "customElements": "custom-elements.json"
+}
+```
+
+Use `filePath` in the config when the manifest belongs in a build directory.
 
 `cem generate` uses source-oriented include/exclude defaults when those flags
 are omitted. Supplying either flag replaces its defaults. The TypeScript
 configuration still controls which files enter the program.
+
+The config file may set `filePath` to choose the generated manifest path. The
+`--output` flag takes precedence when supplied.
 
 When `cem init` installs dependencies, CLI mode installs
 `@wc-toolkit/cem-generator-cli`, while code mode installs
@@ -58,7 +72,8 @@ back to comma-separated selection numbers.
 
 | Option | Description | Default |
 |--------|-------------|---------|
-| `-c, --config <path>` | Path to tsconfig.json | `./tsconfig.json` |
+| `--tsconfig <path>` | Path to tsconfig.json | `./tsconfig.json` |
+| `-c, --config <path>` | Path to the generator config file | auto-detected |
 | `-o, --output <path>` | Output file path | `./custom-elements.json` |
 | `--include <patterns...>` | Glob patterns to include | `src/**/*.{ts,tsx,js,jsx}` when `src/` exists |
 | `--exclude <patterns...>` | Glob patterns to exclude | Tests, specs, stories, `dist/`, and `node_modules/` |
@@ -66,9 +81,12 @@ back to comma-separated selection numbers.
 | `--plugin <paths...>` | Additional plugin paths to load | - |
 | `--conflict-policy <policy>` | Detector conflict policy: `throw` \| `last-wins` | `last-wins` |
 
+The config file may set `filePath` for the manifest path. The `--output` flag
+takes precedence over `filePath`.
+
 ## Example
 
 ```bash
 # Basic manifest generation
-cem generate --config tsconfig.json --output custom-elements.json
+cem generate --tsconfig tsconfig.json --output custom-elements.json
 ```

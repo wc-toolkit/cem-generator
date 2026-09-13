@@ -77,3 +77,12 @@ For modules with multiple custom-element declarations, callbacks use the first n
 ## Fallback
 
 If the project has no usable `package.json` exports map, the original source path remains the module `path`. This preserves behavior for projects that do not publish separate runtime output.
+
+Projects with a custom build pipeline can provide `modulePathTemplate` instead
+of relying on `tsconfig` output settings or package exports. The callback should
+return the package-relative runtime path, for example:
+
+```ts
+modulePathTemplate: (modulePath) =>
+  modulePath.replace(/^.*\/src\//, "dist/").replace(/\.ts$/, ".js")
+```
