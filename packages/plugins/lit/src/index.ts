@@ -83,7 +83,7 @@ export function litPlugin(): DetectorPlugin {
               classDoc.tagName ??
               getCustomElementTagName(node) ??
               registrations.get(className),
-            superclass: { name: "LitElement", module: "lit" },
+            superclass: getLitSuperclass(node, context.checker),
             ...(mixinNames.length
               ? {
                   mixins: mixinNames.map((name) => ({
@@ -485,12 +485,54 @@ function getLitBaseClassMembers(
       getStaticPropertyMetadata(declaration),
     );
     const members = mergeLitMembers(...nestedMembers, ownMembers);
-    if (members) baseMembers.push(members);
+    if (members) {
+      const baseName = declaration.name?.text ?? expression.getText();
+      baseMembers.push(
+        members.map((member) => ({
+          ...member,
+          inheritedFrom: member.inheritedFrom ?? {
+            name: baseName,
+            module: declaration.getSourceFile().fileName,
+          },
+        })),
+      );
+    }
   }
 
   const expression = heritage?.types[0]?.expression;
   if (expression) visit(expression);
   return mergeLitMembers(...baseMembers);
+}
+
+function getLitSuperclass(
+  node: ts.ClassDeclaration,
+  checker: ts.TypeChecker,
+): { name: string; module?: string } {
+  const heritage = node.heritageClauses?.find(
+    (clause) => clause.token === ts.SyntaxKind.ExtendsKeyword,
+  );
+  const expression = heritage?.types[0]?.expression;
+
+  if (!expression || ts.isCallExpression(expression)) {
+    return { name: "LitElement", module: "lit" };
+  }
+
+  const name = expression.getText();
+  if (name === "LitElement") return { name, module: "lit" };
+  if (!ts.isIdentifier(expression)) return { name, module: "lit" };
+
+  const symbol = checker.getSymbolAtLocation(expression);
+  const resolved =
+    symbol && symbol.flags & ts.SymbolFlags.Alias
+      ? checker.getAliasedSymbol(symbol)
+      : symbol;
+  const declaration = resolved?.declarations?.find(ts.isClassDeclaration);
+  if (!declaration?.name) return { name, module: "lit" };
+
+  return {
+    name: declaration.name.text,
+    module: declaration.getSourceFile().fileName,
+  };
 }
 
 function extendsLitElement(

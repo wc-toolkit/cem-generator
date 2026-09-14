@@ -1,6 +1,7 @@
 ---
 "@wc-toolkit/cem-generator-cli": patch
 "@wc-toolkit/cem-generator": patch
+"@wc-toolkit/cem-generator-lit": patch
 ---
 
 Allow the CLI to use a manifest path from generator configuration, optionally

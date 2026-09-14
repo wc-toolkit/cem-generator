@@ -378,14 +378,23 @@ test("materializes inheritance and omits inherited APIs via JSDoc tags", () => {
   assert.ok(memberNames.includes("childMethod"));
   assert.ok(memberNames.includes("keepMethod"));
   assert.equal(memberNames.includes("baseMethod"), false);
+  const inheritedMember = child.members?.find((m) => m.name === "keepMethod")?.inheritedFrom;
+  assert.equal(inheritedMember?.name, "BaseElement");
+  assert.ok(inheritedMember?.module?.endsWith("inheritance-fixture.ts"));
 
   const attributeNames = (child.attributes ?? []).map((a) => a.name);
   assert.ok(attributeNames.includes("keep-attr"));
   assert.equal(attributeNames.includes("base-count"), false);
+  const inheritedAttribute = child.attributes?.find((a) => a.name === "keep-attr")?.inheritedFrom;
+  assert.equal(inheritedAttribute?.name, "BaseElement");
+  assert.ok(inheritedAttribute?.module?.endsWith("inheritance-fixture.ts"));
 
   const eventNames = (child.events ?? []).map((e) => e.name);
   assert.ok(eventNames.includes("keep-event"));
   assert.equal(eventNames.includes("base-event"), false);
+  const inheritedEvent = child.events?.find((e) => e.name === "keep-event")?.inheritedFrom;
+  assert.equal(inheritedEvent?.name, "BaseElement");
+  assert.ok(inheritedEvent?.module?.endsWith("inheritance-fixture.ts"));
 });
 
 test("can disable built-in inheritance materialization", () => {
