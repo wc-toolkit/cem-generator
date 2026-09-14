@@ -3,25 +3,29 @@ title: Overview
 description: Generate Custom Elements Manifests for component libraries quickly and extensibly.
 ---
 
-`cem-generator` generates a **Custom Elements Manifest (CEM)** for your component library — a machine-readable description of your custom elements (tag names, attributes, members, events, slots, CSS properties and parts) that powers documentation, IDE support, and tooling. Point it at a TypeScript project and it emits a manifest compatible with the official `custom-elements-manifest` schema (2.1.0).
+`cem-generator` turns your web component source into a **Custom Elements Manifest (CEM)** — a machine-readable description of your components, properties, attributes, events, slots, and styling APIs.
 
-## Install
+It makes component-library development easier by automating the metadata work that is otherwise easy to miss or maintain by hand. The generated manifest can power documentation, editor autocomplete, validation, framework integrations, and generated type definitions from one source of truth.
+
+You can start with the interactive CLI, use the programmatic API, or extend detection with framework plugins. JavaScript and TypeScript projects are supported.
+
+## Quick Setup
+
+Initialize a project interactively. The CLI creates the generator configuration,
+asks which parser and integration plugins to use, and can install the selected
+packages:
+
+```bash
+npx @wc-toolkit/cem-generator-cli init
+```
+
+## Manual Install
 
 ```bash
 npm install -D @wc-toolkit/cem-generator
 ```
 
 ## Usage
-
-If your project has a TS config other than one at the root of the project called `tsconfig.json`, you can add it to the `generateCem` config:
-
-```ts
-import { generateCem } from "@wc-toolkit/cem-generator";
-
-const manifest = generateCem({
-  tsConfigPath: "./tsconfig.lib.json",
-});
-```
 
 Framework-specific detection is opt-in via plugins — see the [Plugins](/plugins/) docs.
 
