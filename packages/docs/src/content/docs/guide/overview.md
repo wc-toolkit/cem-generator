@@ -5,16 +5,6 @@ description: What cem-generator does, why it helps, and how to get started.
 
 `cem-generator` generates a **Custom Elements Manifest (CEM)** — a machine-readable JSON file describing your custom elements. This manifest powers documentation sites, IDE autocomplete, and tooling across the web components ecosystem.
 
-## Quick Setup
-
-Initialize the project before generating a manifest. The command first asks
-whether you want to use the CLI or code, then lets you select any framework
-plugins:
-
-```bash
-npx @wc-toolkit/cem-generator-cli init
-```
-
 Both workflows create `cem-generator.config.mjs`. The code workflow also
 creates `generate-cem.ts`, which imports the shared config. Vanilla component
 projects can press Enter to continue without a framework plugin. For framework

@@ -11,13 +11,9 @@ Get started generating a CEM in minutes by following these steps.
 npm install -D @wc-toolkit/cem-generator
 ```
 
-## Set up a tsconfig
-
-Ensure your project has a `tsconfig.json` that includes the source files for analysis. If you use path aliases, make sure they are configured so the TypeScript program can resolve types correctly.
-
 ## Run the generator
 
-Pass a config object to `generateCem`. The `tsConfigPath` option defaults to `./tsconfig.json` if not provided:
+Pass a config object to `generateCem`:
 
 ```ts
 import { generateCem } from "@wc-toolkit/cem-generator";

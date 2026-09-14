@@ -217,7 +217,7 @@ cem generate --include "src/extra/**"
 
 ## TypeScript Configuration
 
-Ensure your `tsconfig.json` includes source files and enables `checkJs` for JSDoc in `.js` files:
+When using JavaScript sources, enable `checkJs` for JSDoc-based type information:
 
 ```json
 {
