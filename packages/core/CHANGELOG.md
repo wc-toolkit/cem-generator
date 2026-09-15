@@ -1,5 +1,11 @@
 # @wc-toolkit/cem-generator
 
+## 0.1.4
+
+### Patch Changes
+
+- e60e512: Detect documented CSS-only custom elements in standalone stylesheets, including CSS custom properties, `@property` metadata, CSS-documented attributes, and inferred literal attribute value types.
+
 ## 0.1.3
 
 ### Patch Changes
