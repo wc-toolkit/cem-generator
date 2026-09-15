@@ -1,6 +1,6 @@
 {
   "name": "@wc-toolkit/cem-generator-fast",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "FAST detector plugin for generating Custom Elements Manifests.",
   "license": "MIT",
   "repository": {

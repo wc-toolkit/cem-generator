@@ -1,5 +1,14 @@
 # @wc-toolkit/cem-generator-lit
 
+## 0.1.5
+
+### Patch Changes
+
+- f886695: Detect CSS custom properties declared in imported Lit style templates.
+- Updated dependencies [fec3642]
+- Updated dependencies [f10d934]
+  - @wc-toolkit/cem-generator@0.1.5
+
 ## 0.1.4
 
 ### Patch Changes
