@@ -5,7 +5,11 @@ import { parseCssMetadata } from "./css-metadata.js";
 export type DiscoveredFrameworkApis = Pick<ClassFragment, "events" | "slots" | "cssParts" | "cssProperties" | "cssStates">;
 
 /** Discovers Web Component APIs from JSX, HTML templates, and static events. */
-export function discoverFrameworkApis(root: ts.Node, sourceFile: ts.SourceFile): DiscoveredFrameworkApis {
+export function discoverFrameworkApis(
+  root: ts.Node,
+  sourceFile: ts.SourceFile,
+  checker?: ts.TypeChecker,
+): DiscoveredFrameworkApis {
   const events: NonNullable<ClassFragment["events"]> = [];
   const slots: NonNullable<ClassFragment["slots"]> = [];
   const cssParts: NonNullable<ClassFragment["cssParts"]> = [];
@@ -64,6 +68,7 @@ export function discoverFrameworkApis(root: ts.Node, sourceFile: ts.SourceFile):
   }
 
   visit(root);
+  if (checker) scanReferencedStyles(root, checker);
   return {
     events: events.length ? events : undefined,
     slots: slots.length ? slots : undefined,
@@ -71,6 +76,53 @@ export function discoverFrameworkApis(root: ts.Node, sourceFile: ts.SourceFile):
     cssProperties: cssProperties.length ? cssProperties : undefined,
     cssStates: cssStates.length ? cssStates : undefined,
   };
+
+  function scanReferencedStyles(styleRoot: ts.Node, typeChecker: ts.TypeChecker): void {
+    function scanExpression(expression: ts.Expression, seen: Set<ts.Symbol>): void {
+      if (ts.isIdentifier(expression)) {
+        const symbol = typeChecker.getSymbolAtLocation(expression);
+        const resolved = symbol && symbol.flags & ts.SymbolFlags.Alias
+          ? typeChecker.getAliasedSymbol(symbol)
+          : symbol;
+        if (!resolved || seen.has(resolved)) return;
+        seen.add(resolved);
+        for (const declaration of resolved.declarations ?? []) {
+          if (ts.isVariableDeclaration(declaration) && declaration.initializer) {
+            scanExpression(declaration.initializer, seen);
+          }
+        }
+        return;
+      }
+
+      if (ts.isArrayLiteralExpression(expression)) {
+        for (const element of expression.elements) {
+          if (ts.isExpression(element)) scanExpression(element, seen);
+        }
+        return;
+      }
+
+      if (ts.isParenthesizedExpression(expression)) {
+        scanExpression(expression.expression, seen);
+        return;
+      }
+
+      if (ts.isTemplateExpression(expression) || ts.isNoSubstitutionTemplateLiteral(expression)) {
+        scanText(expression.getText(sourceFile));
+      }
+    }
+
+    function visitStyles(node: ts.Node): void {
+      const isStylesProperty =
+        (ts.isPropertyDeclaration(node) || ts.isPropertyAssignment(node)) &&
+        node.name.getText(sourceFile) === "styles";
+      if (isStylesProperty && node.initializer) {
+        scanExpression(node.initializer, new Set());
+      }
+      ts.forEachChild(node, visitStyles);
+    }
+
+    visitStyles(styleRoot);
+  }
 }
 
 function getJsxAttributeValue(element: ts.JsxOpeningLikeElement, name: string): string | undefined {

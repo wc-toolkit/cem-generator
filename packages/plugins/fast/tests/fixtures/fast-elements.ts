@@ -1,5 +1,7 @@
 import { FASTElement, attr, customElement } from "@microsoft/fast-element";
 
+const importedStyles = `:host { /** Imported indicator color. */ --imported-indicator-color: blue; }`;
+
 @customElement({ name: "name-tag" })
 export class NameTag extends FASTElement {
   @attr greeting: string = "Hello";
@@ -30,4 +32,9 @@ export class BaseFastElement extends FASTElement {
 
 export class DerivedFastElement extends BaseFastElement {
   ownMethod() {}
+}
+
+@customElement("imported-styles-fast-element")
+export class ImportedStylesFastElement extends FASTElement {
+  static styles = importedStyles;
 }

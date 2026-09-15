@@ -40,7 +40,7 @@ export function vuePlugin(): DetectorPlugin {
         const options = resolveComponentOptions(component, context);
         const classDoc = declaration ? parseCemClassTags(declaration) : {};
         const props = options ? getProps(options, context) : undefined;
-        const discovered = options ? discoverFrameworkApis(options, context.sourceFile) : {};
+         const discovered = options ? discoverFrameworkApis(options, context.sourceFile, context.checker) : {};
         const attributes = props?.map(({ name: fieldName, ...member }) => ({
           name: fieldName,
           type: member.type,

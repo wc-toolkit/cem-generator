@@ -62,7 +62,8 @@ test("captures only declared CSS custom properties and @property metadata", () =
   assert.equal(mixin?.kind, "mixin");
   assert.ok(mixin?.members?.some((member) => member.name === "disabled"));
   assert.equal(
-    manifest.modules[0].exports?.some((entry) => entry.kind === "js" && entry.name === "InputMixin"),
+    manifest.modules.find((module) => module.declarations.some((item) => item.name === "LitCssPropsEl"))?.exports
+      ?.some((entry) => entry.kind === "js" && entry.name === "InputMixin"),
     true
   );
 
@@ -155,5 +156,17 @@ test("preserves custom Lit base classes and marks inherited members", () => {
   assert.equal(
     derived?.members?.find((member) => member.name === "baseMethod")?.inheritedFrom?.name,
     "BaseCustomElement",
+  );
+});
+
+test("captures CSS custom properties from imported Lit styles", () => {
+  const manifest = generateCem({ tsConfigPath: fixturesTsConfig, plugins: [litPlugin()] });
+  const declaration = manifest.modules
+    .flatMap((module) => module.declarations)
+    .find((item) => item.name === "ImportedStylesElement");
+
+  assert.ok(
+    declaration?.cssProperties?.some((property) => property.name === "--imported-host-spacing"),
+    "Expected CSS property from imported styles",
   );
 });

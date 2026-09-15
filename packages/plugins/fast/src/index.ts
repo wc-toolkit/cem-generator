@@ -37,7 +37,7 @@ export function fastPlugin(): DetectorPlugin {
           const tagName = getCustomElementTagName(node);
           const members = filterFastMembers(detectClassMembers(node, context));
           const attributes = getAttrMetadata(node, context, members);
-          const discovered = discoverFrameworkApis(node, context.sourceFile);
+           const discovered = discoverFrameworkApis(node, context.sourceFile, context.checker);
           const classFragment: ClassFragment = {
             name: className,
             exportName: getExportName(node),

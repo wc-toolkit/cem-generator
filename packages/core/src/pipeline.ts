@@ -305,19 +305,20 @@ function readCompilerOptions(configFilePath: string): ts.CompilerOptions {
 }
 
 function createRuntimeResolver(projectDir: string, compilerOptions: ts.CompilerOptions): (sourceFile: string) => string {
+  const relativeSourcePath = (sourceFile: string) => toPosixPath(path.relative(projectDir, sourceFile));
   const packageRoot = findPackageRoot(projectDir);
-  if (!packageRoot) return (sourceFile) => sourceFile;
+  if (!packageRoot) return relativeSourcePath;
 
   const packageJsonPath = path.join(packageRoot, "package.json");
   let packageJson: { exports?: unknown };
   try {
     packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf8")) as { exports?: unknown };
   } catch {
-    return (sourceFile) => sourceFile;
+    return relativeSourcePath;
   }
 
   const targets = readExportTargets(packageJson.exports);
-  if (targets.length === 0) return (sourceFile) => sourceFile;
+  if (targets.length === 0) return relativeSourcePath;
   return (sourceFile) => {
     const relativeSource = toPosixPath(path.relative(packageRoot, sourceFile));
     const sourceRoot = compilerOptions.rootDir
@@ -349,7 +350,7 @@ function createRuntimeResolver(projectDir: string, compilerOptions: ts.CompilerO
       }
     }
 
-    return runtimeCandidates.find((candidate) => candidate.endsWith(".js")) ?? sourceFile;
+    return runtimeCandidates.find((candidate) => candidate.endsWith(".js")) ?? relativeSourcePath(sourceFile);
   };
 }
 

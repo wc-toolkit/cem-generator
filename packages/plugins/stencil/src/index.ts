@@ -46,7 +46,7 @@ export function stencilPlugin(): DetectorPlugin {
           const members = detectClassMembers(node, context) ?? [];
           const props = getProps(node, context, members);
           const events = getEvents(node, context);
-          const discovered = discoverFrameworkApis(node, context.sourceFile);
+           const discovered = discoverFrameworkApis(node, context.sourceFile, context.checker);
           const eventNames = new Set(events.map((event) => event.fieldName));
           const filteredMembers = members
             .filter((member) => !STENCIL_LIFECYCLE.has(member.name) && !eventNames.has(member.name))

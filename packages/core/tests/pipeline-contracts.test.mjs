@@ -13,6 +13,16 @@ import { detectClassMembers } from "../dist/api-members.js";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const fixturesTsConfig = path.resolve(__dirname, "fixtures/tsconfig.json");
 
+test("uses project-relative module paths when no package exports are configured", () => {
+  const manifest = generateCem({
+    tsConfigPath: fixturesTsConfig,
+    include: ["inheritance-fixture.ts"],
+  });
+
+  assert.equal(manifest.modules[0].path, "inheritance-fixture.ts");
+  assert.equal(path.isAbsolute(manifest.modules[0].path), false);
+});
+
 function makeSourceFile(fileName, sourceText = "") {
   return {
     fileName,
