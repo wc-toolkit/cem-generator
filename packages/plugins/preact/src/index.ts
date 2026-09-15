@@ -45,7 +45,7 @@ export function preactPlugin(): DetectorPlugin {
           const name = component.text;
           const classDoc = parseCemClassTags(declaration);
           const members = getComponentMembers(declaration, context);
-          const discovered = discoverFrameworkApis(declaration, context.sourceFile);
+           const discovered = discoverFrameworkApis(declaration, context.sourceFile, context.checker);
           const observed = getObservedAttributes(node) ?? getStaticObservedAttributes(component, context);
           const attributes = observed?.map((attribute) => {
             const member = members?.find((candidate) => candidate.name === attribute);

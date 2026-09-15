@@ -46,7 +46,7 @@ export function solidPlugin(): DetectorPlugin {
           : toDeclarationName(tagName);
         const classDoc = parseCemClassTags(anchor);
         const members = getMembers(node, context);
-        const discovered = discoverFrameworkApis(node.arguments[2] ?? node, context.sourceFile);
+         const discovered = discoverFrameworkApis(node.arguments[2] ?? node, context.sourceFile, context.checker);
         const attributes = members
           .filter((member) => typeof member.attribute === "string")
           .map((member) => ({
