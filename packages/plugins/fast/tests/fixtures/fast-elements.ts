@@ -23,3 +23,11 @@ export class BooleanTest extends FASTElement {
     const styles = `:host { /** Indicator color. */ --indicator-color: green; }`;
   }
 }
+
+export class BaseFastElement extends FASTElement {
+  baseMethod() {}
+}
+
+export class DerivedFastElement extends BaseFastElement {
+  ownMethod() {}
+}

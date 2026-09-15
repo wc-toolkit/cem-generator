@@ -144,3 +144,16 @@ test("captures only declared CSS custom properties and @property metadata", () =
   assert.ok(iconPart, "Expected JSDoc part to merge with markup part");
   assert.equal(iconPart.description, "Icon glyph wrapper part");
 });
+
+test("preserves custom Lit base classes and marks inherited members", () => {
+  const manifest = generateCem({ tsConfigPath: fixturesTsConfig, plugins: [litPlugin()] });
+  const derived = manifest.modules
+    .flatMap((module) => module.declarations)
+    .find((declaration) => declaration.name === "DerivedCustomElement");
+
+  assert.equal(derived?.superclass?.name, "BaseCustomElement");
+  assert.equal(
+    derived?.members?.find((member) => member.name === "baseMethod")?.inheritedFrom?.name,
+    "BaseCustomElement",
+  );
+});

@@ -87,6 +87,14 @@ export class ImportedLitElement extends externalMixin(LitElement) {}
 export class RegisteredLitElement extends LitElement {}
 customElements.define("registered-lit-element", RegisteredLitElement);
 
+export class BaseCustomElement extends LitElement {
+  baseMethod() {}
+}
+
+export class DerivedCustomElement extends BaseCustomElement {
+  ownMethod() {}
+}
+
 @customElement("getter-properties-element")
 export class GetterPropertiesElement extends LitElement {
   static get properties() {

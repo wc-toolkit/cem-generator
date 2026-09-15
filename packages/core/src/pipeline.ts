@@ -1219,6 +1219,7 @@ function toAttributes(
         : {}),
       default: asString((attr as Record<string, unknown>).default),
       fieldName: asString((attr as Record<string, unknown>).fieldName),
+      ...inheritedFrom(attr),
     }))
     .filter((attr) => !!attr.name);
 
@@ -1244,6 +1245,7 @@ function toEvents(events: ClassFragment["events"]): Event[] | undefined {
             "parsedType": toType((event as Record<string, unknown>).parsedType),
           }
         : {}),
+      ...inheritedFrom(event),
     }))
     .filter((event) => !!event.name);
 
@@ -1257,6 +1259,7 @@ function toSlots(slots: ClassFragment["slots"]): Slot[] | undefined {
     description: asString(slot.description),
     summary: asString(slot.summary),
     deprecated: asDeprecated(slot.deprecated),
+    ...inheritedFrom(slot),
   }));
   return converted.length ? converted : undefined;
 }
@@ -1272,6 +1275,7 @@ function toCssProperties(
     deprecated: asDeprecated(prop.deprecated),
     default: asString(prop.default),
     syntax: asString(prop.syntax),
+    ...inheritedFrom(prop),
   }));
   return converted.length ? converted : undefined;
 }
@@ -1283,6 +1287,7 @@ function toCssParts(cssParts: ClassFragment["cssParts"]): CssPart[] | undefined 
     description: asString(part.description),
     summary: asString(part.summary),
     deprecated: asDeprecated(part.deprecated),
+    ...inheritedFrom(part),
   }));
   return converted.length ? converted : undefined;
 }
@@ -1294,6 +1299,7 @@ function toCssStates(cssStates: ClassFragment["cssStates"]): CssCustomState[] | 
     description: asString(state.description),
     summary: asString(state.summary),
     deprecated: asDeprecated(state.deprecated),
+    ...inheritedFrom(state),
   }));
   return converted.length ? converted : undefined;
 }
@@ -1301,6 +1307,11 @@ function toCssStates(cssStates: ClassFragment["cssStates"]): CssCustomState[] | 
 function toType(value: unknown): CemType | undefined {
   const text = asString(value);
   return text ? { text } : undefined;
+}
+
+function inheritedFrom(value: unknown): Record<string, unknown> {
+  const source = value as Record<string, unknown>;
+  return source.inheritedFrom ? { inheritedFrom: source.inheritedFrom } : {};
 }
 
 function asString(value: unknown): string | undefined {

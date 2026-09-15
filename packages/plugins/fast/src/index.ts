@@ -46,7 +46,7 @@ export function fastPlugin(): DetectorPlugin {
             summary: classDoc.summary,
             deprecated: classDoc.deprecated,
             tagName: classDoc.tagName ?? tagName,
-            superclass: { name: "FASTElement", module: "@microsoft/fast-element" },
+            superclass: getFastSuperclass(node, context.checker),
             members,
             attributes: mergeByName(attributes, classDoc.attributes),
             slots: mergeByName(discovered.slots, classDoc.slots),
@@ -79,6 +79,29 @@ export function fastPlugin(): DetectorPlugin {
       return fragment;
     },
   };
+}
+
+function getFastSuperclass(
+  node: ts.ClassDeclaration,
+  checker: ts.TypeChecker,
+): { name: string; module?: string } {
+  const heritage = node.heritageClauses?.find((clause) => clause.token === ts.SyntaxKind.ExtendsKeyword);
+  const expression = heritage?.types[0]?.expression;
+  if (!expression || !ts.isIdentifier(expression)) {
+    return { name: "FASTElement", module: "@microsoft/fast-element" };
+  }
+
+  const name = expression.text;
+  if (name === "FASTElement" || name === "FastElement") {
+    return { name: "FASTElement", module: "@microsoft/fast-element" };
+  }
+
+  const symbol = checker.getSymbolAtLocation(expression);
+  const resolved = symbol && symbol.flags & ts.SymbolFlags.Alias ? checker.getAliasedSymbol(symbol) : symbol;
+  const declaration = resolved?.declarations?.find(ts.isClassDeclaration);
+  if (!declaration?.name) return { name, module: "@microsoft/fast-element" };
+
+  return { name: declaration.name.text, module: declaration.getSourceFile().fileName };
 }
 
 function extendsFastElement(node: ts.ClassDeclaration, checker: ts.TypeChecker): boolean {

@@ -26,6 +26,13 @@ test("detects FAST elements, custom element decorators, and @attr metadata", () 
   assert.equal(nameTag?.members?.find((member) => member.name === "bar")?.attribute, "my-attr");
   assert.equal(nameTag?.superclass?.name, "FASTElement");
 
+  const derived = declarations.find((declaration) => declaration.name === "DerivedFastElement");
+  assert.equal(derived?.superclass?.name, "BaseFastElement");
+  assert.equal(
+    derived?.members?.find((member) => member.name === "baseMethod")?.inheritedFrom?.name,
+    "BaseFastElement",
+  );
+
   assert.equal(booleanTest?.tagName, "boolean-test");
   assert.deepEqual([...((booleanTest?.attributes ?? []).map((attribute) => attribute.name))].sort(), [
     "normalAttr",
