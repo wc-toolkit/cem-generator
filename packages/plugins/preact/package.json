@@ -1,6 +1,6 @@
 {
   "name": "@wc-toolkit/cem-generator-preact",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "Preact detector plugin for generating Custom Elements Manifests.",
   "license": "MIT",
   "repository": {

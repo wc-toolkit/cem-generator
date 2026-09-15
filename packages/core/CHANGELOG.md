@@ -1,5 +1,11 @@
 # @wc-toolkit/cem-generator
 
+## 0.1.6
+
+### Patch Changes
+
+- d544733: Republish relative module paths and imported-style CSS property detection.
+
 ## 0.1.5
 
 ### Patch Changes

@@ -1,6 +1,6 @@
 {
   "name": "@wc-toolkit/cem-generator-svelte",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "Svelte detector plugin for generating Custom Elements Manifests.",
   "license": "MIT",
   "repository": {
