@@ -1,5 +1,13 @@
 # @wc-toolkit/cem-generator-vue
 
+## 0.1.3
+
+### Patch Changes
+
+- Updated dependencies [0c4ccf1]
+- Updated dependencies [c9b8d84]
+  - @wc-toolkit/cem-generator@0.1.3
+
 ## 0.1.2
 
 ### Patch Changes

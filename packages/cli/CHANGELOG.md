@@ -1,5 +1,16 @@
 # @wc-toolkit/cem-generator-cli
 
+## 0.1.3
+
+### Patch Changes
+
+- 0c4ccf1: Allow the CLI to use a manifest path from generator configuration, optionally
+  add the generated manifest to `package.json` during initialization, and resolve
+  runtime module paths correctly for packages nested in workspaces.
+- Updated dependencies [0c4ccf1]
+- Updated dependencies [c9b8d84]
+  - @wc-toolkit/cem-generator@0.1.3
+
 ## 0.1.2
 
 ### Patch Changes
