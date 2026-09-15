@@ -28,6 +28,7 @@ export default defineConfig({
             { label: "Inheritance", link: "/guide/features/inheritance/" },
             { label: "Module Paths", link: "/guide/features/module-paths/" },
             { label: "Generation Validation", link: "/guide/features/validation/" },
+            { label: "CSS-Only Elements", link: "/guide/features/css-only-elements/" },
           ],
         },
         {

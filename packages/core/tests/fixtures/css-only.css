@@ -1,0 +1,45 @@
+/**
+ * A badge styled without a JavaScript definition.
+ * @cssprop [--badge-padding=8px] - Override the default spacing.
+ * @cssprop --badge-outline-color - Optional outline color.
+ * @attr variant - Selects the badge style.
+ */
+my-badge {
+  /** Badge inner spacing. */
+  --badge-padding: 4px;
+  /** Badge surface color. */
+  --badge-bg-color: lightgray;
+  /** Badge text color. */
+  --badge-fg-color: black;
+
+  &[variant="danger"] {
+    --badge-bg-color: red;
+    --badge-fg-color: white;
+  }
+
+  &[variant="success"] {
+    --badge-bg-color: green;
+  }
+}
+
+/** Badge corner radius. */
+@property --badge-border-radius {
+  syntax: "<length>";
+  initial-value: 4px;
+  inherits: false;
+}
+
+@property --badge-border-width {
+  syntax: "<length>";
+  initial-value: 1px;
+  inherits: false;
+}
+
+my-undocumented-element {
+  --ignored: value;
+}
+
+/* This is intentionally not JSDoc. */
+my-regular-comment-element {
+  --ignored: value;
+}
