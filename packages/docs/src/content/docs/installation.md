@@ -48,10 +48,3 @@ The manifest includes:
 ## CLI
 
 For zero-config generation from the command line, see the [CLI](/guide/cli/) reference.
-
-## Next steps
-
-- See [Plugins](/plugins/) for how the core and plugin layers work.
-- See [Creating Plugins](/plugins/creating-plugins/) for the pipeline lifecycle.
-- See [Inheritance](/guide/features/inheritance/) for omitting inherited APIs and using external manifests.
-- See [Plugins](/plugins/) for custom detectors and annotators.

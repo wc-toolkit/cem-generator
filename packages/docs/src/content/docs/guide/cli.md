@@ -185,9 +185,3 @@ const manifest = generateCem();
 
 fs.writeFileSync("custom-elements.json", JSON.stringify(manifest, null, 2));
 ```
-
-## Next steps
-
-- See [Installation](/installation/) for programmatic usage.
-- See [Configuration](/guide/configuration/) for `generateCem()` options.
-- See [Plugins](/plugins/) for framework and custom plugin details.

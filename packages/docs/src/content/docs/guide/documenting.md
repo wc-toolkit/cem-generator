@@ -453,9 +453,3 @@ mode = 'a';
 ```
 
 Class-level `@attr` / `@attribute` tags can also carry a type — e.g. `@attr {boolean} disabled - disables the element` — which flows into the emitted `attributes[].type`.
-
-## Next steps
-
-- [Overview](/guide/overview/) — Getting started
-- [Configuration](/guide/configuration/) — All options
-- [Creating Plugins](/plugins/creating-plugins/) — How detection and enrichment hooks work

@@ -35,9 +35,3 @@ Use CEM Analyzer when you want its established analyzer/plugin ecosystem, or Lit
 Analyzer when you need Lit-focused editor and template analysis. Choose
 `cem-generator` when you need a generated CEM that is type-aware, validated, and
 integrated with a broader component-library toolchain.
-
-## Next steps
-
-- [Documenting](/guide/documenting/) — JSDoc tags reference
-- [Configuration](/guide/configuration/) — All `generateCem()` options
-- [CLI](/guide/cli/) — Command-line reference

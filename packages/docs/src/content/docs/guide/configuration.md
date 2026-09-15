@@ -230,9 +230,3 @@ When using JavaScript sources, enable `checkJs` for JSDoc-based type information
   "include": ["src/**/*"]
 }
 ```
-
-## Next steps
-
-- [Overview](/guide/overview/) — Getting started
-- [Documenting](/guide/documenting/) — JSDoc tags reference
-- [Plugins](/plugins/) — Internal architecture and plugin layers
