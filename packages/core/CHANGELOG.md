@@ -1,5 +1,12 @@
 # @wc-toolkit/cem-generator
 
+## 0.1.5
+
+### Patch Changes
+
+- fec3642: Detect CSS custom properties from imported style references in framework components.
+- f10d934: Use project-relative module paths when package exports do not provide a runtime mapping.
+
 ## 0.1.4
 
 ### Patch Changes
