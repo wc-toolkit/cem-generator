@@ -55,6 +55,32 @@ test("shouldAnalyze() is evaluated once per plugin per file", () => {
   assert.equal(shouldAnalyzeCalls, 1);
 });
 
+test("CSS-only custom elements require a JSDoc comment", () => {
+  const manifest = generateCem({ tsConfigPath: fixturesTsConfig, include: ["css-only.css"] });
+  const moduleDoc = manifest.modules.find((module) => module.path.endsWith("css-only.css"));
+  const badge = moduleDoc?.declarations.find((declaration) => declaration.tagName === "my-badge");
+
+  assert.equal(badge?.name, "my-badge");
+  assert.match(badge?.description ?? "", /styled without a JavaScript definition/);
+  assert.deepEqual(
+    badge?.attributes?.map(({ name, description, type }) => ({ name, description, type })),
+    [{ name: "variant", description: "Selects the badge style.", type: { text: '\"danger\" | \"success\"' } }]
+  );
+  assert.deepEqual(
+    badge?.cssProperties?.map(({ name, default: value }) => [name, value]),
+    [
+      ["--badge-bg-color", "lightgray"],
+      ["--badge-border-radius", "4px"],
+      ["--badge-border-width", "1px"],
+      ["--badge-fg-color", "black"],
+      ["--badge-outline-color", undefined],
+      ["--badge-padding", "8px"],
+    ]
+  );
+  assert.equal(moduleDoc?.declarations.some((declaration) => declaration.tagName === "my-undocumented-element"), false);
+  assert.equal(moduleDoc?.declarations.some((declaration) => declaration.tagName === "my-regular-comment-element"), false);
+});
+
 test("detectors without shouldAnalyze analyze files by default", () => {
   const detector = {
     name: "always-analyze",

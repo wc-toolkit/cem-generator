@@ -22,6 +22,7 @@ workflow.
 | **TypeScript project awareness** | Uses your existing `tsconfig.json`, so aliases, included files, excluded files, and public types are interpreted the same way as the rest of your project. |
 | **Fits your build workflow** | Use the same generator programmatically, from the CLI, or through Vite, Rollup/Rolldown, and Webpack integrations instead of maintaining a separate analysis workflow. |
 | **API auto-discovery** | Finds properties, methods, attributes, events, slots, CSS custom properties, shadow parts, and custom states directly from source. |
+| **CSS-only elements** | Detects documented custom-element selectors in standalone CSS files, including attributes, public custom properties, `@cssprop` tags, and `@property` metadata. |
 | **Inline documentation** | Turns comments and standard JSDoc tags into manifest documentation next to the API they describe, keeping generated docs close to the code and reducing stale explanations. |
 | **Validation before publishing** | Catches broken declaration references and invalid public type exposure during generation, before bad metadata reaches documentation sites or consumers. |
 | **Complete, configurable inheritance** | Automatically includes inherited APIs across multi-level superclass chains, while JSDoc tags let you hide individual inherited members when they are not part of a component's intended public surface. |

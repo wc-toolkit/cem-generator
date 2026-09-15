@@ -14,6 +14,7 @@ import {
 } from "./types.js";
 import type { ProgramResult } from "./program.js";
 import { vanillaBuiltin } from "./vanilla-builtin.js";
+import { cssBuiltin } from "./css-builtin.js";
 import type {
   Package as CemPackage,
   JavaScriptModule,
@@ -170,14 +171,15 @@ const {
   const runtimeResolver = modulePathSkip
     ? (sourceFile: string) => sourceFile
     : createRuntimeResolver(projectDir, readCompilerOptions(resolvedPath));
-  const allPlugins: Plugin[] = [vanillaBuiltin(), ...plugins];
+  const allPlugins: Plugin[] = [vanillaBuiltin(), cssBuiltin(), ...plugins];
   const additionalFiles = getAdditionalPluginFiles(
     projectDir,
     allPlugins,
     sourceFiles,
     program.getCompilerOptions()
   );
-  const filteredFiles = filterSourceFiles([...sourceFiles, ...additionalFiles], include, exclude, projectDir);
+  const cssFiles = getCssFiles(projectDir, [...sourceFiles, ...additionalFiles], program.getCompilerOptions());
+  const filteredFiles = filterSourceFiles([...sourceFiles, ...additionalFiles, ...cssFiles], include, exclude, projectDir);
   const detectors = allPlugins.filter(isDetectorPlugin);
   const annotators = allPlugins.filter(isAnnotatorPlugin);
 
@@ -227,6 +229,36 @@ const {
     plugin.afterGenerate?.(cem);
   }
   return cem;
+}
+
+function getCssFiles(
+  projectDir: string,
+  existingFiles: ts.SourceFile[],
+  compilerOptions: ts.CompilerOptions
+): ts.SourceFile[] {
+  const existing = new Set(existingFiles.map((file) => path.resolve(file.fileName)));
+  const result: ts.SourceFile[] = [];
+
+  function visit(directory: string) {
+    for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+      if (["node_modules", ".git", "dist", ".astro"].includes(entry.name)) continue;
+      const filePath = path.join(directory, entry.name);
+      if (entry.isDirectory()) {
+        visit(filePath);
+      } else if (entry.isFile() && entry.name.endsWith(".css") && !existing.has(path.resolve(filePath))) {
+        result.push(ts.createSourceFile(
+          filePath,
+          fs.readFileSync(filePath, "utf-8"),
+          compilerOptions.target ?? ts.ScriptTarget.Latest,
+          true,
+          ts.ScriptKind.Unknown
+        ));
+      }
+    }
+  }
+
+  visit(projectDir);
+  return result;
 }
 
 function normalizeSourcePaths(cem: CemPackage, projectDir: string): void {
