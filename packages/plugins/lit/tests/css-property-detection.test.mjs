@@ -144,6 +144,10 @@ test("captures only declared CSS custom properties and @property metadata", () =
   assert.equal(buttonPart.description, "Primary button chrome");
   assert.ok(iconPart, "Expected JSDoc part to merge with markup part");
   assert.equal(iconPart.description, "Icon glyph wrapper part");
+
+  const defaultSlot = (decl.slots ?? []).find((slot) => slot.name === "");
+  assert.ok(defaultSlot, "Expected slot from Lit template to be documented");
+  assert.equal(defaultSlot.description, "Button label");
 });
 
 test("preserves custom Lit base classes and marks inherited members", () => {

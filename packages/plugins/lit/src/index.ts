@@ -8,6 +8,7 @@ import {
   mergeClassEvents,
   detectClassEvents,
   detectCustomElementRegistrations,
+  discoverFrameworkApis,
   parseCssMetadata,
 } from "@wc-toolkit/cem-generator";
 import {
@@ -52,6 +53,11 @@ export function litPlugin(): DetectorPlugin {
           const className = node.name.text;
           const jsdoc = getJSDocInfo(node);
           const classDoc = parseCemClassTags(node);
+          const discoveredApis = discoverFrameworkApis(
+            node,
+            context.sourceFile,
+            context.checker,
+          );
           const mixinNames = getLitMixinNames(node);
           for (const name of mixinNames)
             resolveLitMixin(name, node, context, mixins, new Set());
@@ -93,7 +99,7 @@ export function litPlugin(): DetectorPlugin {
                 }
               : {}),
             members,
-            slots: classDoc.slots,
+            slots: mergeSlots(discoveredApis.slots, classDoc.slots),
             events: mergeClassEvents(
               detectClassEvents(node, context),
               classDoc.events?.map((event) => ({
@@ -108,7 +114,7 @@ export function litPlugin(): DetectorPlugin {
                       ),
               })),
             ),
-            cssParts: mergeCssParts(extractCssParts(node), classDoc.cssParts),
+            cssParts: mergeCssParts(discoveredApis.cssParts, classDoc.cssParts),
             cssStates: classDoc.cssStates,
             cssProperties: mergeCssProperties(
               extractCssCustomProps(node, context.checker),
@@ -149,56 +155,6 @@ export function litPlugin(): DetectorPlugin {
       return { byDeclaration };
     },
   };
-}
-
-function extractCssParts(node: ts.ClassDeclaration): ClassFragment["cssParts"] {
-  const text = node.getText();
-  const attrMatches = [...text.matchAll(/\bpart\s*=\s*(["'])([^"']+)\1/g)];
-  if (attrMatches.length === 0) return undefined;
-
-  const byName = new Map<
-    string,
-    NonNullable<ClassFragment["cssParts"]>[number]
-  >();
-  for (const [, , rawValue] of attrMatches) {
-    for (const token of rawValue
-      .split(/\s+/)
-      .map((v) => v.trim())
-      .filter(Boolean)) {
-      if (!byName.has(token)) byName.set(token, { name: token });
-    }
-  }
-
-  const commentBeforePartElement = [
-    ...text.matchAll(
-      /<!--([\s\S]*?)-->\s*<[^>]*\bpart\s*=\s*(["'])([^"']+)\2[^>]*>/g,
-    ),
-  ];
-  for (const [, rawComment, , rawValue] of commentBeforePartElement) {
-    const description = parseTemplateComment(rawComment);
-    if (!description) continue;
-    for (const token of rawValue
-      .split(/\s+/)
-      .map((v) => v.trim())
-      .filter(Boolean)) {
-      const existing = byName.get(token);
-      if (!existing) continue;
-      if (!existing.description) existing.description = description;
-    }
-  }
-
-  return byName.size ? [...byName.values()] : undefined;
-}
-
-function parseTemplateComment(raw: string | undefined): string | undefined {
-  if (!raw) return undefined;
-  const text = raw
-    .split("\n")
-    .map((line) => line.trim())
-    .join(" ")
-    .replace(/\s+/g, " ")
-    .trim();
-  return text || undefined;
 }
 
 function getExportName(node: ts.ClassDeclaration): string | undefined {
@@ -991,6 +947,20 @@ function mergeCssParts(
   for (const item of a ?? []) merged.set(item.name, item);
   for (const item of b ?? [])
     merged.set(item.name, { ...merged.get(item.name), ...item });
+  return merged.size ? [...merged.values()] : undefined;
+}
+
+function mergeSlots(
+  discovered: ClassFragment["slots"],
+  jsdoc: ClassFragment["slots"],
+): ClassFragment["slots"] {
+  const merged = new Map<
+    string,
+    NonNullable<ClassFragment["slots"]>[number]
+  >();
+  for (const slot of discovered ?? []) merged.set(slot.name, slot);
+  for (const slot of jsdoc ?? [])
+    merged.set(slot.name, { ...merged.get(slot.name), ...slot });
   return merged.size ? [...merged.values()] : undefined;
 }
 
