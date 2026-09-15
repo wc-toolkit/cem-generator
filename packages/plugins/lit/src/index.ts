@@ -111,7 +111,7 @@ export function litPlugin(): DetectorPlugin {
             cssParts: mergeCssParts(extractCssParts(node), classDoc.cssParts),
             cssStates: classDoc.cssStates,
             cssProperties: mergeCssProperties(
-              extractCssCustomProps(node),
+              extractCssCustomProps(node, context.checker),
               classDoc.cssProperties,
             ),
             omitInherited: classDoc.omitInherited,
@@ -996,13 +996,32 @@ function mergeCssParts(
 
 function extractCssCustomProps(
   node: ts.ClassDeclaration,
+  checker: ts.TypeChecker,
 ): ClassFragment["cssProperties"] {
-  const stylesMember = node.members.find((m) => {
+  const stylesMember = node.members.find((m): m is ts.PropertyDeclaration => {
     if (!ts.isPropertyDeclaration(m) || m.name.getText() !== "styles")
       return false;
     const modifiers = ts.canHaveModifiers(m) ? ts.getModifiers(m) : undefined;
-    return modifiers?.some((mod) => mod.kind === ts.SyntaxKind.StaticKeyword);
+    return modifiers?.some((mod) => mod.kind === ts.SyntaxKind.StaticKeyword) ?? false;
   });
   if (!stylesMember) return undefined;
-  return parseCssMetadata(stylesMember.getText());
+
+  const properties = parseCssMetadata(stylesMember.getText()) ?? [];
+  const initializer = stylesMember.initializer;
+  if (!initializer) return properties.length ? properties : undefined;
+
+  const symbol = ts.isIdentifier(initializer)
+    ? checker.getSymbolAtLocation(initializer)
+    : undefined;
+  const resolvedSymbol = symbol && symbol.flags & ts.SymbolFlags.Alias
+    ? checker.getAliasedSymbol(symbol)
+    : symbol;
+
+  for (const declaration of resolvedSymbol?.declarations ?? []) {
+    if (!ts.isVariableDeclaration(declaration) || !declaration.initializer) continue;
+    properties.push(...(parseCssMetadata(declaration.initializer.getText()) ?? []));
+  }
+
+  const byName = new Map(properties.map((property) => [property.name, property]));
+  return byName.size ? [...byName.values()] : undefined;
 }
