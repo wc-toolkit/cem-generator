@@ -1,5 +1,13 @@
 # @wc-toolkit/cem-generator-vue
 
+## 0.1.6
+
+### Patch Changes
+
+- d544733: Republish relative module paths and imported-style CSS property detection.
+- Updated dependencies [d544733]
+  - @wc-toolkit/cem-generator@0.1.6
+
 ## 0.1.5
 
 ### Patch Changes
