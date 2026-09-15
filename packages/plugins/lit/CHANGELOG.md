@@ -1,5 +1,15 @@
 # @wc-toolkit/cem-generator-lit
 
+## 0.1.3
+
+### Patch Changes
+
+- c9b8d84: Preserve custom Lit and FAST superclass relationships and mark members
+  inherited from those base classes with `inheritedFrom` metadata.
+- Updated dependencies [0c4ccf1]
+- Updated dependencies [c9b8d84]
+  - @wc-toolkit/cem-generator@0.1.3
+
 ## 0.1.2
 
 ### Patch Changes
