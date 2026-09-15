@@ -1,5 +1,11 @@
 # @wc-toolkit/cem-generator-lit
 
+## 0.1.6
+
+### Patch Changes
+
+- 9af4301: Detect slots in Lit templates and use the shared template scanner for CSS parts.
+
 ## 0.1.5
 
 ### Patch Changes
