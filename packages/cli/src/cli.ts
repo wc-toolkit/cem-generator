@@ -22,27 +22,33 @@ const PLUGIN_CHOICES = [
   { name: "svelte", packageName: "@wc-toolkit/cem-generator-svelte", factory: "sveltePlugin" },
 ] as const;
 
+const LIBRARY_CHOICES = [{ name: "nothing" }, ...PLUGIN_CHOICES] as const;
+
 const INTEGRATION_CHOICES = [
   {
     name: "react-wrappers",
+    label: "React wrappers - react v18 and below",
     packageName: "@wc-toolkit/react-wrappers",
     factory: "reactWrapperGeneratorPlugin",
     options: { stronglyTypedEvents: true },
   },
   {
     name: "jsx-types",
+    label: "JSX Types - react 19+, SolidJS, Preact, etc.",
     packageName: "@wc-toolkit/jsx-types",
     factory: "jsxTypesGeneratorPlugin",
     options: { outdir: "./types", stronglyTypedEvents: true },
   },
   {
     name: "vuejs-types",
+    label: "Vue.js Types",
     packageName: "@wc-toolkit/vuejs-types",
     factory: "vuejsTypesGeneratorPlugin",
     options: { outdir: "./types", stronglyTypedEvents: true },
   },
   {
     name: "svelte-types",
+    label: "Svelte Types",
     packageName: "@wc-toolkit/svelte-types",
     factory: "svelteTypesGeneratorPlugin",
     options: { outdir: "./types", stronglyTypedEvents: true },
@@ -291,17 +297,17 @@ async function promptForModeAndPlugins(pluginNames?: string[]): Promise<{
     if (modeLine.done) throw new Error("No mode selected.");
     const mode = validateInitMode(modeLine.value.trim() === "1" ? "cli" : modeLine.value.trim() === "2" ? "code" : modeLine.value.trim());
 
-    console.log("Which framework plugins should be included?");
-    PLUGIN_CHOICES.forEach((plugin, index) => console.log(`  ${index + 1}. ${plugin.name}`));
-    console.log("Enter numbers separated by commas, or press Enter for vanilla only.");
-    output.write("Plugins: ");
+    console.log("What library are you using to author your web components?");
+    LIBRARY_CHOICES.forEach((plugin, index) => console.log(`  ${index + 1}. ${plugin.name}`));
+    console.log("Enter a number, or press Enter for nothing.");
+    output.write("Library: ");
     const pluginsLine = await lines.next();
     if (pluginsLine.done) throw new Error("No plugin selection provided.");
 
     const selectedNames = parsePluginSelection(pluginsLine.value);
 
-    console.log("Which project integrations should be included? (multi-select)");
-    INTEGRATION_CHOICES.forEach((integration, index) => console.log(`  ${index + 1}. ${integration.name}`));
+    console.log("Which integrations would you like to include? (multi-select)");
+    INTEGRATION_CHOICES.forEach((integration, index) => console.log(`  ${index + 1}. ${integration.label}`));
     console.log("Enter numbers separated by commas, or press Enter for no integrations.");
     output.write("Integrations: ");
     const integrationsLine = await lines.next();
@@ -477,15 +483,15 @@ async function promptForPluginsAndIntegrations(): Promise<{
       {
         type: "select",
         name: "plugin",
-        message: "Which framework plugins should be included?",
-        choices: PLUGIN_CHOICES.map((plugin) => ({ name: plugin.name, value: plugin.name })),
+        message: "What library are you using to author your web components?",
+        choices: LIBRARY_CHOICES.map((plugin) => ({ name: plugin.name, value: plugin.name })),
       },
       {
         type: "checkbox",
         name: "integrations",
-        message: "Which project integrations should be included?",
+        message: "Which integrations would you like to include?",
         choices: INTEGRATION_CHOICES.map((integration) => ({
-          name: integration.name,
+          name: integration.label,
           value: integration.name,
         })),
       },
@@ -496,15 +502,15 @@ async function promptForPluginsAndIntegrations(): Promise<{
   const prompt = readline.createInterface({ input, output });
   const lines = prompt[Symbol.asyncIterator]();
   try {
-    console.log("Which framework plugins should be included?");
-    PLUGIN_CHOICES.forEach((plugin, index) => console.log(`  ${index + 1}. ${plugin.name}`));
-    console.log("Enter numbers separated by commas, or press Enter for vanilla only.");
-    output.write("Plugins: ");
+    console.log("What library are you using to author your web components?");
+    LIBRARY_CHOICES.forEach((plugin, index) => console.log(`  ${index + 1}. ${plugin.name}`));
+    console.log("Enter a number, or press Enter for nothing.");
+    output.write("Library: ");
     const pluginsLine = await lines.next();
     if (pluginsLine.done) throw new Error("No plugin selection provided.");
 
-    console.log("Which project integrations should be included? (multi-select)");
-    INTEGRATION_CHOICES.forEach((integration, index) => console.log(`  ${index + 1}. ${integration.name}`));
+    console.log("Which integrations would you like to include? (multi-select)");
+    INTEGRATION_CHOICES.forEach((integration, index) => console.log(`  ${index + 1}. ${integration.label}`));
     console.log("Enter numbers separated by commas, or press Enter for no integrations.");
     output.write("Integrations: ");
     const integrationsLine = await lines.next();
@@ -541,15 +547,15 @@ async function promptForInteractiveSelections(): Promise<{
     {
       type: "select",
       name: "plugin",
-      message: "Which framework plugins should be included?",
-      choices: PLUGIN_CHOICES.map((plugin) => ({ name: plugin.name, value: plugin.name })),
+      message: "What library are you using to author your web components?",
+      choices: LIBRARY_CHOICES.map((plugin) => ({ name: plugin.name, value: plugin.name })),
     },
     {
       type: "checkbox",
       name: "integrations",
-      message: "Which project integrations should be included?",
+      message: "Which integrations would you like to include?",
       choices: INTEGRATION_CHOICES.map((integration) => ({
-        name: integration.name,
+        name: integration.label,
         value: integration.name,
       })),
     },
@@ -563,7 +569,7 @@ function isInteractiveTerminal(): boolean {
 }
 
 function parsePluginSelection(answer: string): string[] {
-  return parseSelection(answer, PLUGIN_CHOICES, "plugin");
+  return parseSelection(answer, LIBRARY_CHOICES, "library").filter((name) => name !== "nothing");
 }
 
 function parseIntegrationSelection(answer: string): string[] {

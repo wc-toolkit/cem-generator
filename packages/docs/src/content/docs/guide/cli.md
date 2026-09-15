@@ -26,13 +26,16 @@ cem init
 cem generate
 ```
 
-`cem init` creates `cem-generator.config.mjs` and prompts you to select any
-framework plugins your project uses. Vanilla custom elements are supported by
-the generator without an additional plugin.
+`cem init` creates `cem-generator.config.mjs` and asks what library you use to
+author your web components. Choose `nothing` for vanilla custom elements, which
+are supported by the generator without an additional plugin.
 
 After plugin selection, the interactive flow asks whether to install the
 selected plugin packages. It detects `pnpm`, `yarn`, `bun`, or `npm` from the
 project lockfile.
+
+The integrations prompt offers React wrappers for React 18 and below, JSX types
+for React 19+, SolidJS, and Preact, plus Vue.js and Svelte type integrations.
 
 If the project has a `package.json`, init also asks whether to add the default
 manifest location as its `customElements` property. `--yes` skips this prompt.
