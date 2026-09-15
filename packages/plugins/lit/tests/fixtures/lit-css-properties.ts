@@ -63,6 +63,8 @@ export class LitCssPropsEl extends InputMixin(LitElement) {
 
   render() {
     return html`
+      <!-- Button label -->
+      <slot></slot>
       <!-- Primary button chrome -->
       <button part="button"><span part="icon button"></span></button>
     `;
