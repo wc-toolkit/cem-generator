@@ -1,5 +1,11 @@
 # @wc-toolkit/cem-generator-cli
 
+## 0.1.5
+
+### Patch Changes
+
+- 6236312: Improve `cem init` prompts by asking which library authors the web components, adding a vanilla `nothing` option, and clarifying integration choices.
+
 ## 0.1.4
 
 ### Patch Changes
