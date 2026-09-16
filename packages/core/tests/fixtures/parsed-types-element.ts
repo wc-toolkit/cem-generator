@@ -26,11 +26,13 @@ export class ParsedTypesElement extends HTMLElement {
   /** @attribute {SharedMode} shared-mode - imported mode attribute */
   sharedMode?: SharedMode;
 
-  setPayload(payload: Payload): Payload {
+  setPayload(payload: Payload, mode?: Mode): Payload {
+    void mode;
     return payload;
   }
 
-  setShared(payload: SharedPayload): SharedPayload {
+  setShared(payload: SharedPayload, mode?: SharedMode): SharedPayload {
+    void mode;
     return payload;
   }
 
