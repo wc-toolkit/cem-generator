@@ -1,12 +1,56 @@
 import { defineConfig } from "astro/config";
 import starlight from "@astrojs/starlight";
+import logo from "./src/assets/cem-generator-icon.png";
 
 export default defineConfig({
-  base: "/cem-generator",
+  base: "/",
   integrations: [
     starlight({
       title: "CEM Generator",
       description: "Documentation for the wc-toolkit CEM generator monorepo.",
+      head: [
+        {
+          tag: "meta",
+          attrs: {
+            name: "twitter:card",
+            content: "summary_large_image",
+          },
+        },
+        {
+          tag: "meta",
+          attrs: {
+            property: "og:image",
+            content: "https://cem-generator.wc-toolkit.com/cem_generator_banner.png",
+          },
+        },
+        {
+          tag: "meta",
+          attrs: {
+            property: "og:image:alt",
+            content: "CEM Generator logo and wordmark",
+          },
+        },
+        {
+          tag: "meta",
+          attrs: {
+            name: "twitter:image",
+            content: "https://cem-generator.wc-toolkit.com/cem_generator_banner.png",
+          },
+        },
+        {
+          tag: "meta",
+          attrs: {
+            name: "twitter:image:alt",
+            content: "CEM Generator logo and wordmark",
+          },
+        },
+      ],
+      logo: {
+        src: logo,
+        alt: "cem-generator logo",
+      },
+      favicon: "/cem-generator-icon.png",
+      customCss: ["./src/styles/custom.css"],
       sidebar: [
         {
           label: "Guide",

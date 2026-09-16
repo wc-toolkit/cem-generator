@@ -8,7 +8,7 @@
     "vue",
     "web-components"
   ],
-  "homepage": "https://wc-toolkit.github.io/cem-generator/plugins/vue/",
+  "homepage": "https://cem-generator.wc-toolkit.com/plugins/vue/",
   "bugs": {
     "url": "https://github.com/wc-toolkit/cem-generator/issues"
   },

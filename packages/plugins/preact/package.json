@@ -8,7 +8,7 @@
     "preact",
     "web-components"
   ],
-  "homepage": "https://wc-toolkit.github.io/cem-generator/plugins/preact/",
+  "homepage": "https://cem-generator.wc-toolkit.com/plugins/preact/",
   "bugs": {
     "url": "https://github.com/wc-toolkit/cem-generator/issues"
   },

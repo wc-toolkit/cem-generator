@@ -8,7 +8,7 @@
     "lit",
     "web-components"
   ],
-  "homepage": "https://wc-toolkit.github.io/cem-generator/plugins/lit/",
+  "homepage": "https://cem-generator.wc-toolkit.com/plugins/lit/",
   "bugs": {
     "url": "https://github.com/wc-toolkit/cem-generator/issues"
   },
