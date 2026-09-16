@@ -12,7 +12,7 @@
   --sl-color-black: #00151c;
 }
 
-:root[data-theme='light'] {
+:root[data-theme="light"] {
   --sl-color-accent-low: #d8f1fa;
   --sl-color-accent: #0789bf;
   --sl-color-accent-high: #07516b;
@@ -26,10 +26,10 @@
   --sl-color-white: #09232c;
 }
 
-:root[data-theme='dark'] header.header {
+:root[data-theme="dark"] header.header {
   background-color: #00151c;
 }
 
-:root[data-theme='light'] header.header {
+:root[data-theme="light"] header.header {
   background-color: var(--sl-color-bg-nav);
 }

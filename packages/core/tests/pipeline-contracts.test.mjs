@@ -23,24 +23,6 @@ test("uses project-relative module paths when no package exports are configured"
   assert.equal(path.isAbsolute(manifest.modules[0].path), false);
 });
 
-function makeSourceFile(fileName, sourceText = "") {
-  return {
-    fileName,
-    getFullText() {
-      return sourceText;
-    },
-  };
-}
-
-function makeProgramResult(sourceFiles) {
-  return {
-    program: {},
-    checker: {},
-    sourceFiles,
-    programResult: { program: {}, checker: {}, sourceFiles },
-  };
-}
-
 function getClass(manifest, moduleSuffix, className) {
   const moduleDoc = manifest.modules.find((m) => m.path.endsWith(moduleSuffix));
   return moduleDoc?.declarations?.find((d) => d.name === className);

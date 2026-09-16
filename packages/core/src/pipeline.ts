@@ -517,7 +517,6 @@ function outputCandidates(
   packageRoot: string,
   compilerOptions: ts.CompilerOptions,
 ): string[] {
-  const sourceWithoutExtension = relativeSource.replace(/\.(tsx?|mts|cts|jsx?|mjs|cjs)$/, "");
   const sourceRoot = compilerOptions.rootDir
     ? path.resolve(projectDir, compilerOptions.rootDir)
     : projectDir;

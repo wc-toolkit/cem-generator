@@ -187,6 +187,13 @@ declare module "astro:content" {
         collection: "docs";
         data: InferEntrySchema<"docs">;
       } & { render(): Render[".md"] };
+      "guide/features/css-only-elements.md": {
+        id: "guide/features/css-only-elements.md";
+        slug: "guide/features/css-only-elements";
+        body: string;
+        collection: "docs";
+        data: InferEntrySchema<"docs">;
+      } & { render(): Render[".md"] };
       "guide/features/inheritance.md": {
         id: "guide/features/inheritance.md";
         slug: "guide/features/inheritance";

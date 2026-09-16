@@ -483,7 +483,6 @@ function getDecoratedProperties(
       "queryAssignedElements",
       "queryAssignedNodes",
     ].includes(decoratorName ?? "");
-    const isState = decoratorName === "state";
     const options = getDecoratorOptions(propertyDecorator);
     const nameText = member.name.getText();
     const jsdoc = getJSDocInfo(member);

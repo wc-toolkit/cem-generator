@@ -12,7 +12,6 @@ import {
   getNodeTypeText,
   getParsedTypeText,
   parseCemClassTags,
-  resolveParsedTypeFromText,
 } from "@wc-toolkit/cem-generator-utils";
 
 const STENCIL_LIFECYCLE = new Set([
