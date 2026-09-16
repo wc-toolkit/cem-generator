@@ -1,6 +1,6 @@
 {
   "name": "@wc-toolkit/cem-generator-vue",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "Vue detector plugin for generating Custom Elements Manifests.",
   "keywords": [
     "custom-elements",

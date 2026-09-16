@@ -1,5 +1,14 @@
 # @wc-toolkit/cem-generator-solid
 
+## 0.1.7
+
+### Patch Changes
+
+- 51cf06c: Update package documentation links and site branding for the custom CEM Generator domain.
+- Updated dependencies [51cf06c]
+  - @wc-toolkit/cem-generator@0.1.7
+  - @wc-toolkit/cem-generator-utils@0.1.2
+
 ## 0.1.6
 
 ### Patch Changes

@@ -1,6 +1,6 @@
 {
   "name": "@wc-toolkit/cem-generator-utils",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Framework-agnostic utilities for generating Custom Elements Manifests.",
   "keywords": [
     "custom-elements",
