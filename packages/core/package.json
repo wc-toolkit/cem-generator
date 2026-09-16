@@ -7,7 +7,7 @@
     "custom-elements-manifest",
     "web-components"
   ],
-  "homepage": "https://wc-toolkit.github.io/cem-generator/guide/overview/",
+  "homepage": "https://cem-generator.wc-toolkit.com/guide/overview/",
   "bugs": {
     "url": "https://github.com/wc-toolkit/cem-generator/issues"
   },

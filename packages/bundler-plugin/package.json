@@ -9,7 +9,7 @@
     "web-components",
     "webpack"
   ],
-  "homepage": "https://wc-toolkit.github.io/cem-generator/guide/bundler/",
+  "homepage": "https://cem-generator.wc-toolkit.com/guide/bundler/",
   "bugs": {
     "url": "https://github.com/wc-toolkit/cem-generator/issues"
   },

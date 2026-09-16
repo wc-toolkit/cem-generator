@@ -27,10 +27,12 @@ export class ParsedTypesElement extends HTMLElement {
   sharedMode?: SharedMode;
 
   setPayload(payload: Payload, mode?: Mode): Payload {
+    void mode;
     return payload;
   }
 
   setShared(payload: SharedPayload, mode?: SharedMode): SharedPayload {
+    void mode;
     return payload;
   }
 

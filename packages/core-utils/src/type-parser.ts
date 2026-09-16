@@ -328,12 +328,6 @@ function isClassType(type: ts.Type): boolean {
   );
 }
 
-function normalizeUndefinedLast(text: string): string {
-  const parts = splitUnion(text);
-  if (!parts.includes("undefined")) return text;
-  return [...parts.filter((p) => p !== "undefined"), "undefined"].join(" | ");
-}
-
 function normalizeUnionText(text: string): string {
   const parts = splitUnion(text)
     .map((p) => p.trim())
@@ -376,27 +370,6 @@ function splitUnion(text: string): string[] {
   }
   out.push(current.trim());
   return out;
-}
-
-function findLocalTypeNode(sourceFile: ts.SourceFile, name: string): ts.Node | undefined {
-  let found: ts.Node | undefined;
-  const visit = (node: ts.Node) => {
-    if (found) return;
-    if (
-      (ts.isTypeAliasDeclaration(node) ||
-        ts.isInterfaceDeclaration(node) ||
-        ts.isEnumDeclaration(node) ||
-        ts.isClassDeclaration(node)) &&
-      node.name &&
-      node.name.text === name
-    ) {
-      found = node;
-      return;
-    }
-    ts.forEachChild(node, visit);
-  };
-  ts.forEachChild(sourceFile, visit);
-  return found;
 }
 
 function findTypeNodeWithImports(

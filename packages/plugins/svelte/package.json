@@ -8,7 +8,7 @@
     "svelte",
     "web-components"
   ],
-  "homepage": "https://wc-toolkit.github.io/cem-generator/plugins/svelte/",
+  "homepage": "https://cem-generator.wc-toolkit.com/plugins/svelte/",
   "bugs": {
     "url": "https://github.com/wc-toolkit/cem-generator/issues"
   },
