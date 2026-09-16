@@ -133,7 +133,7 @@ test("supports standard component API JSDoc tags", () => {
 
   const label = decl.members?.find((m) => m.name === "label");
   assert.ok(label, "Expected label member");
-  assert.equal(label.default, "'primary'");
+  assert.equal(label.default, '"primary"');
 });
 
 test("maps custom tags and preserves configured single values as arrays", () => {
