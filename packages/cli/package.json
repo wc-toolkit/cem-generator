@@ -1,6 +1,6 @@
 {
   "name": "@wc-toolkit/cem-generator-cli",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "description": "CLI for generating Custom Elements Manifests.",
   "keywords": [
     "cli",

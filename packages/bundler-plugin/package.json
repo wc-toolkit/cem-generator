@@ -1,6 +1,6 @@
 {
   "name": "@wc-toolkit/cem-generator-bundler",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "Vite, Rollup, Rolldown, and Webpack plugins for generating Custom Elements Manifests.",
   "keywords": [
     "custom-elements",

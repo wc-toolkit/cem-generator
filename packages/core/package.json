@@ -1,6 +1,6 @@
 {
   "name": "@wc-toolkit/cem-generator",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "Core engine for generating Custom Elements Manifests.",
   "keywords": [
     "custom-elements",
