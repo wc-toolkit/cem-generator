@@ -36,12 +36,12 @@ export default {
 
 ### Supported Config File Names
 
-| Filename | Description |
-|----------|-------------|
-| `cem-generator.config.mjs` | ES Module (recommended) |
-| `cem-generator.config.js` | CommonJS / ES Module |
-| `cem-generator.config.cjs` | Explicit CommonJS |
-| `cem-generator.config.ts` | TypeScript (requires `tsx` installed) |
+| Filename                   | Description                           |
+| -------------------------- | ------------------------------------- |
+| `cem-generator.config.mjs` | ES Module (recommended)               |
+| `cem-generator.config.js`  | CommonJS / ES Module                  |
+| `cem-generator.config.cjs` | Explicit CommonJS                     |
+| `cem-generator.config.ts`  | TypeScript (requires `tsx` installed) |
 
 **Priority order**: The first matching file found is used (in the order above).
 
@@ -102,16 +102,16 @@ const manifest = generateCem({
 
 ### Option Reference
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `tsConfigPath` | `string` | `"./tsconfig.json"` | Path to TypeScript config. Program created from this config. |
-| `plugins` | `Plugin[]` | `[]` | Additional detector/annotator plugins. Vanilla detector always runs. |
-| `conflictPolicy` | `"throw" \| "last-wins"` | `"last-wins"` | How to resolve when multiple detectors produce different values for same class field. |
-| `inheritance` | `false \| InheritancePluginOptions` | `{}` | Built-in inheritance materialization. Set `false` to disable. |
-| `include` | `string[]` | `undefined` | Glob patterns limiting analyzed files. Omit for all non-declaration, non-node_modules files. |
-| `exclude` | `string[]` | `undefined` | Glob patterns removing files from analysis. Exclude wins over include. |
-| `typeParsing` | `"none" \| "public" \| "all"` | `"public"` | Whether to expand parsed types for no APIs, public instance APIs, or all APIs. |
-| `validation` | `ManifestValidationOptions` | `{ invariants: "error", exportTypes: "off" }` | Validate generated manifest invariants and public type exports. |
+| Option           | Type                                | Default                                       | Description                                                                                  |
+| ---------------- | ----------------------------------- | --------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `tsConfigPath`   | `string`                            | `"./tsconfig.json"`                           | Path to TypeScript config. Program created from this config.                                 |
+| `plugins`        | `Plugin[]`                          | `[]`                                          | Additional detector/annotator plugins. Vanilla detector always runs.                         |
+| `conflictPolicy` | `"throw" \| "last-wins"`            | `"last-wins"`                                 | How to resolve when multiple detectors produce different values for same class field.        |
+| `inheritance`    | `false \| InheritancePluginOptions` | `{}`                                          | Built-in inheritance materialization. Set `false` to disable.                                |
+| `include`        | `string[]`                          | `undefined`                                   | Glob patterns limiting analyzed files. Omit for all non-declaration, non-node_modules files. |
+| `exclude`        | `string[]`                          | `undefined`                                   | Glob patterns removing files from analysis. Exclude wins over include.                       |
+| `typeParsing`    | `"none" \| "public" \| "all"`       | `"public"`                                    | Whether to expand parsed types for no APIs, public instance APIs, or all APIs.               |
+| `validation`     | `ManifestValidationOptions`         | `{ invariants: "error", exportTypes: "off" }` | Validate generated manifest invariants and public type exports.                              |
 
 `filePath` is a CLI config option and is not passed to `generateCem()`. It
 controls where `cem generate` writes the returned manifest. Use `--output` to
@@ -126,7 +126,7 @@ paths or fetch URLs itself:
 import { readFileSync } from "node:fs";
 
 const externalCem = JSON.parse(
-  readFileSync("./node_modules/@acme/components/custom-elements.json", "utf8")
+  readFileSync("./node_modules/@acme/components/custom-elements.json", "utf8"),
 );
 ```
 
@@ -149,14 +149,14 @@ inheritance: {
 }
 ```
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `include` / `ignore` | `InheritableCollectionKey[]` | all keys | Restrict which collection kinds are inherited. |
-| `omitByKind` | `OmitInheritedMap` | — | Names of inherited items to omit, per collection kind. |
-| `omitByClassName` | `Record<string, OmitInheritedMap>` | — | Per-superclass-class omission maps. |
-| `metadataField` | `string` | `"omitInherited"` | Manifest field each class exposes its omit map on. |
-| `externalManifests` | `unknown[]` | `[]` | Loaded CEM manifest objects used to resolve inherited superclass APIs. |
-| `includeExternalManifests` | `boolean` | `false` | Also append external declarations with `customElement: true` or `tagName` to output. |
+| Option                     | Type                               | Default           | Description                                                                          |
+| -------------------------- | ---------------------------------- | ----------------- | ------------------------------------------------------------------------------------ |
+| `include` / `ignore`       | `InheritableCollectionKey[]`       | all keys          | Restrict which collection kinds are inherited.                                       |
+| `omitByKind`               | `OmitInheritedMap`                 | —                 | Names of inherited items to omit, per collection kind.                               |
+| `omitByClassName`          | `Record<string, OmitInheritedMap>` | —                 | Per-superclass-class omission maps.                                                  |
+| `metadataField`            | `string`                           | `"omitInherited"` | Manifest field each class exposes its omit map on.                                   |
+| `externalManifests`        | `unknown[]`                        | `[]`              | Loaded CEM manifest objects used to resolve inherited superclass APIs.               |
+| `includeExternalManifests` | `boolean`                          | `false`           | Also append external declarations with `customElement: true` or `tagName` to output. |
 
 `includeExternalManifests` does not control whether inheritance is resolved. A
 manifest can be used for lookup while remaining absent from output. Conversely,
@@ -166,6 +166,7 @@ setting it to `true` has no effect unless the manifest is supplied through
 ## File Filtering (include/exclude)
 
 Glob patterns are matched against:
+
 - Absolute file path
 - Path relative to `process.cwd()`
 - Path relative to tsconfig directory
@@ -174,24 +175,24 @@ Glob patterns are matched against:
 Supported: `*`, `**`, `?`, `{a,b}`, `[...]`
 
 ```ts
-include: ["src/components/**"]  // Everything under src/components/
-exclude: ["**/*.test.ts", "**/*.stories.ts"]
+include: ["src/components/**"]; // Everything under src/components/
+exclude: ["**/*.test.ts", "**/*.stories.ts"];
 ```
 
 ## CLI Flags
 
-| Flag | Description | Default |
-|------|-------------|---------|
-| `--tsconfig <path>` | tsconfig.json path | `./tsconfig.json` |
-| `-c, --config <path>` | cem-generator config file path (auto-detected if omitted) | — |
-| `-o, --output <path>` | Output file; overrides config `filePath` | `./custom-elements.json` |
-| `--include <patterns...>` | Include globs | — |
-| `--exclude <patterns...>` | Exclude globs | — |
-| `--no-inheritance` | Disable inheritance | — |
-| `--plugin <paths...>` | Custom plugin paths | — |
-| `--conflict-policy <policy>` | `throw` \| `last-wins` | `last-wins` |
-| `--validate-exported-types <severity>` | `off` \| `warning` \| `error` | — |
-| `--validation-invariants <severity>` | `off` \| `warning` \| `error` | `error` |
+| Flag                                   | Description                                               | Default                  |
+| -------------------------------------- | --------------------------------------------------------- | ------------------------ |
+| `--tsconfig <path>`                    | tsconfig.json path                                        | `./tsconfig.json`        |
+| `-c, --config <path>`                  | cem-generator config file path (auto-detected if omitted) | —                        |
+| `-o, --output <path>`                  | Output file; overrides config `filePath`                  | `./custom-elements.json` |
+| `--include <patterns...>`              | Include globs                                             | —                        |
+| `--exclude <patterns...>`              | Exclude globs                                             | —                        |
+| `--no-inheritance`                     | Disable inheritance                                       | —                        |
+| `--plugin <paths...>`                  | Custom plugin paths                                       | —                        |
+| `--conflict-policy <policy>`           | `throw` \| `last-wins`                                    | `last-wins`              |
+| `--validate-exported-types <severity>` | `off` \| `warning` \| `error`                             | —                        |
+| `--validation-invariants <severity>`   | `off` \| `warning` \| `error`                             | `error`                  |
 
 ```bash
 cem generate \

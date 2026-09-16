@@ -68,8 +68,12 @@ function checkInvariants(
   const declarations = new Map<string, { name: string; tagName?: string }>();
 
   if (manifest.schemaVersion !== TARGET_CEM_SCHEMA_VERSION) {
-    addFailure(failures, "manifest.invariants", severity,
-      `Expected schemaVersion "${TARGET_CEM_SCHEMA_VERSION}" but found "${manifest.schemaVersion}".`);
+    addFailure(
+      failures,
+      "manifest.invariants",
+      severity,
+      `Expected schemaVersion "${TARGET_CEM_SCHEMA_VERSION}" but found "${manifest.schemaVersion}".`,
+    );
   }
 
   for (const module of modules) {
@@ -87,19 +91,31 @@ function checkInvariants(
     for (const exported of module.exports ?? []) {
       const reference = exported.declaration;
       if (!reference?.name || !reference.module) {
-        addFailure(failures, "manifest.invariants", severity,
-          `Module "${module.path}" contains an export without a declaration reference.`);
+        addFailure(
+          failures,
+          "manifest.invariants",
+          severity,
+          `Module "${module.path}" contains an export without a declaration reference.`,
+        );
         continue;
       }
       const declaration = declarations.get(`${reference.module}#${reference.name}`);
       if (!declaration) {
-        addFailure(failures, "manifest.invariants", severity,
-          `Export "${exported.name}" in "${module.path}" references missing declaration "${reference.module}#${reference.name}".`);
+        addFailure(
+          failures,
+          "manifest.invariants",
+          severity,
+          `Export "${exported.name}" in "${module.path}" references missing declaration "${reference.module}#${reference.name}".`,
+        );
         continue;
       }
       if (exported.kind === "custom-element-definition" && declaration.tagName !== exported.name) {
-        addFailure(failures, "manifest.invariants", severity,
-          `Custom-element export "${exported.name}" does not match declaration tag name for "${reference.name}".`);
+        addFailure(
+          failures,
+          "manifest.invariants",
+          severity,
+          `Custom-element export "${exported.name}" does not match declaration tag name for "${reference.name}".`,
+        );
       }
     }
   }
@@ -123,8 +139,12 @@ function checkExportedTypes(
       for (const typeName of typeNames) {
         const symbol = checker.resolveName(typeName, sourceFile, ts.SymbolFlags.Type, false);
         if (!symbol || isExportedFromSource(symbol, sourceFile, checker)) continue;
-        addFailure(failures, "manifest.exportTypes", severity,
-          `${declaration.name} references local type "${typeName}" that is not exported from "${module.source}".`);
+        addFailure(
+          failures,
+          "manifest.exportTypes",
+          severity,
+          `${declaration.name} references local type "${typeName}" that is not exported from "${module.source}".`,
+        );
       }
     }
   }
@@ -134,10 +154,13 @@ function collectReferencedTypeNames(declaration: ClassFragment): string[] {
   const values: unknown[] = [];
   for (const member of declaration.members ?? []) {
     values.push(member.type, member.parsedType, member.return?.type, member.return?.parsedType);
-    for (const parameter of member.parameters ?? []) values.push(parameter.type, parameter.parsedType);
+    for (const parameter of member.parameters ?? [])
+      values.push(parameter.type, parameter.parsedType);
   }
-  for (const attribute of declaration.attributes ?? []) values.push(attribute.type, attribute.parsedType);
-  for (const event of declaration.events ?? []) values.push(event.type, event.parsedType, event.detail);
+  for (const attribute of declaration.attributes ?? [])
+    values.push(attribute.type, attribute.parsedType);
+  for (const event of declaration.events ?? [])
+    values.push(event.type, event.parsedType, event.detail);
 
   const names = new Set<string>();
   for (const value of values) {
@@ -150,16 +173,28 @@ function collectReferencedTypeNames(declaration: ClassFragment): string[] {
   return [...names];
 }
 
-function isExportedFromSource(symbol: ts.Symbol, sourceFile: ts.SourceFile, checker: ts.TypeChecker): boolean {
+function isExportedFromSource(
+  symbol: ts.Symbol,
+  sourceFile: ts.SourceFile,
+  checker: ts.TypeChecker,
+): boolean {
   const resolved = symbol.flags & ts.SymbolFlags.Alias ? checker.getAliasedSymbol(symbol) : symbol;
-  if (resolved.declarations?.some((declaration) => isStandardLibraryDeclaration(declaration))) return true;
+  if (resolved.declarations?.some((declaration) => isStandardLibraryDeclaration(declaration)))
+    return true;
   const moduleSymbol = (sourceFile as ts.SourceFile & { symbol?: ts.Symbol }).symbol;
-  if (moduleSymbol && checker.getExportsOfModule(moduleSymbol).some((item) => item === resolved || item.name === resolved.name)) {
+  if (
+    moduleSymbol &&
+    checker
+      .getExportsOfModule(moduleSymbol)
+      .some((item) => item === resolved || item.name === resolved.name)
+  ) {
     return true;
   }
-  return resolved.declarations?.some((declaration) => {
-    return (ts.getCombinedModifierFlags(declaration) & ts.ModifierFlags.Export) !== 0;
-  }) ?? false;
+  return (
+    resolved.declarations?.some((declaration) => {
+      return (ts.getCombinedModifierFlags(declaration) & ts.ModifierFlags.Export) !== 0;
+    }) ?? false
+  );
 }
 
 function isStandardLibraryDeclaration(declaration: ts.Declaration): boolean {
@@ -168,8 +203,33 @@ function isStandardLibraryDeclaration(declaration: ts.Declaration): boolean {
 }
 
 const NON_EXPORTABLE_TYPES = new Set([
-  "any", "boolean", "never", "null", "number", "object", "string", "symbol", "undefined", "unknown", "void",
-  "array", "readonlyarray", "function", "date", "regexp", "bigint", "event", "customevent", "promise", "set", "map", "weakset", "weakmap", "readonly", "true", "false",
+  "any",
+  "boolean",
+  "never",
+  "null",
+  "number",
+  "object",
+  "string",
+  "symbol",
+  "undefined",
+  "unknown",
+  "void",
+  "array",
+  "readonlyarray",
+  "function",
+  "date",
+  "regexp",
+  "bigint",
+  "event",
+  "customevent",
+  "promise",
+  "set",
+  "map",
+  "weakset",
+  "weakmap",
+  "readonly",
+  "true",
+  "false",
 ]);
 
 function addFailure(

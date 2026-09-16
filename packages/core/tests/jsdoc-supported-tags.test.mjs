@@ -34,7 +34,11 @@ test("supports standard component API JSDoc tags", () => {
 
   assert.ok(decl.attributes?.some((a) => a.name === "disabled"));
   assert.ok(decl.events?.some((e) => e.name === "custom-event"));
-  assert.ok(decl.events?.some((e) => e.name === "typed-event" && e.type?.text === "{ item: StandardTagsElement }"));
+  assert.ok(
+    decl.events?.some(
+      (e) => e.name === "typed-event" && e.type?.text === "{ item: StandardTagsElement }",
+    ),
+  );
   assert.ok(decl.slots?.some((s) => s.name === ""));
   assert.ok(decl.slots?.some((s) => s.name === "container"));
   assert.ok(decl.cssProperties?.some((p) => p.name === "--text-color"));
@@ -42,15 +46,27 @@ test("supports standard component API JSDoc tags", () => {
   assert.ok(decl.cssParts?.some((p) => p.name === "bar"));
   assert.ok(decl.cssStates?.some((s) => s.name === "open"));
 
-  assert.deepEqual(decl.since, { name: "2.0.0" }, "Expected structured @since metadata on the declaration");
-  assert.deepEqual(decl.license, { name: "MIT" }, "Expected structured @license metadata on the declaration");
+  assert.deepEqual(
+    decl.since,
+    { name: "2.0.0" },
+    "Expected structured @since metadata on the declaration",
+  );
+  assert.deepEqual(
+    decl.license,
+    { name: "MIT" },
+    "Expected structured @license metadata on the declaration",
+  );
   assert.deepEqual(decl.status, { name: "beta", description: "not ready for production" });
   assert.deepEqual(decl.dependency, [{ name: "icon" }, { name: "button" }]);
   assert.equal(decl.customJsDocTags, undefined, "No customJsDocTags array should be emitted");
 
   assert.equal(manifest.since, undefined, "Expected @since to remain declaration-scoped");
   assert.equal(manifest.license, undefined, "Expected @license to remain declaration-scoped");
-  assert.equal(manifest.group, undefined, "Expected member-scoped @group to remain out of the root");
+  assert.equal(
+    manifest.group,
+    undefined,
+    "Expected member-scoped @group to remain out of the root",
+  );
   assert.equal(decl.group, undefined, "Expected @group only on the member, not the declaration");
 
   const externalTitle = decl.members?.find((m) => m.name === "externalTitle");
@@ -70,12 +86,12 @@ test("supports standard component API JSDoc tags", () => {
   assert.equal(
     decl.members?.some((m) => m.name === "hiddenProp"),
     false,
-    "Expected @internal member to be omitted"
+    "Expected @internal member to be omitted",
   );
   assert.equal(
     decl.attributes?.some((a) => a.name === "temp-hidden"),
     false,
-    "Expected @internal attribute mapping to be omitted"
+    "Expected @internal attribute mapping to be omitted",
   );
 
   const doWork = decl.members?.find((m) => m.name === "doWork");
@@ -91,7 +107,11 @@ test("supports standard component API JSDoc tags", () => {
   const groupTag = doWork.group;
   assert.ok(groupTag, "Expected @group custom tag on member as inline property");
   assert.deepEqual(groupTag, { name: "actions" });
-  assert.equal(doWork.customJsDocTags, undefined, "No customJsDocTags array should be emitted on members");
+  assert.equal(
+    doWork.customJsDocTags,
+    undefined,
+    "No customJsDocTags array should be emitted on members",
+  );
 
   const internalCount = decl.members?.find((m) => m.name === "#internalCount");
   assert.ok(internalCount, "Expected #-prefixed private member to be included");
@@ -119,7 +139,7 @@ test("supports standard component API JSDoc tags", () => {
 test("maps custom tags and preserves configured single values as arrays", () => {
   const manifest = generateCem({
     tsConfigPath: fixturesTsConfig,
-      customJsDocTags: {
+    customJsDocTags: {
       dependency: { mappedName: "dependencies", isArray: true },
     },
   });
@@ -307,14 +327,29 @@ test("emits parsed types for fields, attributes, events, method params, and retu
 
   const observerMember = decl.members?.find((m) => m.name === "observer");
   assert.equal(observerMember?.type?.text, "MutationObserver | null");
-  assert.equal(observerMember?.parsedType, undefined, "Equivalent union types should not be repeated");
+  assert.equal(
+    observerMember?.parsedType,
+    undefined,
+    "Equivalent union types should not be repeated",
+  );
 
   const optionalHost = decl.members?.find((m) => m.name === "optionalHost");
-  assert.equal(optionalHost?.parsedType, undefined, "Union ordering should not create duplicate parsed types");
+  assert.equal(
+    optionalHost?.parsedType,
+    undefined,
+    "Union ordering should not create duplicate parsed types",
+  );
 
   const positionMember = decl.members?.find((m) => m.name === "position");
-  assert.equal(positionMember?.type?.text, '"top" | "top-start" | "top-end" | "bottom" | "bottom-start" | "bottom-end"');
-  assert.equal(positionMember?.parsedType, undefined, "Union formatting should not create duplicate parsed types");
+  assert.equal(
+    positionMember?.type?.text,
+    '"top" | "top-start" | "top-end" | "bottom" | "bottom-start" | "bottom-end"',
+  );
+  assert.equal(
+    positionMember?.parsedType,
+    undefined,
+    "Union formatting should not create duplicate parsed types",
+  );
 
   const modeAttr = decl.attributes?.find((a) => a.name === "mode");
   assert.ok(modeAttr, "Expected mode attribute");

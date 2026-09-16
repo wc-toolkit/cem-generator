@@ -31,7 +31,8 @@ export function getNodeTypeText(node: ts.Node, checker: ts.TypeChecker): string 
     const type = checker.getTypeAtLocation(node);
     const text = checker.typeToString(type).trim();
     const result = !text || text === "any" || text === "unknown" ? undefined : text;
-    const byChecker = nodeTypeTextCache.get(node) ?? new WeakMap<ts.TypeChecker, string | undefined>();
+    const byChecker =
+      nodeTypeTextCache.get(node) ?? new WeakMap<ts.TypeChecker, string | undefined>();
     byChecker.set(checker, result);
     nodeTypeTextCache.set(node, byChecker);
     return result;
@@ -41,7 +42,10 @@ export function getNodeTypeText(node: ts.Node, checker: ts.TypeChecker): string 
 }
 
 export function normalizeTypeText(text: string): string {
-  return text.replace(/\s+/g, " ").replace(/^\s*\|\s*/, "").trim();
+  return text
+    .replace(/\s+/g, " ")
+    .replace(/^\s*\|\s*/, "")
+    .trim();
 }
 
 /**
@@ -58,7 +62,8 @@ export function getParsedTypeText(node: ts.Node, checker: ts.TypeChecker): strin
     const type = checker.getTypeAtLocation(node);
     const expanded = getParsedTypeTextFromType(type, checker);
     const result = expanded || undefined;
-    const byChecker = parsedTypeTextCache.get(node) ?? new WeakMap<ts.TypeChecker, string | undefined>();
+    const byChecker =
+      parsedTypeTextCache.get(node) ?? new WeakMap<ts.TypeChecker, string | undefined>();
     byChecker.set(checker, result);
     parsedTypeTextCache.set(node, byChecker);
     return result;
@@ -70,10 +75,15 @@ export function getParsedTypeText(node: ts.Node, checker: ts.TypeChecker): strin
 function isOpaqueTypeReference(node: ts.TypeNode, checker: ts.TypeChecker): boolean {
   if (!ts.isTypeReferenceNode(node)) return false;
   const symbol = checker.getSymbolAtLocation(node.typeName);
-  return symbol?.declarations?.some((declaration) => {
-    const fileName = declaration.getSourceFile().fileName;
-    return declaration.getSourceFile().isDeclarationFile && /[\\/]node_modules[\\/]|[\\/]lib\.[^/\\]+\.d\.ts$/.test(fileName);
-  }) ?? false;
+  return (
+    symbol?.declarations?.some((declaration) => {
+      const fileName = declaration.getSourceFile().fileName;
+      return (
+        declaration.getSourceFile().isDeclarationFile &&
+        /[\\/]node_modules[\\/]|[\\/]lib\.[^/\\]+\.d\.ts$/.test(fileName)
+      );
+    }) ?? false
+  );
 }
 
 export function getParsedTypeTextFromType(type: ts.Type, checker: ts.TypeChecker): string {
@@ -101,19 +111,22 @@ function canonicalizeTypeText(text: string, options: { ignoreUndefined?: boolean
       .filter((part) => part && (!options.ignoreUndefined || part !== "undefined"))
       .sort();
     if (parts.includes("true") && parts.includes("false")) {
-      return [...parts.filter((part) => part !== "true" && part !== "false"), "boolean"].sort().join("|");
+      return [...parts.filter((part) => part !== "true" && part !== "false"), "boolean"]
+        .sort()
+        .join("|");
     }
     return parts.join("|");
   }
 
   const intersection = splitTopLevelOperator(normalized, "&");
   if (intersection.length > 1) {
-    return intersection.map((part) => canonicalizeTypeText(part, options)).sort().join("&");
+    return intersection
+      .map((part) => canonicalizeTypeText(part, options))
+      .sort()
+      .join("&");
   }
 
-  return normalized
-    .replace(/\s*;\s*}/g, "}")
-    .replace(/\s*;\s*$/g, "");
+  return normalized.replace(/\s*;\s*}/g, "}").replace(/\s*;\s*$/g, "");
 }
 
 function stripOuterParentheses(text: string): string {
@@ -168,10 +181,12 @@ function splitTopLevelOperator(text: string, operator: "|" | "&"): string[] {
 export function resolveParsedTypeFromText(
   typeText: string | undefined,
   sourceFile: ts.SourceFile,
-  checker: ts.TypeChecker
+  checker: ts.TypeChecker,
 ): string | undefined {
   if (!typeText) return undefined;
-  const parts = splitUnion(typeText).map((p) => p.trim()).filter(Boolean);
+  const parts = splitUnion(typeText)
+    .map((p) => p.trim())
+    .filter(Boolean);
   if (parts.length === 0) return undefined;
 
   const resolved = parts.map((part) => {
@@ -197,14 +212,16 @@ export function resolveMeaningfulParsedTypeFromText(
   checker: ts.TypeChecker,
 ): string | undefined {
   const resolved = resolveParsedTypeFromText(typeText, sourceFile, checker);
-  return resolved && !areTypeTextsEquivalent(resolved, typeText, { ignoreUndefined: true }) ? resolved : undefined;
+  return resolved && !areTypeTextsEquivalent(resolved, typeText, { ignoreUndefined: true })
+    ? resolved
+    : undefined;
 }
 
 function formatType(
   type: ts.Type,
   checker: ts.TypeChecker,
   state: FormatState,
-  depth: number
+  depth: number,
 ): string {
   if (state.remaining <= 0) return "unknown";
   if (depth > 8 || state.visited.has(type)) {
@@ -292,19 +309,23 @@ function isOpaqueLibraryType(type: ts.Type): boolean {
     ...(type.symbol?.declarations ?? []),
     ...(type.aliasSymbol?.declarations ?? []),
   ];
-  return declarations.some((declaration) => {
-    const fileName = declaration.getSourceFile().fileName;
-    return (
-      declaration.getSourceFile().isDeclarationFile &&
-      (/[\\/]lib\.[^/\\]+\.d\.ts$/.test(fileName) || /[\\/]node_modules[\\/]/.test(fileName))
-    );
-  }) ?? false;
+  return (
+    declarations.some((declaration) => {
+      const fileName = declaration.getSourceFile().fileName;
+      return (
+        declaration.getSourceFile().isDeclarationFile &&
+        (/[\\/]lib\.[^/\\]+\.d\.ts$/.test(fileName) || /[\\/]node_modules[\\/]/.test(fileName))
+      );
+    }) ?? false
+  );
 }
 
 function isClassType(type: ts.Type): boolean {
-  return type.symbol?.declarations?.some(
-    (declaration) => ts.isClassDeclaration(declaration) || ts.isClassExpression(declaration),
-  ) ?? false;
+  return (
+    type.symbol?.declarations?.some(
+      (declaration) => ts.isClassDeclaration(declaration) || ts.isClassExpression(declaration),
+    ) ?? false
+  );
 }
 
 function normalizeUndefinedLast(text: string): string {
@@ -314,14 +335,18 @@ function normalizeUndefinedLast(text: string): string {
 }
 
 function normalizeUnionText(text: string): string {
-  const parts = splitUnion(text).map((p) => p.trim()).filter(Boolean);
+  const parts = splitUnion(text)
+    .map((p) => p.trim())
+    .filter(Boolean);
   return normalizeUnionParts(parts).join(" | ");
 }
 
 function normalizeUnionParts(parts: string[]): string[] {
   const hasUndefined = parts.includes("undefined");
   const withoutUndefined = parts.filter((p) => p !== "undefined");
-  const boolLikeCount = withoutUndefined.filter((p) => p === "true" || p === "false" || p === "boolean").length;
+  const boolLikeCount = withoutUndefined.filter(
+    (p) => p === "true" || p === "false" || p === "boolean",
+  ).length;
   const other = withoutUndefined.filter((p) => p !== "true" && p !== "false" && p !== "boolean");
 
   if (boolLikeCount > 0 && other.length === 0) {
@@ -358,12 +383,10 @@ function findLocalTypeNode(sourceFile: ts.SourceFile, name: string): ts.Node | u
   const visit = (node: ts.Node) => {
     if (found) return;
     if (
-      (
-        ts.isTypeAliasDeclaration(node) ||
+      (ts.isTypeAliasDeclaration(node) ||
         ts.isInterfaceDeclaration(node) ||
         ts.isEnumDeclaration(node) ||
-        ts.isClassDeclaration(node)
-      ) &&
+        ts.isClassDeclaration(node)) &&
       node.name &&
       node.name.text === name
     ) {
@@ -379,7 +402,7 @@ function findLocalTypeNode(sourceFile: ts.SourceFile, name: string): ts.Node | u
 function findTypeNodeWithImports(
   sourceFile: ts.SourceFile,
   name: string,
-  checker: ts.TypeChecker
+  checker: ts.TypeChecker,
 ): ts.Node | undefined {
   let lookup = typeLookupCache.get(sourceFile);
   if (!lookup) {
@@ -399,12 +422,10 @@ function buildTypeLookup(sourceFile: ts.SourceFile, checker: ts.TypeChecker): Ma
 
   const visit = (node: ts.Node) => {
     if (
-      (
-        ts.isTypeAliasDeclaration(node) ||
+      (ts.isTypeAliasDeclaration(node) ||
         ts.isInterfaceDeclaration(node) ||
         ts.isEnumDeclaration(node) ||
-        ts.isClassDeclaration(node)
-      ) &&
+        ts.isClassDeclaration(node)) &&
       node.name
     ) {
       add(node.name.text, node);
@@ -432,7 +453,10 @@ function buildTypeLookup(sourceFile: ts.SourceFile, checker: ts.TypeChecker): Ma
   return lookup;
 }
 
-function resolveImportSpecifierSymbol(node: ts.Identifier, checker: ts.TypeChecker): ts.Node | undefined {
+function resolveImportSpecifierSymbol(
+  node: ts.Identifier,
+  checker: ts.TypeChecker,
+): ts.Node | undefined {
   const sym = checker.getSymbolAtLocation(node);
   if (!sym) return undefined;
 
@@ -443,19 +467,31 @@ function resolveImportSpecifierSymbol(node: ts.Identifier, checker: ts.TypeCheck
       ts.isTypeAliasDeclaration(decl) ||
       ts.isInterfaceDeclaration(decl) ||
       ts.isEnumDeclaration(decl) ||
-      ts.isClassDeclaration(decl)
+      ts.isClassDeclaration(decl),
   );
 }
 
 function isPrimitiveOrLiteral(text: string): boolean {
   if (
-    ["string", "number", "boolean", "any", "unknown", "undefined", "null", "void", "never", "object"].includes(
-      text
-    )
+    [
+      "string",
+      "number",
+      "boolean",
+      "any",
+      "unknown",
+      "undefined",
+      "null",
+      "void",
+      "never",
+      "object",
+    ].includes(text)
   ) {
     return true;
   }
-  if ((text.startsWith("'") && text.endsWith("'")) || (text.startsWith('"') && text.endsWith('"'))) {
+  if (
+    (text.startsWith("'") && text.endsWith("'")) ||
+    (text.startsWith('"') && text.endsWith('"'))
+  ) {
     return true;
   }
   return /^\d+(?:\.\d+)?$/.test(text);

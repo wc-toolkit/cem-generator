@@ -11,8 +11,7 @@ Path handling can be configured through `modulePathResolver`:
 const manifest = generateCem({
   modulePathResolver: {
     /** Convert the analyzed source file into its published JavaScript module. */
-    modulePathTemplate: (modulePath, name, tagName) =>
-      `dist/components/${tagName}/${name}.js`,
+    modulePathTemplate: (modulePath, name, tagName) => `dist/components/${tagName}/${name}.js`,
     /** Do not use an excluded declaration to provide component metadata. */
     exclude: ["InternalElement"],
     /** Set to true to leave module paths unchanged. */
@@ -49,14 +48,14 @@ The resolver selects the `import` target from `exports`. The `types` target is u
     // The package root entry point.
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+      "import": "./dist/index.js",
     },
     // The wildcard captures "button" for a components/button import.
     "./components/*": {
       "types": "./dist/components/*",
-      "import": "./dist/components/*"
-    }
-  }
+      "import": "./dist/components/*",
+    },
+  },
 }
 ```
 
@@ -84,5 +83,5 @@ return the package-relative runtime path, for example:
 
 ```ts
 modulePathTemplate: (modulePath) =>
-  modulePath.replace(/^.*\/src\//, "dist/").replace(/\.ts$/, ".js")
+  modulePath.replace(/^.*\/src\//, "dist/").replace(/\.ts$/, ".js");
 ```

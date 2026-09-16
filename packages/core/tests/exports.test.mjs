@@ -10,7 +10,7 @@ const fixtureRoot = path.resolve(__dirname, "exports-fixture");
 const tsConfigPath = path.join(fixtureRoot, "tsconfig.json");
 const nestedPackageTsConfigPath = path.resolve(
   __dirname,
-  "nested-package-fixture/packages/webawesome/tsconfig.json"
+  "nested-package-fixture/packages/webawesome/tsconfig.json",
 );
 
 test("preserves source and resolves exact and wildcard package exports", () => {
@@ -35,7 +35,14 @@ test("preserves source and resolves exact and wildcard package exports", () => {
             [name]: {
               name,
               tagName: name === "RootElement" ? "root-element" : "x-button",
-              ...(name === "ButtonElement" ? { superclass: { name: "RootElement", module: path.join(fixtureRoot, "src/index.ts") } } : {}),
+              ...(name === "ButtonElement"
+                ? {
+                    superclass: {
+                      name: "RootElement",
+                      module: path.join(fixtureRoot, "src/index.ts"),
+                    },
+                  }
+                : {}),
             },
           };
         },
@@ -77,7 +84,9 @@ test("supports configurable module, definition, and type paths", () => {
             };
           }
           const name = context.filePath.endsWith("index.ts") ? "RootElement" : "ButtonElement";
-          return { [name]: { name, tagName: name === "RootElement" ? "root-element" : "x-button" } };
+          return {
+            [name]: { name, tagName: name === "RootElement" ? "root-element" : "x-button" },
+          };
         },
       },
     ],
@@ -85,18 +94,23 @@ test("supports configurable module, definition, and type paths", () => {
 
   const button = manifest.modules.find((module) => module.source === "src/components/button.ts");
   const multi = manifest.modules.find((module) => module.source === "src/components/multi.ts");
-  const definition = manifest.modules.find((module) => module.path === "./published/x-button/index.js");
+  const definition = manifest.modules.find(
+    (module) => module.path === "./published/x-button/index.js",
+  );
 
   assert.equal(button?.path, "./published/x-button/ButtonElement.js");
   assert.equal(button?.typeDefinitionPath, "./types/x-button.d.ts");
-  assert.equal(definition?.exports?.[0]?.declaration.module, "./published/x-button/ButtonElement.js");
+  assert.equal(
+    definition?.exports?.[0]?.declaration.module,
+    "./published/x-button/ButtonElement.js",
+  );
   assert.equal(multi?.path, "./published/multi-first/MultiFirstElement.js");
 });
 
 test("keeps runtime paths relative to the project when it is nested in a workspace", () => {
   const manifest = generateCem({ tsConfigPath: nestedPackageTsConfigPath });
   const module = manifest.modules.find(
-    (candidate) => candidate.source === "src/components/accordion-item/accordion-item.ts"
+    (candidate) => candidate.source === "src/components/accordion-item/accordion-item.ts",
   );
 
   assert.equal(module?.path, "src/components/accordion-item/accordion-item.js");

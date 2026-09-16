@@ -21,8 +21,13 @@ export const Greeting = customElement(
       <>
         <style>{`:host { /** Greeting accent. */ --greeting-color: steelblue; }
         `}</style>
-        {/* Greeting label */}<span part="label">{/* Label content */}<slot name="label" /></span>
-        {/* Main content */}<slot />
+        {/* Greeting label */}
+        <span part="label">
+          {/* Label content */}
+          <slot name="label" />
+        </span>
+        {/* Main content */}
+        <slot />
         <button onClick={() => options.element.dispatchEvent(new CustomEvent("greet"))}>
           {props.name} {props.count}
         </button>

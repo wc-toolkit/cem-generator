@@ -53,16 +53,16 @@ export class StatusIndicator extends FASTElement {
 
 The example documents the following manifest APIs:
 
-| Source | Manifest API |
-|---|---|
-| Class comment | `description`, `summary`, `tagName`, `deprecated` |
-| `@attr` and field JSDoc | `members` and `attributes` |
-| Method JSDoc and signature | Member description, parameters, return type |
-| `$emit("name", detail)` or `@event` / `@fires` | `events` |
-| `@slot` | `slots` |
-| `@csspart` | `cssParts` |
-| `@cssprop` | `cssProperties` |
-| `@cssState` | `cssStates` |
+| Source                                         | Manifest API                                      |
+| ---------------------------------------------- | ------------------------------------------------- |
+| Class comment                                  | `description`, `summary`, `tagName`, `deprecated` |
+| `@attr` and field JSDoc                        | `members` and `attributes`                        |
+| Method JSDoc and signature                     | Member description, parameters, return type       |
+| `$emit("name", detail)` or `@event` / `@fires` | `events`                                          |
+| `@slot`                                        | `slots`                                           |
+| `@csspart`                                     | `cssParts`                                        |
+| `@cssprop`                                     | `cssProperties`                                   |
+| `@cssState`                                    | `cssStates`                                       |
 
 Use `@default`, `@attr`, `@reflect`, `@deprecated`, or `@internal` to refine
 member metadata. Literal `$emit` calls are inferred automatically; use
@@ -111,11 +111,11 @@ activate() {
     </div>
   `;
   const styles = css`
-    :host { 
-      /** Indicator color. */ 
-      --indicator-color: green; 
+    :host {
+      /** Indicator color. */
+      --indicator-color: green;
     }`;
-    
+
   this.$emit("status-change", { status: "done" });
 }
 ```

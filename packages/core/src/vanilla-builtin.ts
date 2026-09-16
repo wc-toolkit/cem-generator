@@ -44,12 +44,18 @@ export function vanillaBuiltin(): DetectorPlugin {
             superclass: getSuperclassRef(node),
             attributes: mergeByName(
               getObservedAttributes(node).map((name) => ({ name })),
-              classDoc.attributes
+              classDoc.attributes,
             ),
             members: detectClassMembers(node, context),
             slots: mergeSlots(discoverSlotsFromNode(context.sourceFile, node), classDoc.slots),
-            cssProperties: mergeCssProperties(discoverCssPropertiesFromNode(context.sourceFile, node), classDoc.cssProperties),
-            cssParts: mergeCssParts(discoverCssPartsFromNode(context.sourceFile, node), classDoc.cssParts),
+            cssProperties: mergeCssProperties(
+              discoverCssPropertiesFromNode(context.sourceFile, node),
+              classDoc.cssProperties,
+            ),
+            cssParts: mergeCssParts(
+              discoverCssPartsFromNode(context.sourceFile, node),
+              classDoc.cssParts,
+            ),
             cssStates: mergeCssStates(discoverCssStatesFromClass(node), classDoc.cssStates),
             omitInherited: classDoc.omitInherited,
             customJsDocTags: classDoc.customJsDocTags,
@@ -57,17 +63,27 @@ export function vanillaBuiltin(): DetectorPlugin {
               detectClassEvents(node, context),
               classDoc.events?.map((event) => ({
                 ...event,
-                parsedType: context.typeParsing === "none"
-                  ? undefined
-                  : resolveMeaningfulParsedTypeFromText(event.type, context.sourceFile, context.checker),
-              }))
+                parsedType:
+                  context.typeParsing === "none"
+                    ? undefined
+                    : resolveMeaningfulParsedTypeFromText(
+                        event.type,
+                        context.sourceFile,
+                        context.checker,
+                      ),
+              })),
             ),
           };
 
           for (const attr of classFragment.attributes ?? []) {
-            attr.parsedType = context.typeParsing === "none"
-              ? undefined
-              : resolveMeaningfulParsedTypeFromText(attr.type, context.sourceFile, context.checker);
+            attr.parsedType =
+              context.typeParsing === "none"
+                ? undefined
+                : resolveMeaningfulParsedTypeFromText(
+                    attr.type,
+                    context.sourceFile,
+                    context.checker,
+                  );
           }
 
           applyMemberToAttributeLinks(classFragment, classDoc, context);
@@ -92,7 +108,7 @@ function getExportName(node: ts.ClassDeclaration): string | undefined {
 function extendsHTMLElement(node: ts.ClassDeclaration): boolean {
   if (!node.heritageClauses) return false;
   return node.heritageClauses.some((clause) =>
-    clause.types.some((t) => t.expression.getText().match(/HTMLElement$/))
+    clause.types.some((t) => t.expression.getText().match(/HTMLElement$/)),
   );
 }
 
@@ -116,7 +132,10 @@ function extractSuperclassName(expression: ts.Expression | undefined): string | 
   return expression.getText();
 }
 
-function extractImportModuleForIdentifier(sourceFile: ts.SourceFile, identifier: string): string | undefined {
+function extractImportModuleForIdentifier(
+  sourceFile: ts.SourceFile,
+  identifier: string,
+): string | undefined {
   for (const stmt of sourceFile.statements) {
     if (!ts.isImportDeclaration(stmt)) continue;
     const module = ts.isStringLiteral(stmt.moduleSpecifier) ? stmt.moduleSpecifier.text : undefined;
@@ -128,7 +147,11 @@ function extractImportModuleForIdentifier(sourceFile: ts.SourceFile, identifier:
     if (clause.name?.text === identifier) return module;
 
     const named = clause.namedBindings;
-    if (named && ts.isNamedImports(named) && named.elements.some((el) => el.name.text === identifier)) {
+    if (
+      named &&
+      ts.isNamedImports(named) &&
+      named.elements.some((el) => el.name.text === identifier)
+    ) {
       return module;
     }
   }
@@ -158,9 +181,7 @@ function getObservedAttributes(node: ts.ClassDeclaration): string[] {
     }
 
     if (arrayLiteral) {
-      return arrayLiteral.elements
-        .filter(ts.isStringLiteralLike)
-        .map((el) => el.text);
+      return arrayLiteral.elements.filter(ts.isStringLiteralLike).map((el) => el.text);
     }
   }
   return [];
@@ -169,7 +190,7 @@ function getObservedAttributes(node: ts.ClassDeclaration): string[] {
 function applyMemberToAttributeLinks(
   classFragment: ClassFragment,
   classDoc: { properties?: Array<{ name: string; description?: string; type?: string }> },
-  context: FileContext
+  context: FileContext,
 ) {
   if (!classFragment.members?.length) return;
 
@@ -219,7 +240,11 @@ function applyMemberToAttributeLinks(
     const rec = attr as Record<string, unknown>;
     rec.parsedType =
       (typeof rec.parsedType === "string" ? rec.parsedType : undefined) ??
-      resolveMeaningfulParsedTypeFromText(typeof rec.type === "string" ? rec.type : undefined, context.sourceFile, context.checker);
+      resolveMeaningfulParsedTypeFromText(
+        typeof rec.type === "string" ? rec.type : undefined,
+        context.sourceFile,
+        context.checker,
+      );
   }
 }
 
@@ -227,29 +252,30 @@ function normalizeAttributeName(name: string): string {
   return name.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`);
 }
 
-function discoverSlotsFromNode(root: ts.Node, ownerClass?: ts.ClassDeclaration): ClassFragment["slots"] {
+function discoverSlotsFromNode(
+  root: ts.Node,
+  ownerClass?: ts.ClassDeclaration,
+): ClassFragment["slots"] {
   const slots: Array<{ name: string; description?: string }> = [];
   const seenNames = new Set<string>();
 
   function visit(n: ts.Node) {
-    if (
-      ts.isClassDeclaration(n) &&
-      ownerClass &&
-      n !== ownerClass
-    ) {
+    if (ts.isClassDeclaration(n) && ownerClass && n !== ownerClass) {
       return;
     }
 
     if (ts.isTemplateExpression(n) || ts.isNoSubstitutionTemplateLiteral(n)) {
       const text = n.getText();
       const tokens = [
-        ...[...text.matchAll(/<slot\b[^>]*>|<!--[\s\S]*?-->|<\/?[a-zA-Z][a-zA-Z0-9-]*[^>]*>/g)].map((m) => ({
+        ...text.matchAll(/<slot\b[^>]*>|<!--[\s\S]*?-->|<\/?[a-zA-Z][a-zA-Z0-9-]*[^>]*>/g),
+      ]
+        .map((m) => ({
           index: m.index,
           value: m[0],
           isSlot: m[0].startsWith("<slot"),
           isComment: m[0].startsWith("<!--"),
-        })),
-      ].sort((a, b) => a.index - b.index);
+        }))
+        .sort((a, b) => a.index - b.index);
 
       let pendingDescription: string | undefined;
       for (const token of tokens) {
@@ -266,7 +292,8 @@ function discoverSlotsFromNode(root: ts.Node, ownerClass?: ts.ClassDeclaration):
           }
           pendingDescription = undefined;
         } else if (token.isComment) {
-          pendingDescription = token.value.replace(/^<!--/, "").replace(/-->$/, "").trim() || undefined;
+          pendingDescription =
+            token.value.replace(/^<!--/, "").replace(/-->$/, "").trim() || undefined;
         } else {
           pendingDescription = undefined;
         }
@@ -282,7 +309,7 @@ function discoverSlotsFromNode(root: ts.Node, ownerClass?: ts.ClassDeclaration):
 
 function mergeSlots(
   discovered: ClassFragment["slots"],
-  jsdoc: ClassFragment["slots"]
+  jsdoc: ClassFragment["slots"],
 ): ClassFragment["slots"] {
   if (!discovered && !jsdoc) return undefined;
   if (!jsdoc) return discovered;
@@ -297,7 +324,7 @@ function mergeSlots(
 
 function mergeByName<T extends { name: string }>(
   first: T[] | undefined,
-  second: T[] | undefined
+  second: T[] | undefined,
 ): T[] | undefined {
   const merged = new Map<string, T>();
   for (const item of first ?? []) merged.set(item.name, item);
@@ -307,16 +334,12 @@ function mergeByName<T extends { name: string }>(
 
 function discoverCssPropertiesFromNode(
   root: ts.Node,
-  ownerClass?: ts.ClassDeclaration
+  ownerClass?: ts.ClassDeclaration,
 ): ClassFragment["cssProperties"] {
   const byName = new Map<string, NonNullable<ClassFragment["cssProperties"]>[number]>();
 
   function visit(n: ts.Node) {
-    if (
-      ts.isClassDeclaration(n) &&
-      ownerClass &&
-      n !== ownerClass
-    ) {
+    if (ts.isClassDeclaration(n) && ownerClass && n !== ownerClass) {
       return;
     }
 
@@ -335,7 +358,7 @@ function discoverCssPropertiesFromNode(
 
 function mergeCssProperties(
   discovered: ClassFragment["cssProperties"],
-  jsdoc: ClassFragment["cssProperties"]
+  jsdoc: ClassFragment["cssProperties"],
 ): ClassFragment["cssProperties"] {
   if (!discovered && !jsdoc) return undefined;
   if (!jsdoc) return discovered;
@@ -350,16 +373,12 @@ function mergeCssProperties(
 
 function discoverCssPartsFromNode(
   root: ts.Node,
-  ownerClass?: ts.ClassDeclaration
+  ownerClass?: ts.ClassDeclaration,
 ): ClassFragment["cssParts"] {
   const byName = new Map<string, NonNullable<ClassFragment["cssParts"]>[number]>();
 
   function visit(n: ts.Node) {
-    if (
-      ts.isClassDeclaration(n) &&
-      ownerClass &&
-      n !== ownerClass
-    ) {
+    if (ts.isClassDeclaration(n) && ownerClass && n !== ownerClass) {
       return;
     }
 
@@ -368,7 +387,10 @@ function discoverCssPartsFromNode(
 
       const attrMatches = [...text.matchAll(/\bpart\s*=\s*(["'])([^"']+)\1/g)];
       for (const [, , rawValue] of attrMatches) {
-        for (const token of rawValue.split(/\s+/).map((v) => v.trim()).filter(Boolean)) {
+        for (const token of rawValue
+          .split(/\s+/)
+          .map((v) => v.trim())
+          .filter(Boolean)) {
           if (!byName.has(token)) byName.set(token, { name: token });
         }
       }
@@ -379,7 +401,10 @@ function discoverCssPartsFromNode(
       for (const [, rawComment, , rawValue] of commentedParts) {
         const description = parseTemplateComment(rawComment);
         if (!description) continue;
-        for (const token of rawValue.split(/\s+/).map((v) => v.trim()).filter(Boolean)) {
+        for (const token of rawValue
+          .split(/\s+/)
+          .map((v) => v.trim())
+          .filter(Boolean)) {
           const existing = byName.get(token);
           if (!existing) continue;
           if (!existing.description) existing.description = description;
@@ -406,7 +431,7 @@ function parseTemplateComment(rawComment: string | undefined): string | undefine
 
 function mergeCssParts(
   discovered: ClassFragment["cssParts"],
-  jsdoc: ClassFragment["cssParts"]
+  jsdoc: ClassFragment["cssParts"],
 ): ClassFragment["cssParts"] {
   if (!discovered && !jsdoc) return undefined;
   if (!jsdoc) return discovered;
@@ -445,7 +470,7 @@ function discoverCssStatesFromClass(node: ts.ClassDeclaration): ClassFragment["c
 
 function mergeCssStates(
   discovered: ClassFragment["cssStates"],
-  jsdoc: ClassFragment["cssStates"]
+  jsdoc: ClassFragment["cssStates"],
 ): ClassFragment["cssStates"] {
   if (!discovered && !jsdoc) return undefined;
   if (!jsdoc) return discovered;

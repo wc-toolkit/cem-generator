@@ -32,7 +32,10 @@ export const Greeting = customElement(
   { name: "World", count: 1 },
   (props: GreetingProps) => (
     <>
-      {/* Greeting text */}<p>{props.name} {props.count}</p>
+      {/* Greeting text */}
+      <p>
+        {props.name} {props.count}
+      </p>
     </>
   ),
 );
@@ -54,12 +57,12 @@ const Panel = customElement("status-panel", {}, (props, { element }) => (
     <style>{`:host { /** Panel color. */ --panel-color: gray; }`}</style>
     {/* Panel wrapper */}
     <section part="panel">
-      {/* Header content */}<slot name="header" />
-      {/* Default content */}<slot />
+      {/* Header content */}
+      <slot name="header" />
+      {/* Default content */}
+      <slot />
     </section>
-    <button onClick={() => element.dispatchEvent(new CustomEvent("change"))}>
-      Change
-    </button>
+    <button onClick={() => element.dispatchEvent(new CustomEvent("change"))}>Change</button>
   </>
 ));
 ```
@@ -111,7 +114,6 @@ export const StatusIndicator = customElement(
       <style>{`:host { /** Status color. */ --status-color: green; }`}</style>
       {/* Status indicator */}
       <div part="indicator">
-
         {/* Main content */}
         <slot></slot>
 
@@ -126,16 +128,16 @@ export const StatusIndicator = customElement(
 
 ### Manifest mapping
 
-| Source | Manifest API |
-|---|---|
-| Registration JSDoc | `description`, `summary`, `tagName`, `deprecated` |
-| Default props and typed template props | `members` and `attributes` |
-| Prop JSDoc | Member and attribute descriptions |
-| Static `Event`/`CustomEvent` dispatch or `@event` / `@fires` | `events` |
-| `<slot>` or `@slot` | `slots` |
-| `part="..."` or `@csspart` | `cssParts` |
-| Solid style template or `@cssprop` | `cssProperties` |
-| `@cssState` | `cssStates` |
+| Source                                                       | Manifest API                                      |
+| ------------------------------------------------------------ | ------------------------------------------------- |
+| Registration JSDoc                                           | `description`, `summary`, `tagName`, `deprecated` |
+| Default props and typed template props                       | `members` and `attributes`                        |
+| Prop JSDoc                                                   | Member and attribute descriptions                 |
+| Static `Event`/`CustomEvent` dispatch or `@event` / `@fires` | `events`                                          |
+| `<slot>` or `@slot`                                          | `slots`                                           |
+| `part="..."` or `@csspart`                                   | `cssParts`                                        |
+| Solid style template or `@cssprop`                           | `cssProperties`                                   |
+| `@cssState`                                                  | `cssStates`                                       |
 
 Default props are the runtime public props recognized by Solid Element. The
 plugin maps `someProp` to the `some-prop` attribute and uses the template

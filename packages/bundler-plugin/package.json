@@ -2,33 +2,29 @@
   "name": "@wc-toolkit/cem-generator-bundler",
   "version": "0.1.6",
   "description": "Vite, Rollup, Rolldown, and Webpack plugins for generating Custom Elements Manifests.",
+  "keywords": [
+    "custom-elements",
+    "custom-elements-manifest",
+    "vite",
+    "web-components",
+    "webpack"
+  ],
+  "homepage": "https://wc-toolkit.github.io/cem-generator/guide/bundler/",
+  "bugs": {
+    "url": "https://github.com/wc-toolkit/cem-generator/issues"
+  },
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/wc-toolkit/cem-generator.git",
     "directory": "packages/bundler-plugin"
   },
-  "bugs": {
-    "url": "https://github.com/wc-toolkit/cem-generator/issues"
-  },
-  "homepage": "https://wc-toolkit.github.io/cem-generator/guide/bundler/",
-  "keywords": [
-    "custom-elements",
-    "custom-elements-manifest",
-    "web-components",
-    "vite",
-    "webpack"
+  "files": [
+    "dist"
   ],
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "files": [
-    "dist"
-  ],
-  "publishConfig": {
-    "access": "public",
-    "provenance": true
-  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -42,6 +38,10 @@
       "types": "./dist/webpack.d.ts",
       "import": "./dist/webpack.js"
     }
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
   },
   "scripts": {
     "test": "node --test tests/*.test.mjs"

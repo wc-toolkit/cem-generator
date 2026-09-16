@@ -1,5 +1,11 @@
 import ts from "typescript";
-import postcss, { type AtRule, type Comment, type Declaration, type Node, type Rule } from "postcss";
+import postcss, {
+  type AtRule,
+  type Comment,
+  type Declaration,
+  type Node,
+  type Rule,
+} from "postcss";
 import { getJSDocInfo, parseCemClassTags } from "@wc-toolkit/cem-generator-utils";
 import type { ClassFragment, ManifestFragment } from "./types.js";
 
@@ -17,17 +23,19 @@ export function parseCssMetadata(source: string): ClassFragment["cssProperties"]
 
   root.walkRules((rule) => {
     if (!rule.selector.includes(":host")) return;
-    rule.nodes?.filter((node): node is Declaration => node.type === "decl").forEach((decl) => {
-      if (!decl.prop.startsWith("--")) return;
-      const description = getLeadingComment(decl);
-      if (!description) return;
-      byName.set(decl.prop, {
-        ...byName.get(decl.prop),
-        name: decl.prop,
-        default: decl.value.trim() || undefined,
-        description,
+    rule.nodes
+      ?.filter((node): node is Declaration => node.type === "decl")
+      .forEach((decl) => {
+        if (!decl.prop.startsWith("--")) return;
+        const description = getLeadingComment(decl);
+        if (!description) return;
+        byName.set(decl.prop, {
+          ...byName.get(decl.prop),
+          name: decl.prop,
+          default: decl.value.trim() || undefined,
+          description,
+        });
       });
-    });
   });
 
   root.walkAtRules("property", (rule) => {
@@ -68,12 +76,9 @@ export function parseCssElements(source: string): ManifestFragment {
     for (const tagName of customElementSelectors(rule.selector)) {
       const cssProperties = mergeCssProperties(
         mergeCssProperties(parseRuleProperties(rule), registeredProperties),
-        jsdoc.cssProperties
+        jsdoc.cssProperties,
       );
-      const attributes = mergeAttributes(
-        collectRuleAttributes(rule),
-        jsdoc.attributes
-      );
+      const attributes = mergeAttributes(collectRuleAttributes(rule), jsdoc.attributes);
       fragment[tagName] = {
         name: tagName,
         tagName,
@@ -98,7 +103,7 @@ function parseCssJsDoc(comment: string): {
     `/**\n${comment}\n*/\nclass CssOnlyElement {}`,
     ts.ScriptTarget.Latest,
     true,
-    ts.ScriptKind.TS
+    ts.ScriptKind.TS,
   );
   const declaration = sourceFile.statements.find(ts.isClassDeclaration);
   if (!declaration) return {};
@@ -114,7 +119,11 @@ function parseCssJsDoc(comment: string): {
 function getLeadingJsDocComment(node: Node): string | undefined {
   const siblings = (node.parent?.nodes ?? []) as Node[];
   const previous = siblings[siblings.indexOf(node) - 1];
-  if (!previous || previous.type !== "comment" || !previous.toString().trimStart().startsWith("/**")) {
+  if (
+    !previous ||
+    previous.type !== "comment" ||
+    !previous.toString().trimStart().startsWith("/**")
+  ) {
     return undefined;
   }
   return normalizeComment((previous as Comment).text);
@@ -135,7 +144,9 @@ function parseRuleProperties(rule: Rule): ClassFragment["cssProperties"] {
   return byName.size ? [...byName.values()] : undefined;
 }
 
-function parseRegisteredProperties(root: ReturnType<typeof postcss.parse>): ClassFragment["cssProperties"] {
+function parseRegisteredProperties(
+  root: ReturnType<typeof postcss.parse>,
+): ClassFragment["cssProperties"] {
   const properties: NonNullable<ClassFragment["cssProperties"]>[number][] = [];
   root.walkAtRules("property", (rule) => {
     const name = rule.params.trim();
@@ -155,7 +166,7 @@ function parseRegisteredProperties(root: ReturnType<typeof postcss.parse>): Clas
 
 function mergeCssProperties(
   first: ClassFragment["cssProperties"],
-  second: ClassFragment["cssProperties"]
+  second: ClassFragment["cssProperties"],
 ): ClassFragment["cssProperties"] {
   const byName = new Map<string, NonNullable<ClassFragment["cssProperties"]>[number]>();
   for (const property of first ?? []) byName.set(property.name, property);
@@ -188,7 +199,10 @@ function collectRuleAttributes(rule: Rule): ClassFragment["attributes"] {
   }));
 }
 
-function attributeSelectors(selector: string, nested: boolean): Array<{ name: string; value?: string }> {
+function attributeSelectors(
+  selector: string,
+  nested: boolean,
+): Array<{ name: string; value?: string }> {
   const trimmed = selector.trim();
   let suffix: string | undefined;
 
@@ -208,7 +222,9 @@ function attributeSelectors(selector: string, nested: boolean): Array<{ name: st
     const end = suffix.indexOf("]", position + 1);
     if (end < 0) return [];
     const content = suffix.slice(position + 1, end);
-    const match = content.match(/^\s*([a-z_:][-a-z0-9_:]*)(?:\s*=\s*(?:(["'])(.*?)\2|([^\s]+)))?\s*$/i);
+    const match = content.match(
+      /^\s*([a-z_:][-a-z0-9_:]*)(?:\s*=\s*(?:(["'])(.*?)\2|([^\s]+)))?\s*$/i,
+    );
     if (!match) return [];
     attributes.push({ name: match[1], value: match[3] ?? match[4] });
     position = end + 1;
@@ -218,7 +234,7 @@ function attributeSelectors(selector: string, nested: boolean): Array<{ name: st
 
 function mergeAttributes(
   first: ClassFragment["attributes"],
-  second: ClassFragment["attributes"]
+  second: ClassFragment["attributes"],
 ): ClassFragment["attributes"] {
   const byName = new Map<string, NonNullable<ClassFragment["attributes"]>[number]>();
   for (const attribute of first ?? []) byName.set(attribute.name, attribute);
@@ -244,9 +260,10 @@ function customElementSelectors(selector: string): string[] {
 function unwrapCssTemplate(source: string): string {
   const firstBacktick = source.indexOf("`");
   const lastBacktick = source.lastIndexOf("`");
-  const template = firstBacktick >= 0 && lastBacktick > firstBacktick
-    ? source.slice(firstBacktick + 1, lastBacktick)
-    : source;
+  const template =
+    firstBacktick >= 0 && lastBacktick > firstBacktick
+      ? source.slice(firstBacktick + 1, lastBacktick)
+      : source;
   const styleBlocks = [...template.matchAll(/<style(?:\s[^>]*)?>([\s\S]*?)<\/style>/gi)];
   if (styleBlocks.length) return styleBlocks.map((match) => match[1] ?? "").join("\n");
   return template;
@@ -254,7 +271,7 @@ function unwrapCssTemplate(source: string): string {
 
 function findDeclaration(rule: AtRule, name: string): string | undefined {
   const declaration = rule.nodes?.find(
-    (node): node is Declaration => node.type === "decl" && node.prop === name
+    (node): node is Declaration => node.type === "decl" && node.prop === name,
   );
   return declaration?.value;
 }
@@ -278,7 +295,10 @@ function normalizeComment(value: string): string | undefined {
 
 function stripCssQuotes(value: string | undefined): string | undefined {
   if (!value) return undefined;
-  if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+  if (
+    (value.startsWith('"') && value.endsWith('"')) ||
+    (value.startsWith("'") && value.endsWith("'"))
+  ) {
     return value.slice(1, -1);
   }
   return value;

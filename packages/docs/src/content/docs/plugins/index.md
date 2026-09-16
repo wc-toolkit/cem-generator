@@ -7,9 +7,9 @@ Plugins let you add framework-specific detection, cross-file enrichment, or cust
 
 ## Plugin types
 
-| Type | When it runs | Use case |
-|------|--------------|----------|
-| **Detector** | Per-file, during analysis | Find framework-specific patterns |
+| Type          | When it runs                         | Use case                                              |
+| ------------- | ------------------------------------ | ----------------------------------------------------- |
+| **Detector**  | Per-file, during analysis            | Find framework-specific patterns                      |
 | **Annotator** | After the full manifest is assembled | Cross-plugin enrichment, design tokens, or validation |
 
 ## Using a plugin

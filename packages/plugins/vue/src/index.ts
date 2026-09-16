@@ -14,8 +14,7 @@ export function vuePlugin(): DetectorPlugin {
     name: "vue",
 
     shouldAnalyze(sourceText) {
-      return /from\s+["']vue["']/.test(sourceText) &&
-        /\bdefineCustomElement\s*\(/.test(sourceText);
+      return /from\s+["']vue["']/.test(sourceText) && /\bdefineCustomElement\s*\(/.test(sourceText);
     },
 
     onFile(context: FileContext): ManifestFragment {
@@ -30,7 +29,10 @@ export function vuePlugin(): DetectorPlugin {
         }
 
         const declaration = findContainingVariable(node);
-        const name = declaration?.name && ts.isIdentifier(declaration.name) ? declaration.name.text : undefined;
+        const name =
+          declaration?.name && ts.isIdentifier(declaration.name)
+            ? declaration.name.text
+            : undefined;
         if (!name) {
           ts.forEachChild(node, visit);
           return;
@@ -40,7 +42,9 @@ export function vuePlugin(): DetectorPlugin {
         const options = resolveComponentOptions(component, context);
         const classDoc = declaration ? parseCemClassTags(declaration) : {};
         const props = options ? getProps(options, context) : undefined;
-         const discovered = options ? discoverFrameworkApis(options, context.sourceFile, context.checker) : {};
+        const discovered = options
+          ? discoverFrameworkApis(options, context.sourceFile, context.checker)
+          : {};
         const attributes = props?.map(({ name: fieldName, ...member }) => ({
           name: fieldName,
           type: member.type,
@@ -53,11 +57,15 @@ export function vuePlugin(): DetectorPlugin {
           name,
           exportName: getExportName(declaration),
           module: context.filePath,
-          description: (declaration ? getJSDocInfo(declaration).description : undefined) || (options ? getJSDocInfo(options).description || undefined : undefined),
+          description:
+            (declaration ? getJSDocInfo(declaration).description : undefined) ||
+            (options ? getJSDocInfo(options).description || undefined : undefined),
           summary: classDoc.summary,
           deprecated: classDoc.deprecated,
           tagName: classDoc.tagName ?? tags.get(name),
-          members: props?.length ? props.map(({ name: _name, ...member }) => ({ name: _name, ...member })) : undefined,
+          members: props?.length
+            ? props.map(({ name: _name, ...member }) => ({ name: _name, ...member }))
+            : undefined,
           attributes: attributes?.length ? attributes : undefined,
           events: mergeEvents(mergeEvents(events, discovered.events), classDoc.events),
           slots: mergeNamed(discovered.slots, classDoc.slots),
@@ -76,7 +84,10 @@ export function vuePlugin(): DetectorPlugin {
   };
 }
 
-function mergeNamed<T extends { name: string }>(discovered: T[] | undefined, documented: T[] | undefined): T[] | undefined {
+function mergeNamed<T extends { name: string }>(
+  discovered: T[] | undefined,
+  documented: T[] | undefined,
+): T[] | undefined {
   const values = new Map<string, T>();
   for (const item of discovered ?? []) values.set(item.name, item);
   for (const item of documented ?? []) values.set(item.name, { ...values.get(item.name), ...item });
@@ -86,11 +97,17 @@ function mergeNamed<T extends { name: string }>(discovered: T[] | undefined, doc
 function getDefineCustomElementNames(sourceFile: ts.SourceFile): Set<string> {
   const names = new Set<string>();
   for (const statement of sourceFile.statements) {
-    if (!ts.isImportDeclaration(statement) || !ts.isStringLiteral(statement.moduleSpecifier) || statement.moduleSpecifier.text !== "vue") continue;
+    if (
+      !ts.isImportDeclaration(statement) ||
+      !ts.isStringLiteral(statement.moduleSpecifier) ||
+      statement.moduleSpecifier.text !== "vue"
+    )
+      continue;
     const bindings = statement.importClause?.namedBindings;
     if (!bindings || !ts.isNamedImports(bindings)) continue;
     for (const element of bindings.elements) {
-      if ((element.propertyName?.text ?? element.name.text) === "defineCustomElement") names.add(element.name.text);
+      if ((element.propertyName?.text ?? element.name.text) === "defineCustomElement")
+        names.add(element.name.text);
     }
   }
   return names;
@@ -103,11 +120,15 @@ function isDefineCustomElementCall(node: ts.CallExpression, names: Set<string>):
 function getCustomElementRegistrations(sourceFile: ts.SourceFile): Map<string, string> {
   const tags = new Map<string, string>();
   function visit(node: ts.Node) {
-    if (ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression) &&
-      node.expression.getText(sourceFile) === "customElements.define") {
+    if (
+      ts.isCallExpression(node) &&
+      ts.isPropertyAccessExpression(node.expression) &&
+      node.expression.getText(sourceFile) === "customElements.define"
+    ) {
       const tag = node.arguments[0];
       const constructor = node.arguments[1];
-      if (tag && ts.isStringLiteralLike(tag) && constructor && ts.isIdentifier(constructor)) tags.set(constructor.text, tag.text);
+      if (tag && ts.isStringLiteralLike(tag) && constructor && ts.isIdentifier(constructor))
+        tags.set(constructor.text, tag.text);
     }
     ts.forEachChild(node, visit);
   }
@@ -124,22 +145,38 @@ function findContainingVariable(node: ts.Node): ts.VariableDeclaration | undefin
   return undefined;
 }
 
-function resolveComponentOptions(component: ts.Expression | undefined, context: FileContext): ts.ObjectLiteralExpression | undefined {
+function resolveComponentOptions(
+  component: ts.Expression | undefined,
+  context: FileContext,
+): ts.ObjectLiteralExpression | undefined {
   if (!component) return undefined;
   if (ts.isObjectLiteralExpression(component)) return component;
   if (!ts.isIdentifier(component)) return undefined;
   const symbol = context.checker.getSymbolAtLocation(component);
-  const resolved = symbol && symbol.flags & ts.SymbolFlags.Alias ? context.checker.getAliasedSymbol(symbol) : symbol;
+  const resolved =
+    symbol && symbol.flags & ts.SymbolFlags.Alias
+      ? context.checker.getAliasedSymbol(symbol)
+      : symbol;
   const declaration = resolved?.declarations?.find(ts.isVariableDeclaration);
   const initializer = declaration?.initializer;
   if (initializer && ts.isObjectLiteralExpression(initializer)) return initializer;
-  if (initializer && ts.isCallExpression(initializer) && ts.isIdentifier(initializer.expression) && initializer.expression.text === "defineComponent") {
-    return initializer.arguments[0] && ts.isObjectLiteralExpression(initializer.arguments[0]) ? initializer.arguments[0] : undefined;
+  if (
+    initializer &&
+    ts.isCallExpression(initializer) &&
+    ts.isIdentifier(initializer.expression) &&
+    initializer.expression.text === "defineComponent"
+  ) {
+    return initializer.arguments[0] && ts.isObjectLiteralExpression(initializer.arguments[0])
+      ? initializer.arguments[0]
+      : undefined;
   }
   return undefined;
 }
 
-function getProps(options: ts.ObjectLiteralExpression, context: FileContext): NonNullable<ClassFragment["members"]> {
+function getProps(
+  options: ts.ObjectLiteralExpression,
+  context: FileContext,
+): NonNullable<ClassFragment["members"]> {
   const props = getObjectProperty(options, "props");
   if (!props || !ts.isObjectLiteralExpression(props.initializer)) return [];
   return props.initializer.properties.flatMap((property) => {
@@ -147,15 +184,29 @@ function getProps(options: ts.ObjectLiteralExpression, context: FileContext): No
     const name = getPropertyName(property.name);
     if (!name) return [];
     const metadata = getPropMetadata(property.initializer, context);
-    return [{ name, kind: "field", type: metadata.type, description: getJSDocInfo(property).description || undefined, default: metadata.default }];
+    return [
+      {
+        name,
+        kind: "field",
+        type: metadata.type,
+        description: getJSDocInfo(property).description || undefined,
+        default: metadata.default,
+      },
+    ];
   });
 }
 
-function getPropMetadata(initializer: ts.Expression, context: FileContext): { type?: string; default?: string } {
+function getPropMetadata(
+  initializer: ts.Expression,
+  context: FileContext,
+): { type?: string; default?: string } {
   if (ts.isObjectLiteralExpression(initializer)) {
     const type = getObjectProperty(initializer, "type");
     const defaultValue = getObjectProperty(initializer, "default");
-    return { type: type && getVueType(type.initializer, context), default: defaultValue?.initializer.getText() };
+    return {
+      type: type && getVueType(type.initializer, context),
+      default: defaultValue?.initializer.getText(),
+    };
   }
   return { type: getVueType(initializer, context) };
 }
@@ -174,7 +225,9 @@ function getEmits(options: ts.ObjectLiteralExpression): ClassFragment["events"] 
   const emits = getObjectProperty(options, "emits");
   if (!emits) return undefined;
   if (ts.isArrayLiteralExpression(emits.initializer)) {
-    return emits.initializer.elements.flatMap((event) => ts.isStringLiteralLike(event) ? [{ name: event.text }] : []);
+    return emits.initializer.elements.flatMap((event) =>
+      ts.isStringLiteralLike(event) ? [{ name: event.text }] : [],
+    );
   }
   if (ts.isObjectLiteralExpression(emits.initializer)) {
     return emits.initializer.properties.flatMap((property) => {
@@ -187,17 +240,22 @@ function getEmits(options: ts.ObjectLiteralExpression): ClassFragment["events"] 
 
 function mergeEvents(
   emitted: ClassFragment["events"],
-  documented: ClassFragment["events"]
+  documented: ClassFragment["events"],
 ): ClassFragment["events"] {
   const events = new Map<string, NonNullable<ClassFragment["events"]>[number]>();
   for (const event of emitted ?? []) events.set(event.name, event);
-  for (const event of documented ?? []) events.set(event.name, { ...events.get(event.name), ...event });
+  for (const event of documented ?? [])
+    events.set(event.name, { ...events.get(event.name), ...event });
   return events.size ? [...events.values()] : undefined;
 }
 
-function getObjectProperty(object: ts.ObjectLiteralExpression, name: string): ts.PropertyAssignment | undefined {
-  return object.properties.find((property): property is ts.PropertyAssignment =>
-    ts.isPropertyAssignment(property) && getPropertyName(property.name) === name
+function getObjectProperty(
+  object: ts.ObjectLiteralExpression,
+  name: string,
+): ts.PropertyAssignment | undefined {
+  return object.properties.find(
+    (property): property is ts.PropertyAssignment =>
+      ts.isPropertyAssignment(property) && getPropertyName(property.name) === name,
   );
 }
 
@@ -209,6 +267,9 @@ function getExportName(node: ts.VariableDeclaration | undefined): string | undef
   const declaration = node?.parent.parent;
   if (!declaration || !ts.isVariableStatement(declaration)) return undefined;
   const modifiers = ts.canHaveModifiers(declaration) ? ts.getModifiers(declaration) : undefined;
-  if (!modifiers?.some((modifier) => modifier.kind === ts.SyntaxKind.ExportKeyword)) return undefined;
-  return modifiers.some((modifier) => modifier.kind === ts.SyntaxKind.DefaultKeyword) ? "default" : node?.name.getText();
+  if (!modifiers?.some((modifier) => modifier.kind === ts.SyntaxKind.ExportKeyword))
+    return undefined;
+  return modifiers.some((modifier) => modifier.kind === ts.SyntaxKind.DefaultKeyword)
+    ? "default"
+    : node?.name.getText();
 }

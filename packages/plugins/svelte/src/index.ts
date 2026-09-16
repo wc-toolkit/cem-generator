@@ -30,14 +30,18 @@ export function sveltePlugin(): DetectorPlugin {
         summary: metadata.summary,
         deprecated: metadata.deprecated,
         tagName: metadata.tagName ?? tagName,
-        members: props.length ? props.map(({ attribute: _attribute, ...member }) => member) : undefined,
-        attributes: props.length ? props.map(({ name: fieldName, type, parsedType, description, attribute }) => ({
-          name: attribute ?? fieldName,
-          type,
-          parsedType,
-          description,
-          fieldName,
-        })) : undefined,
+        members: props.length
+          ? props.map(({ attribute: _attribute, ...member }) => member)
+          : undefined,
+        attributes: props.length
+          ? props.map(({ name: fieldName, type, parsedType, description, attribute }) => ({
+              name: attribute ?? fieldName,
+              type,
+              parsedType,
+              description,
+              fieldName,
+            }))
+          : undefined,
         events: mergeNamed(discoverEvents(source), metadata.events),
         slots: mergeNamed(discoverSlots(source), metadata.slots),
         cssParts: mergeNamed(discoverParts(source), metadata.cssParts),
@@ -49,18 +53,35 @@ export function sveltePlugin(): DetectorPlugin {
   };
 }
 
-type SvelteMetadata = Pick<ClassFragment, "description" | "summary" | "deprecated" | "tagName" | "events" | "slots" | "cssParts" | "cssProperties" | "cssStates">;
+type SvelteMetadata = Pick<
+  ClassFragment,
+  | "description"
+  | "summary"
+  | "deprecated"
+  | "tagName"
+  | "events"
+  | "slots"
+  | "cssParts"
+  | "cssProperties"
+  | "cssStates"
+>;
 
 function getTagName(source: string): string | undefined {
-  const options = source.match(/<svelte:options\b[^>]*customElement\s*=\s*(?:["']([^"']+)["']|\{\{?\s*tag\s*:\s*["']([^"']+)["'])/s);
+  const options = source.match(
+    /<svelte:options\b[^>]*customElement\s*=\s*(?:["']([^"']+)["']|\{\{?\s*tag\s*:\s*["']([^"']+)["'])/s,
+  );
   return options?.[1] ?? options?.[2];
 }
 
 function getComponentName(filePath: string): string {
-  return path.basename(filePath, ".svelte").replace(/[^A-Za-z0-9]+(.)/g, (_match, character: string) => character.toUpperCase());
+  return path
+    .basename(filePath, ".svelte")
+    .replace(/[^A-Za-z0-9]+(.)/g, (_match, character: string) => character.toUpperCase());
 }
 
-function getProps(source: string): Array<NonNullable<ClassFragment["members"]>[number] & { attribute?: string }> {
+function getProps(
+  source: string,
+): Array<NonNullable<ClassFragment["members"]>[number] & { attribute?: string }> {
   const props: Array<NonNullable<ClassFragment["members"]>[number] & { attribute?: string }> = [];
   const script = source.match(/<script\b[^>]*>([\s\S]*?)<\/script>/)?.[1] ?? "";
   const interfaces = new Map<string, { type?: string; description?: string }>();
@@ -68,21 +89,41 @@ function getProps(source: string): Array<NonNullable<ClassFragment["members"]>[n
     interfaces.set(match[2], { type: match[3].trim(), description: cleanComment(match[1]) });
   }
 
-  for (const match of script.matchAll(/(?:\/\*\*([\s\S]*?)\*\/\s*)?export\s+let\s+(\w+)\s*(?::\s*([^=;]+))?\s*(?:=\s*([^;\n]+))?/g)) {
+  for (const match of script.matchAll(
+    /(?:\/\*\*([\s\S]*?)\*\/\s*)?export\s+let\s+(\w+)\s*(?::\s*([^=;]+))?\s*(?:=\s*([^;\n]+))?/g,
+  )) {
     const [, comment, name, type, defaultValue] = match;
-    props.push({ name, kind: "field", type: type?.trim() ?? inferType(defaultValue), description: cleanComment(comment), default: defaultValue?.trim(), attribute: name.toLowerCase() });
+    props.push({
+      name,
+      kind: "field",
+      type: type?.trim() ?? inferType(defaultValue),
+      description: cleanComment(comment),
+      default: defaultValue?.trim(),
+      attribute: name.toLowerCase(),
+    });
   }
 
-  const runeProps = script.match(/\b(?:let|const)\s*\{([\s\S]*?)\}\s*(?::\s*(\w+))?\s*=\s*\$props\s*\(\s*\)/)?.[1];
+  const runeProps = script.match(
+    /\b(?:let|const)\s*\{([\s\S]*?)\}\s*(?::\s*(\w+))?\s*=\s*\$props\s*\(\s*\)/,
+  )?.[1];
   for (const entry of runeProps?.split(",") ?? []) {
     const match = entry.trim().match(/^(\w+)(?:\s*=\s*(.+))?$/);
     if (!match || props.some((prop) => prop.name === match[1])) continue;
     const info = interfaces.get(match[1]);
-    props.push({ name: match[1], kind: "field", type: info?.type ?? inferType(match[2]), description: info?.description, default: match[2]?.trim(), attribute: match[1].toLowerCase() });
+    props.push({
+      name: match[1],
+      kind: "field",
+      type: info?.type ?? inferType(match[2]),
+      description: info?.description,
+      default: match[2]?.trim(),
+      attribute: match[1].toLowerCase(),
+    });
   }
 
   const options = source.match(/<svelte:options\b([\s\S]*?)\/>/)?.[1] ?? "";
-  for (const match of options.matchAll(/(\w+)\s*:\s*\{[^}]*?attribute\s*:\s*["']([^"']+)["'][^}]*\}/g)) {
+  for (const match of options.matchAll(
+    /(\w+)\s*:\s*\{[^}]*?attribute\s*:\s*["']([^"']+)["'][^}]*\}/g,
+  )) {
     const prop = props.find((item) => item.name === match[1]);
     if (prop) prop.attribute = match[2];
   }
@@ -108,32 +149,63 @@ function getComponentMetadata(source: string, tagName: string): SvelteMetadata {
 }
 
 function discoverSlots(source: string): ClassFragment["slots"] {
-  return [...source.matchAll(/<slot(?:\s+name\s*=\s*["']([^"']+)["'])?[^>]*>/g)].map((match) => ({ name: match[1] ?? "", description: trailingHtmlComment(source.slice(0, match.index ?? 0)) }));
+  return [...source.matchAll(/<slot(?:\s+name\s*=\s*["']([^"']+)["'])?[^>]*>/g)].map((match) => ({
+    name: match[1] ?? "",
+    description: trailingHtmlComment(source.slice(0, match.index ?? 0)),
+  }));
 }
 
 function discoverParts(source: string): ClassFragment["cssParts"] {
-  return [...source.matchAll(/<[^>]*\bpart\s*=\s*["']([^"']+)["'][^>]*>/g)].flatMap((match) => match[1].split(/\s+/).filter(Boolean).map((name) => ({ name, description: trailingHtmlComment(source.slice(0, match.index ?? 0)) })));
+  return [...source.matchAll(/<[^>]*\bpart\s*=\s*["']([^"']+)["'][^>]*>/g)].flatMap((match) =>
+    match[1]
+      .split(/\s+/)
+      .filter(Boolean)
+      .map((name) => ({
+        name,
+        description: trailingHtmlComment(source.slice(0, match.index ?? 0)),
+      })),
+  );
 }
 
 function discoverCssProperties(source: string): ClassFragment["cssProperties"] {
   const properties: NonNullable<ClassFragment["cssProperties"]> = [];
-  for (const match of source.matchAll(/<style\b[^>]*>([\s\S]*?)<\/style>/g)) properties.push(...(parseCssMetadata(match[1]) ?? []));
+  for (const match of source.matchAll(/<style\b[^>]*>([\s\S]*?)<\/style>/g))
+    properties.push(...(parseCssMetadata(match[1]) ?? []));
   return properties;
 }
 
 function discoverEvents(source: string): ClassFragment["events"] {
   const events: NonNullable<ClassFragment["events"]> = [];
-  for (const match of source.matchAll(/(?:dispatch\s*\(\s*|dispatchEvent\s*\(\s*new\s+CustomEvent\s*\(\s*)["']([^"']+)["']/g)) events.push({ name: match[1], type: "CustomEvent" });
+  for (const match of source.matchAll(
+    /(?:dispatch\s*\(\s*|dispatchEvent\s*\(\s*new\s+CustomEvent\s*\(\s*)["']([^"']+)["']/g,
+  ))
+    events.push({ name: match[1], type: "CustomEvent" });
   return events;
 }
 
-function parseNamedTags(comment: string, tag: string): Array<{ name: string; description?: string }> | undefined {
-  const values = [...comment.matchAll(new RegExp(`@${tag}\\s+([^\\s-]+|-)\\s*(?:-\\s*)?([^\\n]*)`, "g"))].map((match) => ({ name: match[1] === "-" ? "" : match[1], description: match[2]?.trim() || undefined }));
+function parseNamedTags(
+  comment: string,
+  tag: string,
+): Array<{ name: string; description?: string }> | undefined {
+  const values = [
+    ...comment.matchAll(new RegExp(`@${tag}\\s+([^\\s-]+|-)\\s*(?:-\\s*)?([^\\n]*)`, "g")),
+  ].map((match) => ({
+    name: match[1] === "-" ? "" : match[1],
+    description: match[2]?.trim() || undefined,
+  }));
   return values.length ? values : undefined;
 }
 
 function parseCssTags(comment: string): ClassFragment["cssProperties"] {
-  const values = [...comment.matchAll(/@cssprop(?:erty)?\s+(?:\[([^=\]]+)=([^\]]+)\]|(\S+))\s*(?:-\s*)?([^\n]*)/g)].map((match) => ({ name: match[1] ?? match[3], default: match[2], description: match[4]?.trim() || undefined }));
+  const values = [
+    ...comment.matchAll(
+      /@cssprop(?:erty)?\s+(?:\[([^=\]]+)=([^\]]+)\]|(\S+))\s*(?:-\s*)?([^\n]*)/g,
+    ),
+  ].map((match) => ({
+    name: match[1] ?? match[3],
+    default: match[2],
+    description: match[4]?.trim() || undefined,
+  }));
   return values.length ? values : undefined;
 }
 
@@ -143,7 +215,12 @@ function getTagDescription(comment: string, tag: string): string | undefined {
 
 function cleanComment(value: string | undefined): string | undefined {
   if (!value) return undefined;
-  const text = value.split("\n").map((line) => line.replace(/^\s*\*\s?/, "")).join(" ").replace(/\s+/g, " ").trim();
+  const text = value
+    .split("\n")
+    .map((line) => line.replace(/^\s*\*\s?/, ""))
+    .join(" ")
+    .replace(/\s+/g, " ")
+    .trim();
   return text || undefined;
 }
 
@@ -159,12 +236,15 @@ function inferType(value: string | undefined): string | undefined {
   if (/^['"]/.test(value)) return "string";
   if (/^(true|false)$/.test(value)) return "boolean";
   if (/^\d/.test(value)) return "number";
-  if (/^[\[{]/.test(value)) return value.startsWith("[") ? "array" : "object";
+  if (/^[[{]/.test(value)) return value.startsWith("[") ? "array" : "object";
   return undefined;
 }
 
-function mergeNamed<T extends { name: string }>(...sources: Array<T[] | undefined>): T[] | undefined {
+function mergeNamed<T extends { name: string }>(
+  ...sources: Array<T[] | undefined>
+): T[] | undefined {
   const values = new Map<string, T>();
-  for (const source of sources) for (const item of source ?? []) values.set(item.name, { ...values.get(item.name), ...item });
+  for (const source of sources)
+    for (const item of source ?? []) values.set(item.name, { ...values.get(item.name), ...item });
   return values.size ? [...values.values()] : undefined;
 }

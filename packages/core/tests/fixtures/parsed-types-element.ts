@@ -18,13 +18,7 @@ export class ParsedTypesElement extends HTMLElement {
   controller: LocalizeController;
   observer: MutationObserver | null;
   optionalHost: undefined | HTMLElement;
-  position:
-    | "top"
-    | "top-start"
-    | "top-end"
-    | "bottom"
-    | "bottom-start"
-    | "bottom-end";
+  position: "top" | "top-start" | "top-end" | "bottom" | "bottom-start" | "bottom-end";
 
   /** @attribute */
   mode?: Mode;

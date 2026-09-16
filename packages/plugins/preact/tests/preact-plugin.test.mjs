@@ -17,15 +17,22 @@ test("detects preact-custom-element registrations and component props", () => {
   const greetingModule = manifest.modules.find((module) => module.declarations.includes(greeting));
 
   assert.equal(greeting?.tagName, "x-greeting");
-  assert.equal(greetingModule?.exports?.some((entry) => entry.kind === "js" && entry.name === "Greeting"), true);
+  assert.equal(
+    greetingModule?.exports?.some((entry) => entry.kind === "js" && entry.name === "Greeting"),
+    true,
+  );
   assert.deepEqual(greeting?.members?.map(({ name }) => name).sort(), ["count", "name"]);
-  assert.deepEqual(greeting?.attributes?.map(({ name, fieldName }) => ({ name, fieldName })), [
-    { name: "name", fieldName: "name" },
-  ]);
+  assert.deepEqual(
+    greeting?.attributes?.map(({ name, fieldName }) => ({ name, fieldName })),
+    [{ name: "name", fieldName: "name" }],
+  );
   assert.equal(greeting?.members?.find(({ name }) => name === "name")?.attribute, "name");
   assert.deepEqual(greeting?.slots?.map(({ name }) => name).sort(), ["", "label"]);
   assert.equal(greeting?.slots?.find(({ name }) => name === "label")?.description, "Label content");
-  assert.deepEqual(greeting?.cssParts?.map(({ name }) => name), ["label"]);
+  assert.deepEqual(
+    greeting?.cssParts?.map(({ name }) => name),
+    ["label"],
+  );
   assert.equal(greeting?.cssParts?.[0]?.description, "Greeting label");
   assert.equal(greeting?.cssProperties?.[0]?.name, "--greeting-color");
   assert.equal(greeting?.events?.[0]?.name, "greet");

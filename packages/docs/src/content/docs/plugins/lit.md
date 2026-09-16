@@ -67,16 +67,16 @@ export class IconButton extends LitElement {
 
 The example documents the following manifest APIs:
 
-| Source | Manifest API |
-|---|---|
-| Class comment | `description`, `summary`, `tagName`, `deprecated` |
-| `@property` / `static properties` | `members` and `attributes` |
-| Method JSDoc and signature | Member description, parameters, return type |
-| `@event` / `@fires` or static dispatch | `events` |
-| `<slot>` or `@slot` | `slots` |
-| `part="..."` or `@csspart` | `cssParts` |
-| `@cssprop` or `static styles` | `cssProperties` |
-| `@cssState` | `cssStates` |
+| Source                                 | Manifest API                                      |
+| -------------------------------------- | ------------------------------------------------- |
+| Class comment                          | `description`, `summary`, `tagName`, `deprecated` |
+| `@property` / `static properties`      | `members` and `attributes`                        |
+| Method JSDoc and signature             | Member description, parameters, return type       |
+| `@event` / `@fires` or static dispatch | `events`                                          |
+| `<slot>` or `@slot`                    | `slots`                                           |
+| `part="..."` or `@csspart`             | `cssParts`                                        |
+| `@cssprop` or `static styles`          | `cssProperties`                                   |
+| `@cssState`                            | `cssStates`                                       |
 
 Document individual properties and methods immediately above their
 declarations. Use `@default`, `@attr`, `@reflect`, `@deprecated`, or
@@ -189,9 +189,9 @@ render() {
       <slot></slot>
     </div>
     <style>
-      :host { 
-        /** Panel color. */ 
-        --panel-color: gray; 
+      :host {
+        /** Panel color. */
+        --panel-color: gray;
       }
     </style>
   `;

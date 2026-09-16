@@ -2,31 +2,31 @@
   "name": "@wc-toolkit/cem-generator-cli",
   "version": "0.1.7",
   "description": "CLI for generating Custom Elements Manifests.",
+  "keywords": [
+    "cli",
+    "custom-elements",
+    "custom-elements-manifest",
+    "web-components"
+  ],
+  "homepage": "https://wc-toolkit.github.io/cem-generator/guide/cli/",
+  "bugs": {
+    "url": "https://github.com/wc-toolkit/cem-generator/issues"
+  },
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/wc-toolkit/cem-generator.git",
     "directory": "packages/cli"
   },
-  "bugs": {
-    "url": "https://github.com/wc-toolkit/cem-generator/issues"
-  },
-  "homepage": "https://wc-toolkit.github.io/cem-generator/guide/cli/",
-  "keywords": [
-    "custom-elements",
-    "custom-elements-manifest",
-    "web-components",
-    "cli"
-  ],
-  "type": "module",
   "bin": {
     "cem": "./dist/cli.js"
   },
-  "main": "./dist/cli.js",
-  "types": "./dist/cli.d.ts",
   "files": [
     "dist"
   ],
+  "type": "module",
+  "main": "./dist/cli.js",
+  "types": "./dist/cli.d.ts",
   "publishConfig": {
     "access": "public",
     "provenance": true

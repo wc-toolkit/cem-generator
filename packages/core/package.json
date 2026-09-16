@@ -2,27 +2,27 @@
   "name": "@wc-toolkit/cem-generator",
   "version": "0.1.6",
   "description": "Core engine for generating Custom Elements Manifests.",
+  "keywords": [
+    "custom-elements",
+    "custom-elements-manifest",
+    "web-components"
+  ],
+  "homepage": "https://wc-toolkit.github.io/cem-generator/guide/overview/",
+  "bugs": {
+    "url": "https://github.com/wc-toolkit/cem-generator/issues"
+  },
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/wc-toolkit/cem-generator.git",
     "directory": "packages/core"
   },
-  "bugs": {
-    "url": "https://github.com/wc-toolkit/cem-generator/issues"
-  },
-  "homepage": "https://wc-toolkit.github.io/cem-generator/guide/overview/",
-  "keywords": [
-    "custom-elements",
-    "custom-elements-manifest",
-    "web-components"
+  "files": [
+    "dist"
   ],
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "files": [
-    "dist"
-  ],
   "publishConfig": {
     "access": "public",
     "provenance": true

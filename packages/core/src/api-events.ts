@@ -3,7 +3,10 @@ import type { ClassFragment, FileContext } from "./types.js";
 import { getNodeTypeText } from "@wc-toolkit/cem-generator-utils";
 
 /** Detects statically named platform events dispatched by a component. */
-export function detectClassEvents(node: ts.ClassDeclaration, context: FileContext): ClassFragment["events"] {
+export function detectClassEvents(
+  node: ts.ClassDeclaration,
+  context: FileContext,
+): ClassFragment["events"] {
   const byName = new Map<string, NonNullable<ClassFragment["events"]>[number]>();
 
   function visit(current: ts.Node) {
@@ -16,10 +19,15 @@ export function detectClassEvents(node: ts.ClassDeclaration, context: FileContex
     ) {
       const event = current.arguments[0];
       if (event && ts.isNewExpression(event) && ts.isIdentifier(event.expression)) {
-        const eventName = resolveStaticString(event.arguments?.[0], node.getSourceFile(), context.checker);
+        const eventName = resolveStaticString(
+          event.arguments?.[0],
+          node.getSourceFile(),
+          context.checker,
+        );
         const eventType = resolveEventConstructor(event.expression, node.getSourceFile());
         if (eventName && eventType) {
-          const detail = eventType === "CustomEvent" ? getCustomEventDetail(event, context) : undefined;
+          const detail =
+            eventType === "CustomEvent" ? getCustomEventDetail(event, context) : undefined;
           byName.set(eventName, {
             name: eventName,
             type: eventType,
@@ -35,7 +43,10 @@ export function detectClassEvents(node: ts.ClassDeclaration, context: FileContex
   return byName.size ? [...byName.values()] : undefined;
 }
 
-function resolveEventConstructor(expression: ts.Identifier, sourceFile: ts.SourceFile): "Event" | "CustomEvent" | undefined {
+function resolveEventConstructor(
+  expression: ts.Identifier,
+  sourceFile: ts.SourceFile,
+): "Event" | "CustomEvent" | undefined {
   if (expression.text === "Event" || expression.text === "CustomEvent") return expression.text;
 
   for (const statement of sourceFile.statements) {
@@ -52,7 +63,7 @@ function resolveEventConstructor(expression: ts.Identifier, sourceFile: ts.Sourc
 /** Combines detected events with documented events, letting documentation enrich the result. */
 export function mergeClassEvents(
   detected: ClassFragment["events"],
-  documented: ClassFragment["events"]
+  documented: ClassFragment["events"],
 ): ClassFragment["events"] {
   const byName = new Map<string, NonNullable<ClassFragment["events"]>[number]>();
   for (const event of detected ?? []) byName.set(event.name, event);
@@ -71,7 +82,7 @@ function getCustomEventDetail(event: ts.NewExpression, context: FileContext): st
   if (!init || !ts.isObjectLiteralExpression(init)) return undefined;
   const detail = init.properties.find(
     (property): property is ts.PropertyAssignment =>
-      ts.isPropertyAssignment(property) && property.name.getText() === "detail"
+      ts.isPropertyAssignment(property) && property.name.getText() === "detail",
   );
   return detail ? getNodeTypeText(detail.initializer, context.checker) : undefined;
 }
@@ -80,7 +91,7 @@ function resolveStaticString(
   expression: ts.Expression | undefined,
   sourceFile: ts.SourceFile,
   checker: ts.TypeChecker,
-  resolving = new Set<string>()
+  resolving = new Set<string>(),
 ): string | undefined {
   if (!expression) return undefined;
   if (ts.isStringLiteralLike(expression)) return expression.text;
@@ -103,10 +114,16 @@ function resolveStaticString(
   if (initializer) return resolveStaticString(initializer, sourceFile, checker, resolving);
 
   const symbol = checker.getSymbolAtLocation(expression);
-  const resolvedSymbol = symbol && symbol.flags & ts.SymbolFlags.Alias ? checker.getAliasedSymbol(symbol) : symbol;
+  const resolvedSymbol =
+    symbol && symbol.flags & ts.SymbolFlags.Alias ? checker.getAliasedSymbol(symbol) : symbol;
   const declaration = resolvedSymbol?.declarations?.find(ts.isVariableDeclaration);
   if (declaration?.initializer) {
-    return resolveStaticString(declaration.initializer, declaration.getSourceFile(), checker, resolving);
+    return resolveStaticString(
+      declaration.initializer,
+      declaration.getSourceFile(),
+      checker,
+      resolving,
+    );
   }
   return undefined;
 }

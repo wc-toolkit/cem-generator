@@ -70,16 +70,16 @@ In an interactive terminal, use the arrow keys to move through lists, Space to
 toggle checkbox selections, and Enter to confirm. Non-interactive input falls
 back to comma-separated selection numbers.
 
-| Option | Description | Default |
-|--------|-------------|---------|
-| `--tsconfig <path>` | Path to tsconfig.json | `./tsconfig.json` |
-| `-c, --config <path>` | Path to the generator config file | auto-detected |
-| `-o, --output <path>` | Output file path | `./custom-elements.json` |
-| `--include <patterns...>` | Glob patterns to include | `src/**/*.{ts,tsx,js,jsx}` when `src/` exists |
-| `--exclude <patterns...>` | Glob patterns to exclude | Tests, specs, stories, `dist/`, and `node_modules/` |
-| `--no-inheritance` | Disable inheritance materialization | - |
-| `--plugin <paths...>` | Additional plugin paths to load | - |
-| `--conflict-policy <policy>` | Detector conflict policy: `throw` \| `last-wins` | `last-wins` |
+| Option                       | Description                                      | Default                                             |
+| ---------------------------- | ------------------------------------------------ | --------------------------------------------------- |
+| `--tsconfig <path>`          | Path to tsconfig.json                            | `./tsconfig.json`                                   |
+| `-c, --config <path>`        | Path to the generator config file                | auto-detected                                       |
+| `-o, --output <path>`        | Output file path                                 | `./custom-elements.json`                            |
+| `--include <patterns...>`    | Glob patterns to include                         | `src/**/*.{ts,tsx,js,jsx}` when `src/` exists       |
+| `--exclude <patterns...>`    | Glob patterns to exclude                         | Tests, specs, stories, `dist/`, and `node_modules/` |
+| `--no-inheritance`           | Disable inheritance materialization              | -                                                   |
+| `--plugin <paths...>`        | Additional plugin paths to load                  | -                                                   |
+| `--conflict-policy <policy>` | Detector conflict policy: `throw` \| `last-wins` | `last-wins`                                         |
 
 The config file may set `filePath` for the manifest path. The `--output` flag
 takes precedence over `filePath`.

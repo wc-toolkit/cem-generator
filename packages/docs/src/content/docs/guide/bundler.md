@@ -26,9 +26,7 @@ import { defineConfig } from "vite";
 import { cemGeneratorPlugin } from "@wc-toolkit/cem-generator-bundler/vite";
 
 export default defineConfig({
-  plugins: [
-    cemGeneratorPlugin(),
-  ],
+  plugins: [cemGeneratorPlugin()],
 });
 ```
 
@@ -63,9 +61,7 @@ Webpack uses a class-based adapter:
 
 ```js
 // webpack.config.js
-const { CemGeneratorWebpackPlugin } = require(
-  "@wc-toolkit/cem-generator-bundler/webpack"
-);
+const { CemGeneratorWebpackPlugin } = require("@wc-toolkit/cem-generator-bundler/webpack");
 
 module.exports = {
   plugins: [
@@ -84,18 +80,18 @@ entry point. These paths are registered with Webpack's file watcher.
 
 The plugin accepts the core generator options, plus bundler-specific options:
 
-| Option | Default | Description |
-| --- | --- | --- |
-| `config` | auto-discovered | Path to `cem-generator.config.mjs`, `.js`, `.cjs`, or `.ts` |
-| `tsConfigPath` | `tsconfig.json` | TypeScript configuration used for analysis |
-| `output` | `custom-elements.json` | Manifest output path |
-| `include` | all program files | File patterns to analyze |
-| `exclude` | none | File patterns to skip |
-| `plugins` | none | Core detector and annotator plugins |
-| `inheritance` | enabled | Inheritance materialization options |
-| `debounceMs` | `120` | Watch rerun debounce delay |
-| `runInServe` | `true` | Run on Vite dev-server startup and changes |
-| `watchPaths` | none | Extra paths registered by the Webpack adapter |
+| Option         | Default                | Description                                                 |
+| -------------- | ---------------------- | ----------------------------------------------------------- |
+| `config`       | auto-discovered        | Path to `cem-generator.config.mjs`, `.js`, `.cjs`, or `.ts` |
+| `tsConfigPath` | `tsconfig.json`        | TypeScript configuration used for analysis                  |
+| `output`       | `custom-elements.json` | Manifest output path                                        |
+| `include`      | all program files      | File patterns to analyze                                    |
+| `exclude`      | none                   | File patterns to skip                                       |
+| `plugins`      | none                   | Core detector and annotator plugins                         |
+| `inheritance`  | enabled                | Inheritance materialization options                         |
+| `debounceMs`   | `120`                  | Watch rerun debounce delay                                  |
+| `runInServe`   | `true`                 | Run on Vite dev-server startup and changes                  |
+| `watchPaths`   | none                   | Extra paths registered by the Webpack adapter               |
 
 For larger generator configurations, use the auto-discovered config file:
 
@@ -127,12 +123,13 @@ You can choose between three configuration approaches:
    ```
 
    Relative paths are resolved from the bundler root.
+
 3. **Inline options** — configure the generator directly in the bundler
    configuration when a separate config file is unnecessary:
 
    ```ts
-    cemGeneratorPlugin({
-      include: ["src/**/*.ts"],
+   cemGeneratorPlugin({
+     include: ["src/**/*.ts"],
      output: "dist/custom-elements.json",
    });
    ```

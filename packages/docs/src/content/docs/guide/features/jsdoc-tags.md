@@ -66,5 +66,5 @@ generateCem({
 });
 ```
 
-- `mappedName` changes the emitted property name. 
+- `mappedName` changes the emitted property name.
 - `isArray` emits a one-item array even when the tag occurs only once; repeated tags are always collected into an array.

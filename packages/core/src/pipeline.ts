@@ -36,10 +36,7 @@ import {
   extractExternalModules,
   type InheritancePluginOptions,
 } from "./inheritance-plugin.js";
-import {
-  validateGeneratedManifest,
-  type ManifestValidationOptions,
-} from "./validation.js";
+import { validateGeneratedManifest, type ManifestValidationOptions } from "./validation.js";
 
 export const TARGET_CEM_SCHEMA_VERSION = "2.1.0";
 
@@ -134,7 +131,7 @@ export interface RunOptions {
 }
 
 export function generateCem(options: RunOptions = {}): CemPackage {
-const {
+  const {
     plugins = [],
     conflictPolicy = "last-wins",
     inheritance = {},
@@ -176,26 +173,43 @@ const {
     projectDir,
     allPlugins,
     sourceFiles,
-    program.getCompilerOptions()
+    program.getCompilerOptions(),
   );
-  const cssFiles = getCssFiles(projectDir, [...sourceFiles, ...additionalFiles], program.getCompilerOptions());
-  const filteredFiles = filterSourceFiles([...sourceFiles, ...additionalFiles, ...cssFiles], include, exclude, projectDir);
+  const cssFiles = getCssFiles(
+    projectDir,
+    [...sourceFiles, ...additionalFiles],
+    program.getCompilerOptions(),
+  );
+  const filteredFiles = filterSourceFiles(
+    [...sourceFiles, ...additionalFiles, ...cssFiles],
+    include,
+    exclude,
+    projectDir,
+  );
   const detectors = allPlugins.filter(isDetectorPlugin);
   const annotators = allPlugins.filter(isAnnotatorPlugin);
 
   const manifest: InternalManifest = { schemaVersion: TARGET_CEM_SCHEMA_VERSION, modules: [] };
 
   for (const sourceFile of filteredFiles) {
-      const moduleDeclarations = analyzeFile(sourceFile, checker, detectors, conflictPolicy, typeParsing);
+    const moduleDeclarations = analyzeFile(
+      sourceFile,
+      checker,
+      detectors,
+      conflictPolicy,
+      typeParsing,
+    );
     if (moduleDeclarations.length > 0) {
       const pathDeclaration = moduleDeclarations.find(
-        (declaration) => declaration.tagName && !modulePathExclude.includes(declaration.name)
+        (declaration) => declaration.tagName && !modulePathExclude.includes(declaration.name),
       );
       const sourcePath = sourceFile.fileName;
       const resolvedPath = modulePathSkip
         ? sourcePath
         : modulePathTemplate
-          ? normalizeModulePath(modulePathTemplate(sourcePath, pathDeclaration?.name, pathDeclaration?.tagName))
+          ? normalizeModulePath(
+              modulePathTemplate(sourcePath, pathDeclaration?.name, pathDeclaration?.tagName),
+            )
           : runtimeResolver(sourcePath);
       manifest.modules.push({
         source: sourcePath,
@@ -203,7 +217,11 @@ const {
         ...(!modulePathSkip && typeDefinitionPathTemplate && pathDeclaration
           ? {
               typeDefinitionPath: normalizeModulePath(
-                typeDefinitionPathTemplate(sourcePath, pathDeclaration.name, pathDeclaration.tagName)
+                typeDefinitionPathTemplate(
+                  sourcePath,
+                  pathDeclaration.name,
+                  pathDeclaration.tagName,
+                ),
               ),
             }
           : {}),
@@ -224,7 +242,13 @@ const {
     excludedNames: new Set(modulePathExclude),
   });
   normalizeSourcePaths(cem, projectDir);
-  validateGeneratedManifest(cem, manifest, checker, [...sourceFiles, ...additionalFiles], validation);
+  validateGeneratedManifest(
+    cem,
+    manifest,
+    checker,
+    [...sourceFiles, ...additionalFiles],
+    validation,
+  );
   for (const plugin of allPlugins) {
     plugin.afterGenerate?.(cem);
   }
@@ -234,7 +258,7 @@ const {
 function getCssFiles(
   projectDir: string,
   existingFiles: ts.SourceFile[],
-  compilerOptions: ts.CompilerOptions
+  compilerOptions: ts.CompilerOptions,
 ): ts.SourceFile[] {
   const existing = new Set(existingFiles.map((file) => path.resolve(file.fileName)));
   const result: ts.SourceFile[] = [];
@@ -245,14 +269,20 @@ function getCssFiles(
       const filePath = path.join(directory, entry.name);
       if (entry.isDirectory()) {
         visit(filePath);
-      } else if (entry.isFile() && entry.name.endsWith(".css") && !existing.has(path.resolve(filePath))) {
-        result.push(ts.createSourceFile(
-          filePath,
-          fs.readFileSync(filePath, "utf-8"),
-          compilerOptions.target ?? ts.ScriptTarget.Latest,
-          true,
-          ts.ScriptKind.Unknown
-        ));
+      } else if (
+        entry.isFile() &&
+        entry.name.endsWith(".css") &&
+        !existing.has(path.resolve(filePath))
+      ) {
+        result.push(
+          ts.createSourceFile(
+            filePath,
+            fs.readFileSync(filePath, "utf-8"),
+            compilerOptions.target ?? ts.ScriptTarget.Latest,
+            true,
+            ts.ScriptKind.Unknown,
+          ),
+        );
       }
     }
   }
@@ -265,7 +295,9 @@ function normalizeSourcePaths(cem: CemPackage, projectDir: string): void {
   for (const module of cem.modules ?? []) {
     const source = (module as unknown as { source?: string }).source;
     if (!source || !path.isAbsolute(source)) continue;
-    (module as unknown as { source: string }).source = normalizeModulePath(path.relative(projectDir, source));
+    (module as unknown as { source: string }).source = normalizeModulePath(
+      path.relative(projectDir, source),
+    );
   }
 }
 
@@ -273,7 +305,7 @@ function getAdditionalPluginFiles(
   projectDir: string,
   plugins: Plugin[],
   existingFiles: ts.SourceFile[],
-  compilerOptions: ts.CompilerOptions
+  compilerOptions: ts.CompilerOptions,
 ): ts.SourceFile[] {
   if (!plugins.some((plugin) => isDetectorPlugin(plugin) && plugin.name === "svelte")) return [];
   const existing = new Set(existingFiles.map((file) => path.resolve(file.fileName)));
@@ -281,13 +313,31 @@ function getAdditionalPluginFiles(
 
   function visit(directory: string) {
     for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
-      if (entry.name === "node_modules" || entry.name === ".git" || entry.name === "dist" || entry.name === ".astro") continue;
+      if (
+        entry.name === "node_modules" ||
+        entry.name === ".git" ||
+        entry.name === "dist" ||
+        entry.name === ".astro"
+      )
+        continue;
       const filePath = path.join(directory, entry.name);
       if (entry.isDirectory()) {
         visit(filePath);
-      } else if (entry.isFile() && entry.name.endsWith(".svelte") && !existing.has(path.resolve(filePath))) {
+      } else if (
+        entry.isFile() &&
+        entry.name.endsWith(".svelte") &&
+        !existing.has(path.resolve(filePath))
+      ) {
         const sourceText = fs.readFileSync(filePath, "utf-8");
-        result.push(ts.createSourceFile(filePath, sourceText, compilerOptions.target ?? ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX));
+        result.push(
+          ts.createSourceFile(
+            filePath,
+            sourceText,
+            compilerOptions.target ?? ts.ScriptTarget.Latest,
+            true,
+            ts.ScriptKind.TSX,
+          ),
+        );
       }
     }
   }
@@ -301,11 +351,16 @@ type ExportTarget = { key: string; types?: string; runtime?: string };
 function readCompilerOptions(configFilePath: string): ts.CompilerOptions {
   const configFile = ts.readConfigFile(configFilePath, ts.sys.readFile);
   if (configFile.error) return {};
-  return ts.parseJsonConfigFileContent(configFile.config, ts.sys, path.dirname(configFilePath)).options;
+  return ts.parseJsonConfigFileContent(configFile.config, ts.sys, path.dirname(configFilePath))
+    .options;
 }
 
-function createRuntimeResolver(projectDir: string, compilerOptions: ts.CompilerOptions): (sourceFile: string) => string {
-  const relativeSourcePath = (sourceFile: string) => toPosixPath(path.relative(projectDir, sourceFile));
+function createRuntimeResolver(
+  projectDir: string,
+  compilerOptions: ts.CompilerOptions,
+): (sourceFile: string) => string {
+  const relativeSourcePath = (sourceFile: string) =>
+    toPosixPath(path.relative(projectDir, sourceFile));
   const packageRoot = findPackageRoot(projectDir);
   if (!packageRoot) return relativeSourcePath;
 
@@ -324,15 +379,21 @@ function createRuntimeResolver(projectDir: string, compilerOptions: ts.CompilerO
     const sourceRoot = compilerOptions.rootDir
       ? path.resolve(packageRoot, compilerOptions.rootDir)
       : projectDir;
-    const rootRelative = toPosixPath(path.relative(sourceRoot, sourceFile))
-      .replace(/\.(tsx?|mts|cts|jsx?|mjs|cjs)$/, "");
+    const rootRelative = toPosixPath(path.relative(sourceRoot, sourceFile)).replace(
+      /\.(tsx?|mts|cts|jsx?|mjs|cjs)$/,
+      "",
+    );
     const exportResolved = resolveExportedSourcePath(targets, rootRelative);
     if (exportResolved) return exportResolved;
 
-    const runtimeCandidates = outputCandidates(relativeSource, projectDir, packageRoot, compilerOptions);
+    const runtimeCandidates = outputCandidates(
+      relativeSource,
+      projectDir,
+      packageRoot,
+      compilerOptions,
+    );
     const runtimeCandidate = runtimeCandidates.find((candidate) => candidate.endsWith(".js"));
-    const declarationCandidate = runtimeCandidate
-      ?.replace(/\.js$/, ".d.ts");
+    const declarationCandidate = runtimeCandidate?.replace(/\.js$/, ".d.ts");
 
     for (const target of targets) {
       const declarationForTypes = target.types?.endsWith("*")
@@ -342,7 +403,9 @@ function createRuntimeResolver(projectDir: string, compilerOptions: ts.CompilerO
         matchExportTarget(target.types, declarationForTypes) ??
         matchExportTarget(target.runtime, runtimeCandidate);
       if (match !== undefined && target.runtime) {
-        const resolved = normalizeModulePath(target.runtime.replace(/^\.\//, "").replace("*", match));
+        const resolved = normalizeModulePath(
+          target.runtime.replace(/^\.\//, "").replace("*", match),
+        );
         if (!path.posix.extname(resolved) && target.runtime.endsWith("*") && runtimeCandidate) {
           return `${resolved}${path.posix.extname(runtimeCandidate)}`;
         }
@@ -350,11 +413,17 @@ function createRuntimeResolver(projectDir: string, compilerOptions: ts.CompilerO
       }
     }
 
-    return runtimeCandidates.find((candidate) => candidate.endsWith(".js")) ?? relativeSourcePath(sourceFile);
+    return (
+      runtimeCandidates.find((candidate) => candidate.endsWith(".js")) ??
+      relativeSourcePath(sourceFile)
+    );
   };
 }
 
-function resolveExportedSourcePath(targets: ExportTarget[], rootRelative: string): string | undefined {
+function resolveExportedSourcePath(
+  targets: ExportTarget[],
+  rootRelative: string,
+): string | undefined {
   for (const target of targets) {
     if (!target.runtime?.includes("*")) continue;
     const runtimeTarget = target.runtime.replace(/^\.\//, "");
@@ -446,7 +515,7 @@ function outputCandidates(
   relativeSource: string,
   projectDir: string,
   packageRoot: string,
-  compilerOptions: ts.CompilerOptions
+  compilerOptions: ts.CompilerOptions,
 ): string[] {
   const sourceWithoutExtension = relativeSource.replace(/\.(tsx?|mts|cts|jsx?|mjs|cjs)$/, "");
   const sourceRoot = compilerOptions.rootDir
@@ -471,7 +540,10 @@ function outputCandidates(
   return [...new Set(candidates)];
 }
 
-function matchExportTarget(target: string | undefined, candidate: string | undefined): string | undefined {
+function matchExportTarget(
+  target: string | undefined,
+  candidate: string | undefined,
+): string | undefined {
   if (!target || !candidate) return undefined;
   const normalizedTarget = target.replace(/^\.\//, "");
   if (!normalizedTarget.includes("*")) return normalizedTarget === candidate ? "" : undefined;
@@ -487,11 +559,21 @@ function createProgramResult(configFilePath: string): ProgramResult {
     return fallback;
   }
 
-  const parsed = ts.parseJsonConfigFileContent(configFile.config, ts.sys, path.dirname(configFilePath));
-  const options: ts.CompilerOptions = { ...parsed.options, allowJs: true, checkJs: parsed.options.checkJs ?? false };
+  const parsed = ts.parseJsonConfigFileContent(
+    configFile.config,
+    ts.sys,
+    path.dirname(configFilePath),
+  );
+  const options: ts.CompilerOptions = {
+    ...parsed.options,
+    allowJs: true,
+    checkJs: parsed.options.checkJs ?? false,
+  };
   const program = ts.createProgram({ rootNames: parsed.fileNames, options });
   const checker = program.getTypeChecker();
-  const sourceFiles = program.getSourceFiles().filter((sf) => !sf.isDeclarationFile && !sf.fileName.includes("node_modules"));
+  const sourceFiles = program
+    .getSourceFiles()
+    .filter((sf) => !sf.isDeclarationFile && !sf.fileName.includes("node_modules"));
   return { program, checker, sourceFiles };
 }
 
@@ -500,17 +582,25 @@ function createDefaultProgram(projectDir: string): ProgramResult {
   const configFile = ts.readConfigFile(configPath, ts.sys.readFile);
   if (!configFile.error) {
     const parsed = ts.parseJsonConfigFileContent(configFile.config, ts.sys, projectDir);
-    const options: ts.CompilerOptions = { ...parsed.options, allowJs: true, checkJs: parsed.options.checkJs ?? false };
+    const options: ts.CompilerOptions = {
+      ...parsed.options,
+      allowJs: true,
+      checkJs: parsed.options.checkJs ?? false,
+    };
     const program = ts.createProgram({ rootNames: parsed.fileNames, options });
     const checker = program.getTypeChecker();
-    const sourceFiles = program.getSourceFiles().filter((sf) => !sf.isDeclarationFile && !sf.fileName.includes("node_modules"));
+    const sourceFiles = program
+      .getSourceFiles()
+      .filter((sf) => !sf.isDeclarationFile && !sf.fileName.includes("node_modules"));
     return { program, checker, sourceFiles };
   }
 
   const options: ts.CompilerOptions = { allowJs: true, checkJs: false };
   const program = ts.createProgram({ rootNames: [projectDir], options });
   const checker = program.getTypeChecker();
-  const sourceFiles = program.getSourceFiles().filter((sf) => !sf.isDeclarationFile && !sf.fileName.includes("node_modules"));
+  const sourceFiles = program
+    .getSourceFiles()
+    .filter((sf) => !sf.isDeclarationFile && !sf.fileName.includes("node_modules"));
   return { program, checker, sourceFiles };
 }
 
@@ -518,7 +608,7 @@ function filterSourceFiles(
   sourceFiles: ts.SourceFile[],
   include: string[] | undefined,
   exclude: string[] | undefined,
-  projectDir: string
+  projectDir: string,
 ): ts.SourceFile[] {
   if ((!include || include.length === 0) && (!exclude || exclude.length === 0)) {
     return sourceFiles;
@@ -540,7 +630,7 @@ function matchesAnyPattern(fileName: string, patterns: string[], projectDir: str
     const normalized = normalizeGlobPattern(pattern);
     if (!hasGlobMagic(normalized)) {
       return candidates.some(
-        (candidate) => candidate === normalized || candidate.startsWith(`${normalized}/`)
+        (candidate) => candidate === normalized || candidate.startsWith(`${normalized}/`),
       );
     }
     const re = globToRegExp(normalized);
@@ -640,20 +730,23 @@ function globToRegExp(glob: string): RegExp {
 
 function applyBuiltInInheritance(
   manifest: InternalManifest,
-  inheritance: false | InheritancePluginOptions
+  inheritance: false | InheritancePluginOptions,
 ) {
   if (inheritance === false) return;
   const patch = buildInheritancePatch(manifest, inheritance);
   applyManifestPatch(manifest, "core:inheritance", patch, "Annotator");
 
   if (inheritance.includeExternalManifests) {
-    mergeExternalModulesIntoManifest(manifest, extractExternalModules(inheritance.externalManifests));
+    mergeExternalModulesIntoManifest(
+      manifest,
+      extractExternalModules(inheritance.externalManifests),
+    );
   }
 }
 
 function mergeExternalModulesIntoManifest(
   manifest: InternalManifest,
-  externalModules: InternalManifest["modules"]
+  externalModules: InternalManifest["modules"],
 ) {
   const existingDeclKeys = new Set<string>();
   for (const mod of manifest.modules) {
@@ -663,7 +756,9 @@ function mergeExternalModulesIntoManifest(
   }
 
   for (const extMod of externalModules) {
-    const filtered = extMod.declarations.filter((decl) => !existingDeclKeys.has(`${extMod.path}#${decl.name}`));
+    const filtered = extMod.declarations.filter(
+      (decl) => !existingDeclKeys.has(`${extMod.path}#${decl.name}`),
+    );
     if (filtered.length === 0) continue;
     manifest.modules.push({ source: extMod.source, path: extMod.path, declarations: filtered });
     for (const decl of filtered) {
@@ -677,10 +772,16 @@ function analyzeFile(
   checker: ts.TypeChecker,
   detectors: DetectorPlugin[],
   conflictPolicy: "throw" | "last-wins",
-  typeParsing: "none" | "public" | "all"
+  typeParsing: "none" | "public" | "all",
 ): ClassFragment[] {
   const sourceText = sourceFile.getFullText();
-  const context: FileContext = { filePath: sourceFile.fileName, sourceText, sourceFile, checker, typeParsing };
+  const context: FileContext = {
+    filePath: sourceFile.fileName,
+    sourceText,
+    sourceFile,
+    checker,
+    typeParsing,
+  };
   const claimedByPlugin = new Map<DetectorPlugin, boolean>();
 
   function claimed(plugin: DetectorPlugin): boolean {
@@ -745,7 +846,7 @@ function mergeClassFragment({
       throw new Error(
         `Detector conflict on "${className}.${field}": plugin "${previousPlugin}" and ` +
           `"${pluginName}" produced different values. ` +
-          `Set conflictPolicy: "last-wins" to allow overrides.`
+          `Set conflictPolicy: "last-wins" to allow overrides.`,
       );
     }
 
@@ -803,8 +904,13 @@ function applyAnnotators(manifest: InternalManifest, annotators: AnnotatorPlugin
 function applyManifestPatch(
   manifest: InternalManifest,
   pluginName: string,
-  patch: Record<string, Partial<ClassFragment>> | { byDeclaration?: Record<string, Partial<ClassFragment>>; byClassName?: Record<string, Partial<ClassFragment>> },
-  pluginKind: "Detector" | "Annotator"
+  patch:
+    | Record<string, Partial<ClassFragment>>
+    | {
+        byDeclaration?: Record<string, Partial<ClassFragment>>;
+        byClassName?: Record<string, Partial<ClassFragment>>;
+      },
+  pluginKind: "Detector" | "Annotator",
 ) {
   const declarationByKey = new Map<string, ClassFragment>();
   for (const mod of manifest.modules) {
@@ -816,15 +922,21 @@ function applyManifestPatch(
   const isStructuredPatch =
     !!patch &&
     typeof patch === "object" &&
-    ("byDeclaration" in patch || "byClassName" in patch || "replaceByDeclaration" in patch || "replaceByClassName" in patch);
+    ("byDeclaration" in patch ||
+      "byClassName" in patch ||
+      "replaceByDeclaration" in patch ||
+      "replaceByClassName" in patch);
 
-  const byDeclaration = isStructuredPatch && "byDeclaration" in patch ? patch.byDeclaration ?? {} : {};
+  const byDeclaration =
+    isStructuredPatch && "byDeclaration" in patch ? (patch.byDeclaration ?? {}) : {};
   const byClassName =
     isStructuredPatch && "byClassName" in patch
-      ? patch.byClassName ?? {}
+      ? (patch.byClassName ?? {})
       : (patch as Record<string, Partial<ClassFragment>>);
-  const replaceByDeclaration = isStructuredPatch && "replaceByDeclaration" in patch ? patch.replaceByDeclaration ?? {} : {};
-  const replaceByClassName = isStructuredPatch && "replaceByClassName" in patch ? patch.replaceByClassName ?? {} : {};
+  const replaceByDeclaration =
+    isStructuredPatch && "replaceByDeclaration" in patch ? (patch.replaceByDeclaration ?? {}) : {};
+  const replaceByClassName =
+    isStructuredPatch && "replaceByClassName" in patch ? (patch.replaceByClassName ?? {}) : {};
 
   for (const [declarationKey, patchForClass] of Object.entries(replaceByDeclaration)) {
     const decl = declarationByKey.get(declarationKey);
@@ -854,13 +966,10 @@ function applyManifestPatch(
   }
 }
 
-function sortManifest(
-  modules: JavaScriptModule[],
-  deprecatedLast: boolean
-): JavaScriptModule[] {
+function sortManifest(modules: JavaScriptModule[], deprecatedLast: boolean): JavaScriptModule[] {
   const sortByName = <T extends { name: string; deprecated?: boolean | string }>(
     items: T[],
-    deprecatedLast = false
+    deprecatedLast = false,
   ): T[] => {
     const getDeprecated = (item: T): boolean => {
       return "deprecated" in item && !!item.deprecated;
@@ -888,7 +997,11 @@ function sortManifest(
     const sortedDeclarations = sortByName(mod.declarations ?? [], deprecatedLast);
     const sortedExports = sortByName(mod.exports ?? [], deprecatedLast);
 
-    const sortedMod: JavaScriptModule = { ...mod, declarations: sortedDeclarations, exports: sortedExports };
+    const sortedMod: JavaScriptModule = {
+      ...mod,
+      declarations: sortedDeclarations,
+      exports: sortedExports,
+    };
 
     if (sortedMod.declarations) {
       sortedMod.declarations = sortedMod.declarations.map((decl) => {
@@ -944,7 +1057,7 @@ function toCustomTagValue(text: string): Record<string, unknown> {
 function toCustomTagFields(
   customJsDocTags: Array<{ name: string; text: string }> | undefined,
   config: CustomTagOptions,
-  existing?: object
+  existing?: object,
 ): Record<string, unknown> {
   const grouped = new Map<string, unknown>();
 
@@ -977,11 +1090,11 @@ function toCemPackage(
   } = {
     sort: false,
     deprecatedLast: false,
-  }
+  },
 ): CemPackage {
   let modules: JavaScriptModule[] = internal.modules.map((mod) => {
     const declarations: CustomElementDeclaration[] = mod.declarations.map((decl) =>
-      toCustomElementDeclaration(decl, options.customJsDocTags)
+      toCustomElementDeclaration(decl, options.customJsDocTags),
     );
     const jsExports: JavaScriptExport[] = mod.declarations
       .filter((decl) => !!asString(decl.exportName))
@@ -1018,10 +1131,14 @@ function toCemPackage(
     const definitionModules: JavaScriptModule[] = [];
     for (const mod of internal.modules) {
       for (const declaration of mod.declarations.filter(
-        (item) => item.tagName && !options.excludedNames?.has(item.name)
+        (item) => item.tagName && !options.excludedNames?.has(item.name),
       )) {
         const definitionPath = normalizeModulePath(
-          options.definitionPathTemplate(mod.source ?? mod.path, declaration.name, declaration.tagName)
+          options.definitionPathTemplate(
+            mod.source ?? mod.path,
+            declaration.name,
+            declaration.tagName,
+          ),
         );
         definitionModules.push({
           kind: "javascript-module",
@@ -1052,7 +1169,7 @@ function toCemPackage(
 
 function rewriteKnownModuleReferences(
   modules: JavaScriptModule[],
-  internal: InternalManifest
+  internal: InternalManifest,
 ): void {
   const paths = new Map<string, string>();
   for (const module of internal.modules) {
@@ -1084,7 +1201,7 @@ function rewriteModuleReferences(value: unknown, paths: Map<string, string>): vo
 
 function toCustomElementDeclaration(
   fragment: ClassFragment,
-  customJsDocTagsConfig?: CustomTagOptions
+  customJsDocTagsConfig?: CustomTagOptions,
 ): CustomElementDeclaration {
   const known = {
     kind: asString(fragment.kind) ?? "class",
@@ -1134,15 +1251,15 @@ function toCustomElementDeclaration(
           "description",
           "customJsDocTags",
           "omitInherited",
-        ].includes(key)
-    )
+        ].includes(key),
+    ),
   );
 
   const customTagFields = customJsDocTagsConfig
     ? toCustomTagFields(
         (fragment as { customJsDocTags?: Array<{ name: string; text: string }> }).customJsDocTags,
         customJsDocTagsConfig,
-        { ...(known as Record<string, unknown>), ...extraFields }
+        { ...(known as Record<string, unknown>), ...extraFields },
       )
     : {};
 
@@ -1155,7 +1272,7 @@ function toCustomElementDeclaration(
 
 function toMembers(
   fragment: ClassFragment,
-  customJsDocTagsConfig?: CustomTagOptions
+  customJsDocTagsConfig?: CustomTagOptions,
 ): Array<ClassField | ClassMethod> | undefined {
   if (!fragment.members?.length) return undefined;
   const converted = fragment.members
@@ -1171,13 +1288,13 @@ function toMembers(
           privacy: asPrivacy(member.privacy),
           static: asBoolean(member.static),
           parameters: toParameters(member.parameters),
-           return: toMethodReturn(member.return),
-           ...(member as Record<string, unknown>).inheritedFrom
-             ? { inheritedFrom: (member as Record<string, unknown>).inheritedFrom }
-             : {},
+          return: toMethodReturn(member.return),
+          ...((member as Record<string, unknown>).inheritedFrom
+            ? { inheritedFrom: (member as Record<string, unknown>).inheritedFrom }
+            : {}),
           ...(toType((member as Record<string, unknown>).parsedType)
             ? {
-                "parsedType": toType((member as Record<string, unknown>).parsedType),
+                parsedType: toType((member as Record<string, unknown>).parsedType),
               }
             : {}),
         } as unknown as ClassMethod;
@@ -1187,33 +1304,33 @@ function toMembers(
             toCustomTagFields(
               member.customJsDocTags as Array<{ name: string; text: string }> | undefined,
               customJsDocTagsConfig,
-              method
-            )
+              method,
+            ),
           );
         }
         return method;
       }
 
-        const field = {
-          kind: "field",
-          name: member.name,
+      const field = {
+        kind: "field",
+        name: member.name,
         description: asString(member.description),
         summary: asString(member.summary),
         deprecated: asDeprecated(member.deprecated),
         privacy: asPrivacy(member.privacy),
         static: asBoolean(member.static),
-          readonly: asBoolean(member.readonly),
-          default: asString(member.default),
-          attribute: asString((member as Record<string, unknown>).attribute),
-          reflects: asBoolean((member as Record<string, unknown>).reflects),
-           internal: asBoolean((member as Record<string, unknown>).internal),
-           ...(member as Record<string, unknown>).inheritedFrom
-             ? { inheritedFrom: (member as Record<string, unknown>).inheritedFrom }
-             : {},
-          type: toType(member.type),
+        readonly: asBoolean(member.readonly),
+        default: asString(member.default),
+        attribute: asString((member as Record<string, unknown>).attribute),
+        reflects: asBoolean((member as Record<string, unknown>).reflects),
+        internal: asBoolean((member as Record<string, unknown>).internal),
+        ...((member as Record<string, unknown>).inheritedFrom
+          ? { inheritedFrom: (member as Record<string, unknown>).inheritedFrom }
+          : {}),
+        type: toType(member.type),
         ...(toType((member as Record<string, unknown>).parsedType)
           ? {
-              "parsedType": toType((member as Record<string, unknown>).parsedType),
+              parsedType: toType((member as Record<string, unknown>).parsedType),
             }
           : {}),
       } as unknown as ClassField;
@@ -1223,8 +1340,8 @@ function toMembers(
           toCustomTagFields(
             member.customJsDocTags as Array<{ name: string; text: string }> | undefined,
             customJsDocTagsConfig,
-            field
-          )
+            field,
+          ),
         );
       }
       return field;
@@ -1234,9 +1351,7 @@ function toMembers(
   return converted.length ? converted : undefined;
 }
 
-function toAttributes(
-  attributes: ClassFragment["attributes"]
-): Attribute[] | undefined {
+function toAttributes(attributes: ClassFragment["attributes"]): Attribute[] | undefined {
   if (!attributes?.length) return undefined;
   const converted = attributes
     .map((attr) => ({
@@ -1247,7 +1362,7 @@ function toAttributes(
       type: toType(attr.type),
       ...(toType((attr as Record<string, unknown>).parsedType)
         ? {
-            "parsedType": toType((attr as Record<string, unknown>).parsedType),
+            parsedType: toType((attr as Record<string, unknown>).parsedType),
           }
         : {}),
       default: asString((attr as Record<string, unknown>).default),
@@ -1275,7 +1390,7 @@ function toEvents(events: ClassFragment["events"]): Event[] | undefined {
         : {}),
       ...(toType((event as Record<string, unknown>).parsedType)
         ? {
-            "parsedType": toType((event as Record<string, unknown>).parsedType),
+            parsedType: toType((event as Record<string, unknown>).parsedType),
           }
         : {}),
       ...inheritedFrom(event),
@@ -1298,7 +1413,7 @@ function toSlots(slots: ClassFragment["slots"]): Slot[] | undefined {
 }
 
 function toCssProperties(
-  cssProperties: ClassFragment["cssProperties"]
+  cssProperties: ClassFragment["cssProperties"],
 ): CssCustomProperty[] | undefined {
   if (!cssProperties?.length) return undefined;
   const converted = cssProperties.map((prop) => ({
@@ -1377,7 +1492,7 @@ function toParameters(params: unknown): Parameter[] | undefined {
       type: toType(rec.type),
       ...(toType(rec.parsedType)
         ? {
-            "parsedType": toType(rec.parsedType),
+            parsedType: toType(rec.parsedType),
           }
         : {}),
       optional: asBoolean(rec.optional),
@@ -1397,7 +1512,7 @@ function toMethodReturn(value: unknown): { type?: CemType; description?: string 
   if (!type && !description && !parsedType) return undefined;
   return {
     type,
-    ...(parsedType ? { "parsedType": parsedType } : {}),
+    ...(parsedType ? { parsedType: parsedType } : {}),
     description,
   };
 }
@@ -1406,13 +1521,13 @@ function applyAdditivePatch(
   pluginKind: "Detector" | "Annotator",
   pluginName: string,
   decl: ClassFragment,
-  patchForClass: Partial<ClassFragment>
+  patchForClass: Partial<ClassFragment>,
 ) {
   for (const [field, value] of Object.entries(patchForClass)) {
     if (field in decl) {
       throw new Error(
         `${pluginKind} plugin "${pluginName}" attempted to overwrite existing field ` +
-          `"${field}" on "${decl.name}". Patches may only add new fields.`
+          `"${field}" on "${decl.name}". Patches may only add new fields.`,
       );
     }
     (decl as Record<string, unknown>)[field] = value;

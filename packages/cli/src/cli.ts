@@ -69,10 +69,7 @@ type InitMode = "cli" | "code";
 
 const program = new Command();
 
-program
-  .name("cem")
-  .description("Custom Elements Manifest Generator")
-  .version("0.1.0");
+program.name("cem").description("Custom Elements Manifest Generator").version("0.1.0");
 
 program
   .command("generate")
@@ -88,7 +85,10 @@ program
   .option("--no-sort", "Disable alphabetical sorting of manifest entries")
   .option("--deprecated-last", "Move deprecated items to end of sorted lists")
   .option("--validate-exported-types <severity>", "Exported-type validation: off | warning | error")
-  .option("--validation-invariants <severity>", "Manifest invariant validation: off | warning | error")
+  .option(
+    "--validation-invariants <severity>",
+    "Manifest invariant validation: off | warning | error",
+  )
   .action(async (options) => {
     try {
       const cwd = process.cwd();
@@ -120,7 +120,7 @@ program
           throw new Error("--validation-invariants must be one of: off, warning, error");
         }
         cliOptions.validation = {
-          ...(cliOptions.validation ?? {}),
+          ...cliOptions.validation,
           invariants: options.validationInvariants,
         };
       }
@@ -156,7 +156,9 @@ program
 
       const manifest = generateCem(mergedOptions);
 
-      const outputPath = path.resolve(options.output ?? mergedOptions.filePath ?? "./custom-elements.json");
+      const outputPath = path.resolve(
+        options.output ?? mergedOptions.filePath ?? "./custom-elements.json",
+      );
       const outputDir = path.dirname(outputPath);
       if (!fs.existsSync(outputDir)) {
         fs.mkdirSync(outputDir, { recursive: true });
@@ -176,7 +178,10 @@ program
   .option("-c, --config <path>", "Config file path", "./cem-generator.config.mjs")
   .option("--mode <mode>", "How to run the generator: cli | code")
   .option("--output <path>", "Generated code file path", "./generate-cem.ts")
-  .option("--plugin <names...>", "Parser plugins to include (lit, fast, stencil, preact, vue, solid, svelte)")
+  .option(
+    "--plugin <names...>",
+    "Parser plugins to include (lit, fast, stencil, preact, vue, solid, svelte)",
+  )
   .option("--install", "Install selected plugin packages")
   .option("--yes", "Create a config without prompting for plugins")
   .option("--force", "Overwrite existing output files")
@@ -203,13 +208,14 @@ program
           ? await promptForModeAndPlugins(options.plugin)
           : await promptForModeAndPlugins());
       }
-      const selectedPlugins = PLUGIN_CHOICES.filter((plugin) => selectedNames.includes(plugin.name));
+      const selectedPlugins = PLUGIN_CHOICES.filter((plugin) =>
+        selectedNames.includes(plugin.name),
+      );
       const selectedIntegrations = INTEGRATION_CHOICES.filter((integration) =>
         selectedIntegrationNames.includes(integration.name),
       );
-      const generatorPackage = mode === "cli"
-        ? "@wc-toolkit/cem-generator-cli"
-        : "@wc-toolkit/cem-generator";
+      const generatorPackage =
+        mode === "cli" ? "@wc-toolkit/cem-generator-cli" : "@wc-toolkit/cem-generator";
       const packagesToInstall = [
         generatorPackage,
         ...(mode === "code" ? ["tsx"] : []),
@@ -222,21 +228,27 @@ program
       const targetPaths = mode === "cli" ? [configPath] : [configPath, outputPath];
       const existingPath = targetPaths.find((targetPath) => fs.existsSync(targetPath));
       if (existingPath && !options.force) {
-        throw new Error(`Output file already exists: ${existingPath}. Use --force to overwrite it.`);
+        throw new Error(
+          `Output file already exists: ${existingPath}. Use --force to overwrite it.`,
+        );
       }
 
-      const shouldInstall = options.install ?? (!options.yes && !options.mode
-        ? await promptForInstall()
-        : false);
+      const shouldInstall =
+        options.install ?? (!options.yes && !options.mode ? await promptForInstall() : false);
       if (shouldInstall) {
         installPluginDependencies(packagesToInstall);
       }
 
-      const addManifestToPackageJson = !options.yes && await promptForPackageManifest(cwd);
+      const addManifestToPackageJson = !options.yes && (await promptForPackageManifest(cwd));
 
       fs.writeFileSync(
         configPath,
-        createConfigSource(selectedPlugins, selectedIntegrations, getDefaultInclude(cwd), DEFAULT_SOURCE_EXCLUDE),
+        createConfigSource(
+          selectedPlugins,
+          selectedIntegrations,
+          getDefaultInclude(cwd),
+          DEFAULT_SOURCE_EXCLUDE,
+        ),
         "utf-8",
       );
       console.log(`Created config file at ${configPath}`);
@@ -295,7 +307,13 @@ async function promptForModeAndPlugins(pluginNames?: string[]): Promise<{
     output.write("How will you run the generator? (1) CLI (2) code: ");
     const modeLine = await lines.next();
     if (modeLine.done) throw new Error("No mode selected.");
-    const mode = validateInitMode(modeLine.value.trim() === "1" ? "cli" : modeLine.value.trim() === "2" ? "code" : modeLine.value.trim());
+    const mode = validateInitMode(
+      modeLine.value.trim() === "1"
+        ? "cli"
+        : modeLine.value.trim() === "2"
+          ? "code"
+          : modeLine.value.trim(),
+    );
 
     console.log("What library are you using to author your web components?");
     LIBRARY_CHOICES.forEach((plugin, index) => console.log(`  ${index + 1}. ${plugin.name}`));
@@ -307,7 +325,9 @@ async function promptForModeAndPlugins(pluginNames?: string[]): Promise<{
     const selectedNames = parsePluginSelection(pluginsLine.value);
 
     console.log("Which integrations would you like to include? (multi-select)");
-    INTEGRATION_CHOICES.forEach((integration, index) => console.log(`  ${index + 1}. ${integration.label}`));
+    INTEGRATION_CHOICES.forEach((integration, index) =>
+      console.log(`  ${index + 1}. ${integration.label}`),
+    );
     console.log("Enter numbers separated by commas, or press Enter for no integrations.");
     output.write("Integrations: ");
     const integrationsLine = await lines.next();
@@ -373,7 +393,7 @@ async function promptForPackageManifest(cwd: string): Promise<boolean> {
     const { addManifest } = await inquirer.prompt<{ addManifest: boolean }>({
       type: "confirm",
       name: "addManifest",
-      message: `Add \"customElements\": \"${DEFAULT_MANIFEST_PATH.slice(2)}\" to package.json?`,
+      message: `Add "customElements": "${DEFAULT_MANIFEST_PATH.slice(2)}" to package.json?`,
       default: false,
     });
     return addManifest;
@@ -392,7 +412,10 @@ async function promptForPackageManifest(cwd: string): Promise<boolean> {
 
 function updatePackageJsonManifestPath(cwd: string, manifestPath: string): void {
   const packageJsonPath = path.join(cwd, "package.json");
-  const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf-8")) as Record<string, unknown>;
+  const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf-8")) as Record<
+    string,
+    unknown
+  >;
   packageJson.customElements = manifestPath.replace(/^\.\//, "");
   fs.writeFileSync(packageJsonPath, `${JSON.stringify(packageJson, null, 2)}\n`, "utf-8");
   console.log(`Updated package.json with customElements: ${packageJson.customElements}`);
@@ -400,13 +423,14 @@ function updatePackageJsonManifestPath(cwd: string, manifestPath: string): void 
 
 function installPluginDependencies(packages: string[]): void {
   const packageManager = detectPackageManager();
-  const args = packageManager === "npm"
-    ? ["install", "-D", ...packages]
-    : packageManager === "yarn"
-      ? ["add", "-D", ...packages]
-      : packageManager === "bun"
-        ? ["add", "-d", ...packages]
-        : ["add", "-D", ...packages];
+  const args =
+    packageManager === "npm"
+      ? ["install", "-D", ...packages]
+      : packageManager === "yarn"
+        ? ["add", "-D", ...packages]
+        : packageManager === "bun"
+          ? ["add", "-d", ...packages]
+          : ["add", "-D", ...packages];
 
   console.log(`Installing plugin packages with ${packageManager}...`);
   const result = spawnSync(packageManager, args, { stdio: "inherit" });
@@ -420,23 +444,28 @@ function printNextSteps(mode: InitMode, configPath: string, outputPath: string):
   const packageManager = detectPackageManager();
   if (mode === "cli") {
     const defaultConfigPath = path.resolve(process.cwd(), "cem-generator.config.mjs");
-    const configArgument = configPath === defaultConfigPath ? "" : ` --config ${toCommandPath(configPath)}`;
+    const configArgument =
+      configPath === defaultConfigPath ? "" : ` --config ${toCommandPath(configPath)}`;
     printPackageScript(`cem generate${configArgument}`, packageManager);
   } else {
     printPackageScript(`tsx ${toCommandPath(outputPath)}`, packageManager);
   }
 }
 
-function printPackageScript(command: string, packageManager: ReturnType<typeof detectPackageManager>): void {
-  const runCommand = packageManager === "npm"
-    ? "npm run cem"
-    : packageManager === "yarn"
-      ? "yarn cem"
-      : packageManager === "bun"
-        ? "bun run cem"
-        : "pnpm run cem";
+function printPackageScript(
+  command: string,
+  packageManager: ReturnType<typeof detectPackageManager>,
+): void {
+  const runCommand =
+    packageManager === "npm"
+      ? "npm run cem"
+      : packageManager === "yarn"
+        ? "yarn cem"
+        : packageManager === "bun"
+          ? "bun run cem"
+          : "pnpm run cem";
   console.log("  Add this script to package.json:");
-  console.log(`    \"cem\": \"${command}\"`);
+  console.log(`    "cem": "${command}"`);
   console.log(`  Run it with: ${runCommand}`);
 }
 
@@ -449,24 +478,33 @@ function toCommandPath(filePath: string): string {
 function detectPackageManager(): "npm" | "pnpm" | "yarn" | "bun" {
   if (fs.existsSync(path.resolve("pnpm-lock.yaml"))) return "pnpm";
   if (fs.existsSync(path.resolve("yarn.lock"))) return "yarn";
-  if (fs.existsSync(path.resolve("bun.lockb")) || fs.existsSync(path.resolve("bun.lock"))) return "bun";
+  if (fs.existsSync(path.resolve("bun.lockb")) || fs.existsSync(path.resolve("bun.lock")))
+    return "bun";
   return "npm";
 }
 
 function validatePluginNames(names: string[]): string[] {
   const validNames = new Set(PLUGIN_CHOICES.map((plugin) => plugin.name));
-  const invalidNames = names.filter((name) => !validNames.has(name as (typeof PLUGIN_CHOICES)[number]["name"]));
+  const invalidNames = names.filter(
+    (name) => !validNames.has(name as (typeof PLUGIN_CHOICES)[number]["name"]),
+  );
   if (invalidNames.length > 0) {
-    throw new Error(`Unknown plugin(s): ${invalidNames.join(", ")}. Choose from: ${[...validNames].join(", ")}`);
+    throw new Error(
+      `Unknown plugin(s): ${invalidNames.join(", ")}. Choose from: ${[...validNames].join(", ")}`,
+    );
   }
   return [...new Set(names)];
 }
 
 function validateIntegrationNames(names: string[]): string[] {
   const validNames = new Set(INTEGRATION_CHOICES.map((integration) => integration.name));
-  const invalidNames = names.filter((name) => !validNames.has(name as (typeof INTEGRATION_CHOICES)[number]["name"]));
+  const invalidNames = names.filter(
+    (name) => !validNames.has(name as (typeof INTEGRATION_CHOICES)[number]["name"]),
+  );
   if (invalidNames.length > 0) {
-    throw new Error(`Unknown integration(s): ${invalidNames.join(", ")}. Choose from: ${[...validNames].join(", ")}`);
+    throw new Error(
+      `Unknown integration(s): ${invalidNames.join(", ")}. Choose from: ${[...validNames].join(", ")}`,
+    );
   }
   return [...new Set(names)];
 }
@@ -510,7 +548,9 @@ async function promptForPluginsAndIntegrations(): Promise<{
     if (pluginsLine.done) throw new Error("No plugin selection provided.");
 
     console.log("Which integrations would you like to include? (multi-select)");
-    INTEGRATION_CHOICES.forEach((integration, index) => console.log(`  ${index + 1}. ${integration.label}`));
+    INTEGRATION_CHOICES.forEach((integration, index) =>
+      console.log(`  ${index + 1}. ${integration.label}`),
+    );
     console.log("Enter numbers separated by commas, or press Enter for no integrations.");
     output.write("Integrations: ");
     const integrationsLine = await lines.next();
@@ -602,9 +642,11 @@ function createConfigSource(
   exclude: string[] = DEFAULT_SOURCE_EXCLUDE,
 ): string {
   const choices = [...plugins, ...integrations];
-  const imports = choices.map((plugin) => `import { ${plugin.factory} } from "${plugin.packageName}";`);
-  const factories = choices.map((plugin) =>
-    `    ${plugin.factory}(${getPluginOptionsSource(plugin)}),`,
+  const imports = choices.map(
+    (plugin) => `import { ${plugin.factory} } from "${plugin.packageName}";`,
+  );
+  const factories = choices.map(
+    (plugin) => `    ${plugin.factory}(${getPluginOptionsSource(plugin)}),`,
   );
   return [
     ...imports,
@@ -615,7 +657,9 @@ function createConfigSource(
     ...(factories.length ? ["  plugins: [", ...factories, "  ],"] : []),
     "};",
     "",
-  ].filter((line): line is string => line !== undefined).join("\n");
+  ]
+    .filter((line): line is string => line !== undefined)
+    .join("\n");
 }
 
 function getPluginOptionsSource(
@@ -628,10 +672,7 @@ function getPluginOptionsSource(
     .join(", ")} }`;
 }
 
-function createCodeSource(
-  configPath: string,
-  outputPath: string
-): string {
+function createCodeSource(configPath: string, outputPath: string): string {
   let configImport = path.relative(path.dirname(outputPath), configPath).replaceAll(path.sep, "/");
   if (!configImport.startsWith(".")) configImport = `./${configImport}`;
   return [

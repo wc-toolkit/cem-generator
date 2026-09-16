@@ -34,7 +34,10 @@ function buildCompilerOptions(parsed: ts.ParsedCommandLine): ts.CompilerOptions 
   };
 }
 
-function createProgramFromParsed(parsed: ts.ParsedCommandLine, options: ts.CompilerOptions): ts.Program {
+function createProgramFromParsed(
+  parsed: ts.ParsedCommandLine,
+  options: ts.CompilerOptions,
+): ts.Program {
   return ts.createProgram({
     rootNames: parsed.fileNames,
     options,
@@ -58,8 +61,13 @@ function getSourceFiles(program: ts.Program): ts.SourceFile[] {
  */
 export function createProgramFromTsConfig(tsConfigPath?: string): ProgramResult;
 export function createProgramFromTsConfig(options: CreateProgramOptions): ProgramResult;
-export function createProgramFromTsConfig(tsConfigPathOrOptions: string | CreateProgramOptions = {}): ProgramResult {
-  const options = typeof tsConfigPathOrOptions === "string" ? { tsConfigPath: tsConfigPathOrOptions } : tsConfigPathOrOptions;
+export function createProgramFromTsConfig(
+  tsConfigPathOrOptions: string | CreateProgramOptions = {},
+): ProgramResult {
+  const options =
+    typeof tsConfigPathOrOptions === "string"
+      ? { tsConfigPath: tsConfigPathOrOptions }
+      : tsConfigPathOrOptions;
   const tsConfigPath = resolveTsConfigPath(options.tsConfigPath);
   const parsed = parseTsConfig(tsConfigPath);
   const compilerOptions = buildCompilerOptions(parsed);

@@ -69,9 +69,24 @@ export interface ClassFragment {
     syntax?: string;
     deprecated?: boolean | string;
   }>;
-  cssParts?: Array<{ name: string; description?: string; summary?: string; deprecated?: boolean | string }>;
-  cssStates?: Array<{ name: string; description?: string; summary?: string; deprecated?: boolean | string }>;
-  slots?: Array<{ name: string; description?: string; summary?: string; deprecated?: boolean | string }>;
+  cssParts?: Array<{
+    name: string;
+    description?: string;
+    summary?: string;
+    deprecated?: boolean | string;
+  }>;
+  cssStates?: Array<{
+    name: string;
+    description?: string;
+    summary?: string;
+    deprecated?: boolean | string;
+  }>;
+  slots?: Array<{
+    name: string;
+    description?: string;
+    summary?: string;
+    deprecated?: boolean | string;
+  }>;
   events?: Array<{
     name: string;
     description?: string;
@@ -122,7 +137,9 @@ export interface Plugin {
 export type DetectorPlugin = Plugin & { onFile: (context: FileContext) => ManifestFragment };
 
 /** Compatibility type for plugins that implement final-manifest enrichment. */
-export type AnnotatorPlugin = Plugin & { afterManifest: (manifest: Readonly<InternalManifest>) => ManifestPatch };
+export type AnnotatorPlugin = Plugin & {
+  afterManifest: (manifest: Readonly<InternalManifest>) => ManifestPatch;
+};
 
 /**
  * Preferred patch form:

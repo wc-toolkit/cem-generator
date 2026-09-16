@@ -1,5 +1,13 @@
-import type { AnnotatorPlugin, ClassFragment, InternalManifest, OmitInheritedMap } from "./types.js";
-import { resolveInheritedCollection, type InheritableCollectionKey } from "@wc-toolkit/cem-generator-utils";
+import type {
+  AnnotatorPlugin,
+  ClassFragment,
+  InternalManifest,
+  OmitInheritedMap,
+} from "./types.js";
+import {
+  resolveInheritedCollection,
+  type InheritableCollectionKey,
+} from "@wc-toolkit/cem-generator-utils";
 
 export interface InheritancePluginOptions {
   include?: InheritableCollectionKey[];
@@ -32,12 +40,14 @@ export function inheritancePlugin(options: InheritancePluginOptions = {}): Annot
 
 export function buildInheritancePatch(
   manifest: Readonly<InternalManifest>,
-  options: InheritancePluginOptions = {}
+  options: InheritancePluginOptions = {},
 ): { replaceByDeclaration: Record<string, Partial<ClassFragment>> } {
   const include = options.include?.length ? options.include : ALL_KEYS;
   const ignoreSet = new Set(options.ignore ?? []);
 
-  const declarations = manifest.modules.flatMap((mod) => mod.declarations.map((decl) => ({ mod, decl })));
+  const declarations = manifest.modules.flatMap((mod) =>
+    mod.declarations.map((decl) => ({ mod, decl })),
+  );
   const byRef = new Map<string, ClassFragment>();
 
   for (const { mod, decl } of declarations) {
@@ -87,7 +97,10 @@ export function buildInheritancePatch(
   return { replaceByDeclaration };
 }
 
-function indexExternalManifests(byRef: Map<string, ClassFragment>, externalManifests: unknown[] | undefined) {
+function indexExternalManifests(
+  byRef: Map<string, ClassFragment>,
+  externalManifests: unknown[] | undefined,
+) {
   const addIfMissing = (key: string, value: ClassFragment) => {
     if (!byRef.has(key)) byRef.set(key, value);
   };
@@ -117,7 +130,7 @@ function indexExternalManifests(byRef: Map<string, ClassFragment>, externalManif
 
 export function extractExternalModules(
   externalManifests: unknown[] | undefined,
-  { onlyCustomElements = true }: { onlyCustomElements?: boolean } = {}
+  { onlyCustomElements = true }: { onlyCustomElements?: boolean } = {},
 ): InternalManifest["modules"] {
   const out: InternalManifest["modules"] = [];
 
@@ -152,7 +165,10 @@ export function extractExternalModules(
   return out;
 }
 
-function normalizeExternalDeclaration(decl: unknown, modulePath?: string): ClassFragment | undefined {
+function normalizeExternalDeclaration(
+  decl: unknown,
+  modulePath?: string,
+): ClassFragment | undefined {
   const rec = asRecord(decl);
   if (!rec) return undefined;
   const name = asString(rec.name);
@@ -187,7 +203,9 @@ function normalizeSuperclass(value: unknown): ClassFragment["superclass"] {
   return { name, module: asString(rec.module) };
 }
 
-function normalizeNamedCollection(value: unknown): Array<{ name: string; [key: string]: unknown }> | undefined {
+function normalizeNamedCollection(
+  value: unknown,
+): Array<{ name: string; [key: string]: unknown }> | undefined {
   if (!Array.isArray(value)) return undefined;
   const out: Array<{ name: string; [key: string]: unknown }> = [];
   for (const item of value) {

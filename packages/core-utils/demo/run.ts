@@ -20,7 +20,13 @@ class DemoEl extends HTMLElement {
 `;
 
 const fileName = path.join(path.dirname(fileURLToPath(import.meta.url)), "demo-input.ts");
-const sourceFile = ts.createSourceFile(fileName, source, ts.ScriptTarget.ES2022, true, ts.ScriptKind.TS);
+const sourceFile = ts.createSourceFile(
+  fileName,
+  source,
+  ts.ScriptTarget.ES2022,
+  true,
+  ts.ScriptKind.TS,
+);
 
 const program = ts.createProgram({
   rootNames: [fileName],

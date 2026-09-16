@@ -9,8 +9,8 @@ The manifest can be sorted alphabetically for consistent, predictable output. Th
 
 ```ts
 const manifest = generateCem({
-  sort: true,            // default: true
-  deprecatedLast: true   // default: true
+  sort: true, // default: true
+  deprecatedLast: true, // default: true
 });
 ```
 

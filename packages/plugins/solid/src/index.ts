@@ -19,8 +19,9 @@ export function solidPlugin(): DetectorPlugin {
     name: "solid",
 
     shouldAnalyze(sourceText) {
-      return /from\s+["']solid-element["']/.test(sourceText) &&
-        /\bcustomElement\s*\(/.test(sourceText);
+      return (
+        /from\s+["']solid-element["']/.test(sourceText) && /\bcustomElement\s*\(/.test(sourceText)
+      );
     },
 
     onFile(context: FileContext): ManifestFragment {
@@ -41,12 +42,17 @@ export function solidPlugin(): DetectorPlugin {
 
         const declaration = findContainingVariable(node);
         const anchor = declaration ?? node.parent;
-        const name = declaration?.name && ts.isIdentifier(declaration.name)
-          ? declaration.name.text
-          : toDeclarationName(tagName);
+        const name =
+          declaration?.name && ts.isIdentifier(declaration.name)
+            ? declaration.name.text
+            : toDeclarationName(tagName);
         const classDoc = parseCemClassTags(anchor);
         const members = getMembers(node, context);
-         const discovered = discoverFrameworkApis(node.arguments[2] ?? node, context.sourceFile, context.checker);
+        const discovered = discoverFrameworkApis(
+          node.arguments[2] ?? node,
+          context.sourceFile,
+          context.checker,
+        );
         const attributes = members
           .filter((member) => typeof member.attribute === "string")
           .map((member) => ({
@@ -86,7 +92,7 @@ export function solidPlugin(): DetectorPlugin {
 
 function mergeNamed<T extends { name: string }>(
   discovered: T[] | undefined,
-  documented: T[] | undefined
+  documented: T[] | undefined,
 ): T[] | undefined {
   const values = new Map<string, T>();
   for (const item of discovered ?? []) values.set(item.name, item);
@@ -97,11 +103,17 @@ function mergeNamed<T extends { name: string }>(
 function getCustomElementNames(sourceFile: ts.SourceFile): Set<string> {
   const names = new Set<string>();
   for (const statement of sourceFile.statements) {
-    if (!ts.isImportDeclaration(statement) || !ts.isStringLiteral(statement.moduleSpecifier) || statement.moduleSpecifier.text !== "solid-element") continue;
+    if (
+      !ts.isImportDeclaration(statement) ||
+      !ts.isStringLiteral(statement.moduleSpecifier) ||
+      statement.moduleSpecifier.text !== "solid-element"
+    )
+      continue;
     const bindings = statement.importClause?.namedBindings;
     if (!bindings || !ts.isNamedImports(bindings)) continue;
     for (const element of bindings.elements) {
-      if ((element.propertyName?.text ?? element.name.text) === "customElement") names.add(element.name.text);
+      if ((element.propertyName?.text ?? element.name.text) === "customElement")
+        names.add(element.name.text);
     }
   }
   return names;
@@ -120,7 +132,10 @@ function findContainingVariable(node: ts.Node): ts.VariableDeclaration | undefin
   return undefined;
 }
 
-function getMembers(node: ts.CallExpression, context: FileContext): NonNullable<ClassFragment["members"]> {
+function getMembers(
+  node: ts.CallExpression,
+  context: FileContext,
+): NonNullable<ClassFragment["members"]> {
   const byName = new Map<string, NonNullable<ClassFragment["members"]>[number]>();
   const defaults = node.arguments[1];
   if (defaults && ts.isObjectLiteralExpression(defaults)) {
@@ -142,9 +157,10 @@ function getMembers(node: ts.CallExpression, context: FileContext): NonNullable<
   }
 
   const template = node.arguments[2];
-  const parameter = template && (ts.isArrowFunction(template) || ts.isFunctionExpression(template))
-    ? template.parameters[0]
-    : undefined;
+  const parameter =
+    template && (ts.isArrowFunction(template) || ts.isFunctionExpression(template))
+      ? template.parameters[0]
+      : undefined;
   if (parameter) {
     const type = context.checker.getTypeAtLocation(parameter);
     for (const property of type.getProperties()) {
@@ -156,8 +172,12 @@ function getMembers(node: ts.CallExpression, context: FileContext): NonNullable<
         name: property.name,
         kind: "field",
         type: existing?.type ?? context.checker.typeToString(propertyType),
-        parsedType: existing?.parsedType ?? (declaration ? getParsedTypeText(declaration, context.checker) || undefined : undefined),
-        description: existing?.description ?? (declaration ? getJSDocInfo(declaration).description || undefined : undefined),
+        parsedType:
+          existing?.parsedType ??
+          (declaration ? getParsedTypeText(declaration, context.checker) || undefined : undefined),
+        description:
+          existing?.description ??
+          (declaration ? getJSDocInfo(declaration).description || undefined : undefined),
         attribute: existing?.attribute ?? (existing ? kebabCase(property.name) : undefined),
       });
     }
@@ -169,7 +189,8 @@ function getMembers(node: ts.CallExpression, context: FileContext): NonNullable<
 function getExpressionType(node: ts.Expression, context: FileContext): string | undefined {
   if (ts.isStringLiteralLike(node)) return "string";
   if (ts.isNumericLiteral(node)) return "number";
-  if (node.kind === ts.SyntaxKind.TrueKeyword || node.kind === ts.SyntaxKind.FalseKeyword) return "boolean";
+  if (node.kind === ts.SyntaxKind.TrueKeyword || node.kind === ts.SyntaxKind.FalseKeyword)
+    return "boolean";
   if (ts.isArrayLiteralExpression(node)) return "array";
   if (ts.isObjectLiteralExpression(node)) return "object";
   return getNodeTypeText(node, context.checker);
@@ -199,6 +220,9 @@ function getExportName(node: ts.VariableDeclaration | undefined): string | undef
   const declaration = node?.parent.parent;
   if (!declaration || !ts.isVariableStatement(declaration)) return undefined;
   const modifiers = ts.canHaveModifiers(declaration) ? ts.getModifiers(declaration) : undefined;
-  if (!modifiers?.some((modifier) => modifier.kind === ts.SyntaxKind.ExportKeyword)) return undefined;
-  return modifiers.some((modifier) => modifier.kind === ts.SyntaxKind.DefaultKeyword) ? "default" : node?.name.getText();
+  if (!modifiers?.some((modifier) => modifier.kind === ts.SyntaxKind.ExportKeyword))
+    return undefined;
+  return modifiers.some((modifier) => modifier.kind === ts.SyntaxKind.DefaultKeyword)
+    ? "default"
+    : node?.name.getText();
 }

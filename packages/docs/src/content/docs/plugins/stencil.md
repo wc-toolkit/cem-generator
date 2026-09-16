@@ -54,16 +54,16 @@ export class DetailsPanel {
 
 The example documents the following manifest APIs:
 
-| Source | Manifest API |
-|---|---|
-| Component comment and `@Component` | `description`, `summary`, `tagName` |
-| `@Prop()` and property JSDoc | `members` and `attributes` |
-| Method JSDoc and signature | Member description, parameters, return type |
-| `@Event()` and `@event` / `@fires` | `events` |
-| `@slot` | `slots` |
-| `@csspart` | `cssParts` |
-| `@cssprop` | `cssProperties` |
-| `@cssState` | `cssStates` |
+| Source                             | Manifest API                                |
+| ---------------------------------- | ------------------------------------------- |
+| Component comment and `@Component` | `description`, `summary`, `tagName`         |
+| `@Prop()` and property JSDoc       | `members` and `attributes`                  |
+| Method JSDoc and signature         | Member description, parameters, return type |
+| `@Event()` and `@event` / `@fires` | `events`                                    |
+| `@slot`                            | `slots`                                     |
+| `@csspart`                         | `cssParts`                                  |
+| `@cssprop`                         | `cssProperties`                             |
+| `@cssState`                        | `cssStates`                                 |
 
 Use `@Prop({ attribute: "...", reflect: true })` to document custom attribute
 names and reflection. Use `@default`, `@deprecated`, or `@internal` in JSDoc
@@ -79,7 +79,7 @@ someMethod() {
   const template = `
     <!-- Panel wrapper -->
     <div part="panel">
-    
+
       <!-- Header content -->
       <slot name="header"></slot>
 

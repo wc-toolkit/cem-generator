@@ -28,11 +28,11 @@ test("generate uses source defaults and excludes common non-component files", ()
   );
   fs.writeFileSync(
     path.join(projectDir, "src/component.ts"),
-    "export class ComponentElement extends HTMLElement {}\ncustomElements.define(\"x-component\", ComponentElement);\n",
+    'export class ComponentElement extends HTMLElement {}\ncustomElements.define("x-component", ComponentElement);\n',
   );
   fs.writeFileSync(
     path.join(projectDir, "src/component.test.ts"),
-    "export class TestElement extends HTMLElement {}\ncustomElements.define(\"x-test\", TestElement);\n",
+    'export class TestElement extends HTMLElement {}\ncustomElements.define("x-test", TestElement);\n',
   );
 
   const result = spawnSync(process.execPath, [cliPath, "generate", "--output", "manifest.json"], {
@@ -42,7 +42,9 @@ test("generate uses source defaults and excludes common non-component files", ()
 
   assert.equal(result.status, 0, result.stderr);
   const manifest = JSON.parse(fs.readFileSync(path.join(projectDir, "manifest.json"), "utf8"));
-  const names = manifest.modules.flatMap((module) => module.declarations.map((declaration) => declaration.name));
+  const names = manifest.modules.flatMap((module) =>
+    module.declarations.map((declaration) => declaration.name),
+  );
   assert.deepEqual(names, ["ComponentElement"]);
 });
 
@@ -55,9 +57,12 @@ test("generate uses the file path from config when the CLI flag is omitted", () 
   );
   fs.writeFileSync(
     path.join(projectDir, "src/component.ts"),
-    "export class ComponentElement extends HTMLElement {}\ncustomElements.define(\"x-component\", ComponentElement);\n",
+    'export class ComponentElement extends HTMLElement {}\ncustomElements.define("x-component", ComponentElement);\n',
   );
-  fs.writeFileSync(path.join(projectDir, "cem-generator.config.mjs"), 'export default { filePath: "dist/manifest.json" };\n');
+  fs.writeFileSync(
+    path.join(projectDir, "cem-generator.config.mjs"),
+    'export default { filePath: "dist/manifest.json" };\n',
+  );
 
   const result = spawnSync(process.execPath, [cliPath, "generate"], {
     cwd: projectDir,
@@ -80,10 +85,14 @@ test("documents init installation option", () => {
 
 test("init creates a config with selected plugins", () => {
   const projectDir = fs.mkdtempSync(path.join(os.tmpdir(), "cem-init-"));
-  const result = spawnSync(process.execPath, [cliPath, "init", "--mode", "cli", "--plugin", "lit", "svelte"], {
-    cwd: projectDir,
-    encoding: "utf8",
-  });
+  const result = spawnSync(
+    process.execPath,
+    [cliPath, "init", "--mode", "cli", "--plugin", "lit", "svelte"],
+    {
+      cwd: projectDir,
+      encoding: "utf8",
+    },
+  );
 
   assert.equal(result.status, 0, result.stderr);
   const config = fs.readFileSync(path.join(projectDir, "cem-generator.config.mjs"), "utf8");
@@ -97,12 +106,19 @@ test("init creates a config with selected plugins", () => {
 
 test("init optionally adds the manifest path to package.json", () => {
   const projectDir = fs.mkdtempSync(path.join(os.tmpdir(), "cem-init-package-"));
-  fs.writeFileSync(path.join(projectDir, "package.json"), JSON.stringify({ name: "fixture", private: true }));
-  const result = spawnSync(process.execPath, [cliPath, "init", "--mode", "cli", "--plugin", "lit"], {
-    cwd: projectDir,
-    input: "y\n",
-    encoding: "utf8",
-  });
+  fs.writeFileSync(
+    path.join(projectDir, "package.json"),
+    JSON.stringify({ name: "fixture", private: true }),
+  );
+  const result = spawnSync(
+    process.execPath,
+    [cliPath, "init", "--mode", "cli", "--plugin", "lit"],
+    {
+      cwd: projectDir,
+      input: "y\n",
+      encoding: "utf8",
+    },
+  );
 
   assert.equal(result.status, 0, result.stderr);
   const packageJson = JSON.parse(fs.readFileSync(path.join(projectDir, "package.json"), "utf8"));
@@ -112,10 +128,14 @@ test("init optionally adds the manifest path to package.json", () => {
 
 test("init creates a code workflow with selected plugins", () => {
   const projectDir = fs.mkdtempSync(path.join(os.tmpdir(), "cem-init-"));
-  const result = spawnSync(process.execPath, [cliPath, "init", "--mode", "code", "--plugin", "lit"], {
-    cwd: projectDir,
-    encoding: "utf8",
-  });
+  const result = spawnSync(
+    process.execPath,
+    [cliPath, "init", "--mode", "code", "--plugin", "lit"],
+    {
+      cwd: projectDir,
+      encoding: "utf8",
+    },
+  );
 
   assert.equal(result.status, 0, result.stderr);
   const config = fs.readFileSync(path.join(projectDir, "cem-generator.config.mjs"), "utf8");
@@ -140,9 +160,18 @@ test("interactive init creates selected integrations with default options", () =
   assert.equal(result.status, 0, result.stderr);
   const config = fs.readFileSync(path.join(projectDir, "cem-generator.config.mjs"), "utf8");
   assert.match(config, /import \{ jsxTypesGeneratorPlugin \} from "@wc-toolkit\/jsx-types"/);
-  assert.match(config, /jsxTypesGeneratorPlugin\(\{ outdir: "\.\/types", stronglyTypedEvents: true \}\)/);
-  assert.match(config, /vuejsTypesGeneratorPlugin\(\{ outdir: "\.\/types", stronglyTypedEvents: true \}\)/);
-  assert.match(config, /svelteTypesGeneratorPlugin\(\{ outdir: "\.\/types", stronglyTypedEvents: true \}\)/);
+  assert.match(
+    config,
+    /jsxTypesGeneratorPlugin\(\{ outdir: "\.\/types", stronglyTypedEvents: true \}\)/,
+  );
+  assert.match(
+    config,
+    /vuejsTypesGeneratorPlugin\(\{ outdir: "\.\/types", stronglyTypedEvents: true \}\)/,
+  );
+  assert.match(
+    config,
+    /svelteTypesGeneratorPlugin\(\{ outdir: "\.\/types", stronglyTypedEvents: true \}\)/,
+  );
   assert.doesNotMatch(config, /reactWrapperGeneratorPlugin/);
   assert.match(config, /include: \["src\/\*\*\/\*\.\{ts,tsx,js,jsx\}"\]/);
   assert.match(config, /exclude: \[/);

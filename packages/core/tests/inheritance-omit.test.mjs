@@ -37,21 +37,37 @@ test("resolveInheritedCollection omits inherited names from class metadata + con
       byClassName: { ChildEl: { events: ["base-event"] } },
     },
   });
-  assert.deepEqual(members.map((m) => m.name), ["childMethod"]);
+  assert.deepEqual(
+    members.map((m) => m.name),
+    ["childMethod"],
+  );
 
-  const attributes = resolveInheritedCollection(findByRef, child, "attributes", undefined, undefined, {
-    omit: {
-      byKind: { attributes: ["keep-attr"] },
+  const attributes = resolveInheritedCollection(
+    findByRef,
+    child,
+    "attributes",
+    undefined,
+    undefined,
+    {
+      omit: {
+        byKind: { attributes: ["keep-attr"] },
+      },
     },
-  });
-  assert.deepEqual(attributes.map((m) => m.name), ["child-attr"]);
+  );
+  assert.deepEqual(
+    attributes.map((m) => m.name),
+    ["child-attr"],
+  );
 
   const events = resolveInheritedCollection(findByRef, child, "events", undefined, undefined, {
     omit: {
       byClassName: { ChildEl: { events: ["base-event"] } },
     },
   });
-  assert.deepEqual(events.map((m) => m.name), ["keep-event", "child-event"]);
+  assert.deepEqual(
+    events.map((m) => m.name),
+    ["keep-event", "child-event"],
+  );
 });
 
 test("parseCemClassTags exposes omitInherited from JSDoc tags", async () => {
@@ -73,7 +89,7 @@ test("parseCemClassTags exposes omitInherited from JSDoc tags", async () => {
       export class Demo extends HTMLElement {}`,
     ts.ScriptTarget.Latest,
     true,
-    ts.ScriptKind.TS
+    ts.ScriptKind.TS,
   );
 
   const cls = source.statements.find((s) => ts.isClassDeclaration(s));

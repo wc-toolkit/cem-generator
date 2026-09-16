@@ -10,6 +10,10 @@
   ],
   "scripts": {
     "build": "tsc -b",
+    "lint": "oxlint packages",
+    "lint:fix": "oxlint packages --fix",
+    "format": "oxfmt packages",
+    "format:check": "oxfmt --check packages",
     "example": "tsx examples/run.ts",
     "docs:dev": "pnpm --filter @wc-toolkit/cem-generator-docs dev",
     "docs:build": "pnpm --filter @wc-toolkit/cem-generator-docs build",
@@ -38,10 +42,12 @@
     "release": "pnpm build && changeset publish"
   },
   "devDependencies": {
+    "@changesets/cli": "^2.29.7",
     "@types/node": "^26.4.1",
     "ajv": "^8.20.0",
-    "@changesets/cli": "^2.29.7",
     "custom-elements-manifest": "^2.1.0",
+    "oxfmt": "^0.68.0",
+    "oxlint": "^1.83.0",
     "ts-node": "^10.9.2",
     "tsx": "^4.23.13",
     "typescript": "^5.9.0"

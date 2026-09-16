@@ -63,7 +63,7 @@ export function resolveInheritedCollection<K extends InheritableCollectionKey>(
   key: K,
   resolved: Map<string, InheritableMember[]> = new Map(),
   inProgress: Set<string> = new Set(),
-  options?: ResolveInheritedOptions
+  options?: ResolveInheritedOptions,
 ): InheritableMember[] {
   const omitted = getOmittedNamesForClass(decl, key, options?.omit);
   const omitCacheKey = omitted.size ? [...omitted].sort().join("|") : "";
@@ -73,7 +73,7 @@ export function resolveInheritedCollection<K extends InheritableCollectionKey>(
   if (inProgress.has(decl.name)) {
     throw new Error(
       `Circular superclass reference detected while resolving "${decl.name}". ` +
-        `Check for a class that (directly or transitively) extends itself.`
+        `Check for a class that (directly or transitively) extends itself.`,
     );
   }
   inProgress.add(decl.name);
@@ -104,7 +104,7 @@ export function resolveInheritedCollection<K extends InheritableCollectionKey>(
 function getOmittedNamesForClass(
   decl: ClassLike,
   key: InheritableCollectionKey,
-  omitConfig: InheritanceOmitConfig | undefined
+  omitConfig: InheritanceOmitConfig | undefined,
 ): Set<string> {
   const names = new Set<string>();
 
@@ -142,7 +142,13 @@ function readOmitMap(value: unknown): InheritanceOmitMap | undefined {
 }
 
 function isInheritableCollectionKey(key: string): key is InheritableCollectionKey {
-  return ["members", "attributes", "cssProperties", "cssParts", "cssStates", "slots", "events"].includes(
-    key
-  );
+  return [
+    "members",
+    "attributes",
+    "cssProperties",
+    "cssParts",
+    "cssStates",
+    "slots",
+    "events",
+  ].includes(key);
 }

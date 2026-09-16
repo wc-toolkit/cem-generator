@@ -40,6 +40,7 @@ See the [Plugins](/plugins/) docs for available framework plugins and how to aut
 ## Verify the output
 
 The manifest includes:
+
 - modules and declarations,
 - class members, attributes, events, slots,
 - CSS custom properties and CSS parts,

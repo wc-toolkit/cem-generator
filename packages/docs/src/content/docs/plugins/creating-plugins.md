@@ -70,11 +70,16 @@ specialized compatibility types for plugins that implement those roles.
 ## Minimal Detector Plugin
 
 ```ts
-import type { DetectorPlugin, FileContext, ClassFragment, ManifestFragment } from "@wc-toolkit/cem-generator";
+import type {
+  DetectorPlugin,
+  FileContext,
+  ClassFragment,
+  ManifestFragment,
+} from "@wc-toolkit/cem-generator";
 
 export const myFrameworkPlugin = (): DetectorPlugin => ({
   name: "my-framework",
-  
+
   // Fast opt-in: check if file might contain your framework's components
   shouldAnalyze(sourceText: string, filePath: string): boolean {
     return sourceText.includes("@MyDecorator") || sourceText.includes("MyBaseClass");
@@ -121,7 +126,7 @@ function isMyFrameworkComponent(node: ts.ClassDeclaration, checker: ts.TypeCheck
 
   // Check for decorator
   const decorators = ts.getDecorators?.(node);
-  if (decorators?.some(d => d.expression.getText().includes("MyDecorator"))) return true;
+  if (decorators?.some((d) => d.expression.getText().includes("MyDecorator"))) return true;
 
   return false;
 }
@@ -130,7 +135,7 @@ function extractClassFragment(
   node: ts.ClassDeclaration,
   checker: ts.TypeChecker,
   sourceFile: ts.SourceFile,
-  filePath: string
+  filePath: string,
 ): ClassFragment {
   const fragment: ClassFragment = { name: node.name!.text };
 
@@ -162,7 +167,7 @@ import { getJSDocTagsNamed, getJSDocInfo } from "@wc-toolkit/cem-generator-utils
 
 function extractAttributes(node: ts.ClassDeclaration): ClassFragment["attributes"] {
   const tags = getJSDocTagsNamed(node, "attribute");
-  return tags.map(tag => ({
+  return tags.map((tag) => ({
     name: tag.name,
     type: tag.type,
     description: tag.description,
@@ -176,7 +181,12 @@ function extractAttributes(node: ts.ClassDeclaration): ClassFragment["attributes
 ```ts
 // my-plugin.ts
 import ts from "typescript";
-import type { DetectorPlugin, FileContext, ClassFragment, ManifestFragment } from "@wc-toolkit/cem-generator";
+import type {
+  DetectorPlugin,
+  FileContext,
+  ClassFragment,
+  ManifestFragment,
+} from "@wc-toolkit/cem-generator";
 
 export const mySimplePlugin = (): DetectorPlugin => ({
   name: "my-simple-plugin",
@@ -191,7 +201,10 @@ export const mySimplePlugin = (): DetectorPlugin => ({
 
     ts.forEachChild(sourceFile, (node) => {
       if (!ts.isClassDeclaration(node) || !node.name) return;
-      if (!ts.getDecorators?.(node)?.some(d => d.expression.getText().includes("SimpleComponent"))) return;
+      if (
+        !ts.getDecorators?.(node)?.some((d) => d.expression.getText().includes("SimpleComponent"))
+      )
+        return;
 
       const className = node.name.text;
       fragments[className] = {
@@ -206,7 +219,10 @@ export const mySimplePlugin = (): DetectorPlugin => ({
   },
 });
 
-function extractMembers(node: ts.ClassDeclaration, checker: ts.TypeChecker): ClassFragment["members"] {
+function extractMembers(
+  node: ts.ClassDeclaration,
+  checker: ts.TypeChecker,
+): ClassFragment["members"] {
   const members: ClassFragment["members"] = [];
 
   for (const member of node.members) {
@@ -214,14 +230,18 @@ function extractMembers(node: ts.ClassDeclaration, checker: ts.TypeChecker): Cla
     if (!ts.isIdentifier(member.name)) continue;
 
     const propName = member.name.text;
-    const type = member.type ? checker.typeToString(checker.getTypeAtLocation(member.type)) : undefined;
+    const type = member.type
+      ? checker.typeToString(checker.getTypeAtLocation(member.type))
+      : undefined;
 
     members.push({
       name: propName,
       kind: "field",
       type,
-      privacy: member.modifiers?.some(m => m.kind === ts.SyntaxKind.PrivateKeyword) ? "private" : "public",
-      static: member.modifiers?.some(m => m.kind === ts.SyntaxKind.StaticKeyword) ?? false,
+      privacy: member.modifiers?.some((m) => m.kind === ts.SyntaxKind.PrivateKeyword)
+        ? "private"
+        : "public",
+      static: member.modifiers?.some((m) => m.kind === ts.SyntaxKind.StaticKeyword) ?? false,
     });
   }
 

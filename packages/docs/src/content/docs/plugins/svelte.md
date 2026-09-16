@@ -36,9 +36,9 @@ The plugin detects:
 
 ```svelte
 <style>
-  :host { 
-    /** Accent color. */ 
-    --greeting-color: steelblue; 
+  :host {
+    /** Accent color. */
+    --greeting-color: steelblue;
   }
 </style>
 

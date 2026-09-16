@@ -2,7 +2,10 @@ import ts from "typescript";
 import type { ClassFragment } from "./types.js";
 import { parseCssMetadata } from "./css-metadata.js";
 
-export type DiscoveredFrameworkApis = Pick<ClassFragment, "events" | "slots" | "cssParts" | "cssProperties" | "cssStates">;
+export type DiscoveredFrameworkApis = Pick<
+  ClassFragment,
+  "events" | "slots" | "cssParts" | "cssProperties" | "cssStates"
+>;
 
 /** Discovers Web Component APIs from JSX, HTML templates, and static events. */
 export function discoverFrameworkApis(
@@ -21,9 +24,13 @@ export function discoverFrameworkApis(
       const opening = ts.isJsxElement(node) ? node.openingElement : node;
       const elementName = opening.tagName.getText(sourceFile);
       if (elementName === "slot") {
-        addNamed(slots, { name: getJsxAttributeValue(opening, "name") ?? "", description: getJsxLeadingComment(opening, sourceFile) });
+        addNamed(slots, {
+          name: getJsxAttributeValue(opening, "name") ?? "",
+          description: getJsxLeadingComment(opening, sourceFile),
+        });
       }
-      for (const name of getJsxAttributeValue(opening, "part")?.split(/\s+/).filter(Boolean) ?? []) {
+      for (const name of getJsxAttributeValue(opening, "part")?.split(/\s+/).filter(Boolean) ??
+        []) {
         addNamed(cssParts, { name, description: getJsxLeadingComment(opening, sourceFile) });
       }
     }
@@ -31,22 +38,37 @@ export function discoverFrameworkApis(
     if (ts.isTemplateExpression(node) || ts.isNoSubstitutionTemplateLiteral(node)) {
       scanText(node.getText(sourceFile));
     }
-    if (ts.isStringLiteral(node) && /<slot\b|\bpart\s*=|:host\b|--[\w-]+|\.states\.add/.test(node.text)) {
+    if (
+      ts.isStringLiteral(node) &&
+      /<slot\b|\bpart\s*=|:host\b|--[\w-]+|\.states\.add/.test(node.text)
+    ) {
       scanText(node.text);
     }
 
     if (ts.isCallExpression(node)) {
-      if (ts.isPropertyAccessExpression(node.expression) && node.expression.name.text === "dispatchEvent") {
+      if (
+        ts.isPropertyAccessExpression(node.expression) &&
+        node.expression.name.text === "dispatchEvent"
+      ) {
         const event = node.arguments[0];
-        if (event && ts.isNewExpression(event) && ts.isIdentifier(event.expression) &&
-          (event.expression.text === "Event" || event.expression.text === "CustomEvent")) {
+        if (
+          event &&
+          ts.isNewExpression(event) &&
+          ts.isIdentifier(event.expression) &&
+          (event.expression.text === "Event" || event.expression.text === "CustomEvent")
+        ) {
           const name = getStringArgument(event.arguments?.[0]);
           if (name) addNamed(events, { name, type: event.expression.text });
         }
       }
       if (ts.isPropertyAccessExpression(node.expression) && node.expression.name.text === "$emit") {
         const name = getStringArgument(node.arguments[0]);
-        if (name) addNamed(events, { name, type: "CustomEvent", detail: node.arguments[1]?.getText(sourceFile) });
+        if (name)
+          addNamed(events, {
+            name,
+            type: "CustomEvent",
+            detail: node.arguments[1]?.getText(sourceFile),
+          });
       }
     }
 
@@ -56,10 +78,17 @@ export function discoverFrameworkApis(
   function scanText(text: string) {
     for (const match of text.matchAll(/<slot\b([^>]*)>/g)) {
       const name = match[1]?.match(/\bname\s*=\s*["']([^"']+)["']/)?.[1] ?? "";
-      addNamed(slots, { name, description: getTrailingHtmlComment(text.slice(0, match.index ?? 0)) });
+      addNamed(slots, {
+        name,
+        description: getTrailingHtmlComment(text.slice(0, match.index ?? 0)),
+      });
     }
     for (const match of text.matchAll(/<[^>]*\bpart\s*=\s*["']([^"']+)["'][^>]*>/g)) {
-      for (const name of match[1].split(/\s+/).filter(Boolean)) addNamed(cssParts, { name, description: getTrailingHtmlComment(text.slice(0, match.index ?? 0)) });
+      for (const name of match[1].split(/\s+/).filter(Boolean))
+        addNamed(cssParts, {
+          name,
+          description: getTrailingHtmlComment(text.slice(0, match.index ?? 0)),
+        });
     }
     for (const property of parseCssMetadata(text) ?? []) addNamed(cssProperties, property);
     for (const match of text.matchAll(/\.states\.add\(\s*["']([^"']+)["']\s*\)/g)) {
@@ -81,9 +110,10 @@ export function discoverFrameworkApis(
     function scanExpression(expression: ts.Expression, seen: Set<ts.Symbol>): void {
       if (ts.isIdentifier(expression)) {
         const symbol = typeChecker.getSymbolAtLocation(expression);
-        const resolved = symbol && symbol.flags & ts.SymbolFlags.Alias
-          ? typeChecker.getAliasedSymbol(symbol)
-          : symbol;
+        const resolved =
+          symbol && symbol.flags & ts.SymbolFlags.Alias
+            ? typeChecker.getAliasedSymbol(symbol)
+            : symbol;
         if (!resolved || seen.has(resolved)) return;
         seen.add(resolved);
         for (const declaration of resolved.declarations ?? []) {
@@ -127,10 +157,15 @@ export function discoverFrameworkApis(
 
 function getJsxAttributeValue(element: ts.JsxOpeningLikeElement, name: string): string | undefined {
   const attribute = element.attributes.properties.find(
-    (property): property is ts.JsxAttribute => ts.isJsxAttribute(property) && ts.isIdentifier(property.name) && property.name.text === name
+    (property): property is ts.JsxAttribute =>
+      ts.isJsxAttribute(property) && ts.isIdentifier(property.name) && property.name.text === name,
   );
   const initializer = attribute?.initializer;
-  return initializer && ts.isStringLiteral(initializer) ? initializer.text : attribute ? "" : undefined;
+  return initializer && ts.isStringLiteral(initializer)
+    ? initializer.text
+    : attribute
+      ? ""
+      : undefined;
 }
 
 function getStringArgument(argument: ts.Expression | undefined): string | undefined {
@@ -147,7 +182,12 @@ function getJsxLeadingComment(node: ts.Node, sourceFile: ts.SourceFile): string 
 
 function normalizeComment(value: string | undefined): string | undefined {
   if (!value) return undefined;
-  const text = value.split("\n").map((line) => line.replace(/^\s*\*\s?/, "")).join(" ").replace(/\s+/g, " ").trim();
+  const text = value
+    .split("\n")
+    .map((line) => line.replace(/^\s*\*\s?/, ""))
+    .join(" ")
+    .replace(/\s+/g, " ")
+    .trim();
   return text || undefined;
 }
 
@@ -164,6 +204,5 @@ function addNamed<T extends { name: string }>(items: T[], item: T): void {
     for (const [key, value] of Object.entries(item)) {
       if (value !== undefined) (existing as Record<string, unknown>)[key] = value;
     }
-  }
-  else items.push(item);
+  } else items.push(item);
 }

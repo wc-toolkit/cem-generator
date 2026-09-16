@@ -33,8 +33,10 @@ export function stencilPlugin(): DetectorPlugin {
     name: "stencil",
 
     shouldAnalyze(sourceText) {
-      return /from\s+["']@stencil\/core["']/.test(sourceText) ||
-        /@(?:Component|Prop|Event)\b/.test(sourceText);
+      return (
+        /from\s+["']@stencil\/core["']/.test(sourceText) ||
+        /@(?:Component|Prop|Event)\b/.test(sourceText)
+      );
     },
 
     onFile(context: FileContext): ManifestFragment {
@@ -46,15 +48,13 @@ export function stencilPlugin(): DetectorPlugin {
           const members = detectClassMembers(node, context) ?? [];
           const props = getProps(node, context, members);
           const events = getEvents(node, context);
-           const discovered = discoverFrameworkApis(node, context.sourceFile, context.checker);
+          const discovered = discoverFrameworkApis(node, context.sourceFile, context.checker);
           const eventNames = new Set(events.map((event) => event.fieldName));
           const filteredMembers = members
             .filter((member) => !STENCIL_LIFECYCLE.has(member.name) && !eventNames.has(member.name))
             .map((member) => {
               const prop = props.find((item) => item.fieldName === member.name);
-              return prop
-                ? { ...member, attribute: prop.name, reflects: prop.reflects }
-                : member;
+              return prop ? { ...member, attribute: prop.name, reflects: prop.reflects } : member;
             });
 
           const classFragment: ClassFragment = {
@@ -70,7 +70,7 @@ export function stencilPlugin(): DetectorPlugin {
             events: mergeNamed(
               discovered.events,
               events.map(({ fieldName: _fieldName, ...event }) => event),
-              classDoc.events
+              classDoc.events,
             ),
             slots: mergeNamed(discovered.slots, classDoc.slots),
             cssParts: mergeNamed(discovered.cssParts, classDoc.cssParts),
@@ -90,7 +90,9 @@ export function stencilPlugin(): DetectorPlugin {
   };
 }
 
-function mergeNamed<T extends { name: string }>(...sources: Array<T[] | undefined>): T[] | undefined {
+function mergeNamed<T extends { name: string }>(
+  ...sources: Array<T[] | undefined>
+): T[] | undefined {
   const values = new Map<string, T>();
   for (const source of sources) {
     for (const item of source ?? []) values.set(item.name, { ...values.get(item.name), ...item });
@@ -108,7 +110,7 @@ type StencilEvent = NonNullable<ClassFragment["events"]>[number] & { fieldName: 
 function getProps(
   node: ts.ClassDeclaration,
   context: FileContext,
-  members: NonNullable<ClassFragment["members"]>
+  members: NonNullable<ClassFragment["members"]>,
 ): StencilAttribute[] {
   const byName = new Map(members.map((member) => [member.name, member]));
   const props: StencilAttribute[] = [];
@@ -180,9 +182,14 @@ function getDecoratorOptions(decorator: ts.Decorator): {
   for (const property of argument.properties) {
     if (!ts.isPropertyAssignment(property)) continue;
     const name = property.name.getText();
-    if (name === "attribute" && ts.isStringLiteralLike(property.initializer)) result.attribute = property.initializer.text;
-    if (name === "eventName" && ts.isStringLiteralLike(property.initializer)) result.eventName = property.initializer.text;
-    if ((name === "reflect" || name === "reflects") && property.initializer.kind === ts.SyntaxKind.TrueKeyword) {
+    if (name === "attribute" && ts.isStringLiteralLike(property.initializer))
+      result.attribute = property.initializer.text;
+    if (name === "eventName" && ts.isStringLiteralLike(property.initializer))
+      result.eventName = property.initializer.text;
+    if (
+      (name === "reflect" || name === "reflects") &&
+      property.initializer.kind === ts.SyntaxKind.TrueKeyword
+    ) {
       result.reflects = true;
     }
   }
@@ -196,15 +203,18 @@ function getComponentTagName(node: ts.ClassDeclaration): string | undefined {
   if (!argument || !ts.isObjectLiteralExpression(argument)) return undefined;
   const tag = argument.properties.find(
     (property): property is ts.PropertyAssignment =>
-      ts.isPropertyAssignment(property) && property.name.getText() === "tag"
+      ts.isPropertyAssignment(property) && property.name.getText() === "tag",
   )?.initializer;
   return tag && ts.isStringLiteralLike(tag) ? tag.text : undefined;
 }
 
 function getExportName(node: ts.ClassDeclaration): string | undefined {
   const modifiers = ts.canHaveModifiers(node) ? ts.getModifiers(node) : undefined;
-  if (!modifiers?.some((modifier) => modifier.kind === ts.SyntaxKind.ExportKeyword)) return undefined;
-  return modifiers.some((modifier) => modifier.kind === ts.SyntaxKind.DefaultKeyword) ? "default" : node.name?.text;
+  if (!modifiers?.some((modifier) => modifier.kind === ts.SyntaxKind.ExportKeyword))
+    return undefined;
+  return modifiers.some((modifier) => modifier.kind === ts.SyntaxKind.DefaultKeyword)
+    ? "default"
+    : node.name?.text;
 }
 
 function kebabCase(name: string): string {
