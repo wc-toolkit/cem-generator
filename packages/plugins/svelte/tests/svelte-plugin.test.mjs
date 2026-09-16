@@ -11,7 +11,9 @@ const fixturesTsConfig = path.resolve(__dirname, "fixtures/tsconfig.json");
 
 test("detects Svelte custom elements, props, slots, parts, styles, and events", () => {
   const manifest = generateCem({ tsConfigPath: fixturesTsConfig, plugins: [sveltePlugin()] });
-  const greeting = manifest.modules.flatMap((module) => module.declarations).find((declaration) => declaration.name === "Greeting");
+  const greeting = manifest.modules
+    .flatMap((module) => module.declarations)
+    .find((declaration) => declaration.name === "Greeting");
 
   assert.equal(greeting?.tagName, "solid-greeting");
   assert.deepEqual(greeting?.members?.map(({ name }) => name).sort(), ["count", "name"]);

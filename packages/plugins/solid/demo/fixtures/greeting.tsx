@@ -14,5 +14,9 @@ export const Greeting = customElement(
     name: "World",
     count: 1,
   },
-  (props: GreetingProps) => <p>Hello, {props.name}! ({props.count})</p>,
+  (props: GreetingProps) => (
+    <p>
+      Hello, {props.name}! ({props.count})
+    </p>
+  ),
 );

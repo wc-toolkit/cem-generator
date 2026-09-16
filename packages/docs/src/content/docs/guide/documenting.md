@@ -20,12 +20,12 @@ export class MyCard extends HTMLElement {
 }
 ```
 
-| Tag | Manifest Field | Description |
-|-----|----------------|-------------|
-| `@summary` | `summary` | One-line description (shown in lists) |
-| (comment body) | `description` | Full description (the block's free-text description) |
-| `@tag` / `@tagname` | `tagName` | Custom element tag (also auto-detected from `customElements.define`) |
-| `@deprecated` | `deprecated` | Mark as deprecated (boolean or message) |
+| Tag                 | Manifest Field | Description                                                          |
+| ------------------- | -------------- | -------------------------------------------------------------------- |
+| `@summary`          | `summary`      | One-line description (shown in lists)                                |
+| (comment body)      | `description`  | Full description (the block's free-text description)                 |
+| `@tag` / `@tagname` | `tagName`      | Custom element tag (also auto-detected from `customElements.define`) |
+| `@deprecated`       | `deprecated`   | Mark as deprecated (boolean or message)                              |
 
 ### Omitting inherited APIs
 
@@ -41,17 +41,16 @@ Put the omit tags on a **subclass** to exclude specific inherited APIs from its 
 export class ChildCard extends MyCard {}
 ```
 
-| Tag | Omits |
-|-----|-------|
-| `@omit` | Inherited `members` and `attributes` |
-| `@omit-method` | Inherited members (methods) |
-| `@omit-attribute` / `@omit-attr` | Inherited attributes |
-| `@omit-cssprop` / `@omit-cssproperty` | Inherited CSS custom properties |
-| `@omit-part` / `@omit-csspart` | Inherited CSS shadow parts |
-| `@omit-cssState` / `@omit-cssstate` | Inherited CSS custom states |
-| `@omit-event` | Inherited events |
-| `@omit-slot` | Inherited slots |
-
+| Tag                                   | Omits                                |
+| ------------------------------------- | ------------------------------------ |
+| `@omit`                               | Inherited `members` and `attributes` |
+| `@omit-method`                        | Inherited members (methods)          |
+| `@omit-attribute` / `@omit-attr`      | Inherited attributes                 |
+| `@omit-cssprop` / `@omit-cssproperty` | Inherited CSS custom properties      |
+| `@omit-part` / `@omit-csspart`        | Inherited CSS shadow parts           |
+| `@omit-cssState` / `@omit-cssstate`   | Inherited CSS custom states          |
+| `@omit-event`                         | Inherited events                     |
+| `@omit-slot`                          | Inherited slots                      |
 
 ## Members (Fields & Methods)
 
@@ -61,7 +60,7 @@ export class MyButton extends HTMLElement {
    * The button's visual variant.
    * @attr variant
    */
-  variant: 'primary' | 'secondary' | 'outline' = 'primary';
+  variant: "primary" | "secondary" | "outline" = "primary";
 
   /**
    * Internal pressed state.
@@ -74,7 +73,7 @@ export class MyButton extends HTMLElement {
    * @deprecated Use handleActivate instead.
    */
   private handleClick(event: MouseEvent): boolean {
-    this.dispatchEvent(new CustomEvent('my-button-click'));
+    this.dispatchEvent(new CustomEvent("my-button-click"));
     return true;
   }
 }
@@ -82,14 +81,14 @@ export class MyButton extends HTMLElement {
 
 Member JSDoc tags:
 
-| Tag | Manifest Field | Notes |
-|-----|----------------|-------|
-| `@attr` / `@attribute` | `attributes[].fieldName` | Maps the member to an attribute |
-| `@default` | `default` | Default value. Optional — auto-detected from the member's initializer; `@default` overrides it |
-| `@internal` / `@ignore` | (omitted) | Drops the member from output |
-| `@reflect` | `reflects: true` | Marks the attribute as reflected |
-| `@summary` | `summary` | One-line description |
-| `@deprecated` | `deprecated` | Mark as deprecated (boolean or message) |
+| Tag                     | Manifest Field           | Notes                                                                                          |
+| ----------------------- | ------------------------ | ---------------------------------------------------------------------------------------------- |
+| `@attr` / `@attribute`  | `attributes[].fieldName` | Maps the member to an attribute                                                                |
+| `@default`              | `default`                | Default value. Optional — auto-detected from the member's initializer; `@default` overrides it |
+| `@internal` / `@ignore` | (omitted)                | Drops the member from output                                                                   |
+| `@reflect`              | `reflects: true`         | Marks the attribute as reflected                                                               |
+| `@summary`              | `summary`                | One-line description                                                                           |
+| `@deprecated`           | `deprecated`             | Mark as deprecated (boolean or message)                                                        |
 
 Field and method types, parameters, returns and privacy come from the TypeScript declaration itself — they don't need JSDoc:
 
@@ -106,7 +105,7 @@ For vanilla components, attributes are auto-detected from `observedAttributes`. 
  * Button variant.
  * @attr variant
  */
-variant = 'primary';
+variant = "primary";
 
 /**
  * Disabled state.
@@ -118,14 +117,14 @@ disabled = false;
  * ARIA label.
  * @attr aria-label
  */
-ariaLabel = '';
+ariaLabel = "";
 ```
 
-| Tag | Result |
-|-----|--------|
-| `@attr` | Adds to `attributes[]` with same name |
-| `@attr name` | Maps property to attribute `name` |
-| `@attribute` | Same as `@attr` |
+| Tag          | Result                                |
+| ------------ | ------------------------------------- |
+| `@attr`      | Adds to `attributes[]` with same name |
+| `@attr name` | Maps property to attribute `name`     |
+| `@attribute` | Same as `@attr`                       |
 
 ## Events
 
@@ -141,12 +140,12 @@ export class MyButton extends HTMLElement {
 }
 ```
 
-| Tag | Manifest Field |
-|-----|----------------|
-| `@event name` | `events[].name` |
+| Tag                  | Manifest Field                    |
+| -------------------- | --------------------------------- |
+| `@event name`        | `events[].name`                   |
 | `@event {Type} name` | `events[].name` + `events[].type` |
-| `@fires name` | Same as `@event` |
-| `@fires {Type} name` | Same as `@event` with a type |
+| `@fires name`        | Same as `@event`                  |
+| `@fires {Type} name` | Same as `@event` with a type      |
 
 Core also detects statically named platform events dispatched with
 `dispatchEvent(new Event(...))` or `dispatchEvent(new CustomEvent(...))`.
@@ -206,10 +205,10 @@ export class MyCard extends HTMLElement {
 }
 ```
 
-| Tag | Manifest Field |
-|-----|----------------|
-| `@slot - description` | `slots[]` with `name: ""` and `description` (default slot) |
-| `@slot name - description` | `slots[]` with `name` and `description` |
+| Tag                        | Manifest Field                                             |
+| -------------------------- | ---------------------------------------------------------- |
+| `@slot - description`      | `slots[]` with `name: ""` and `description` (default slot) |
+| `@slot name - description` | `slots[]` with `name` and `description`                    |
 
 ## CSS Custom Properties
 
@@ -254,11 +253,11 @@ export class MyCard extends HTMLElement {
 }
 ```
 
-| Tag | Manifest Field |
-|-----|----------------|
-| `@cssprop --name - description` | `cssProperties[]` with `name` and `description` |
+| Tag                                       | Manifest Field                                    |
+| ----------------------------------------- | ------------------------------------------------- |
+| `@cssprop --name - description`           | `cssProperties[]` with `name` and `description`   |
 | `@cssprop [--name=default] - description` | Adds `default` alongside `name` and `description` |
-| `@cssproperty ...` | Same as `@cssprop` |
+| `@cssproperty ...`                        | Same as `@cssprop`                                |
 
 Explicit `@cssprop` tags take precedence over auto-detected descriptions and defaults for the same token.
 
@@ -307,9 +306,9 @@ export class MyCard extends HTMLElement {
 }
 ```
 
-| Tag | Manifest Field |
-|-----|----------------|
-| `@csspart name - description` | `cssParts[]` |
+| Tag                           | Manifest Field |
+| ----------------------------- | -------------- |
+| `@csspart name - description` | `cssParts[]`   |
 
 ## CSS Custom States
 
@@ -360,9 +359,9 @@ export class MyPanel extends HTMLElement {
 }
 ```
 
-| Tag | Manifest Field |
-|-----|----------------|
-| `@cssState name - description` | `cssStates[]` |
+| Tag                            | Manifest Field |
+| ------------------------------ | -------------- |
+| `@cssState name - description` | `cssStates[]`  |
 
 ## Complete Example
 
@@ -381,14 +380,14 @@ export class MyPanel extends HTMLElement {
  */
 export class MyButton extends HTMLElement {
   static get observedAttributes() {
-    return ['variant', 'disabled', 'loading'];
+    return ["variant", "disabled", "loading"];
   }
 
   /**
    * Visual style variant.
    * @attr variant
    */
-  variant: 'primary' | 'secondary' = 'primary';
+  variant: "primary" | "secondary" = "primary";
 
   /**
    * Disabled state.
@@ -412,7 +411,7 @@ export class MyButton extends HTMLElement {
    */
   private onClick(event: MouseEvent) {
     if (this.disabled) return;
-    this.dispatchEvent(new CustomEvent('my-button-press', { detail: event }));
+    this.dispatchEvent(new CustomEvent("my-button-press", { detail: event }));
   }
 
   connectedCallback() {
@@ -426,7 +425,7 @@ export class MyButton extends HTMLElement {
         <span><slot></slot></span>
       </button>
     `;
-    this.querySelector('button')?.addEventListener('click', this.onClick);
+    this.querySelector("button")?.addEventListener("click", this.onClick);
   }
 }
 ```
@@ -437,9 +436,9 @@ Types are read from the TypeScript declaration — the type annotation if presen
 
 ```ts
 export class MyElement extends HTMLElement {
-  name: string = '';
+  name: string = "";
 
-  variant: 'primary' | 'secondary' | 'outline' = 'primary';
+  variant: "primary" | "secondary" | "outline" = "primary";
 
   count = 0; // inferred as number
 }
@@ -449,7 +448,7 @@ For untyped JavaScript members (with `checkJs`/`allowJs`), JSDoc `@type` annotat
 
 ```ts
 /** @type {'a' | 'b' | 'c'} */
-mode = 'a';
+mode = "a";
 ```
 
 Class-level `@attr` / `@attribute` tags can also carry a type — e.g. `@attr {boolean} disabled - disables the element` — which flows into the emitted `attributes[].type`.

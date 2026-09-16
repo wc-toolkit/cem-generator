@@ -40,7 +40,9 @@ test("captures only declared CSS custom properties and @property metadata", () =
   const internalValue = (decl.members ?? []).find((member) => member.name === "internalValue");
   assert.equal(internalValue?.internal, true);
 
-  const internalPropertyValue = (decl.members ?? []).find((member) => member.name === "internalPropertyValue");
+  const internalPropertyValue = (decl.members ?? []).find(
+    (member) => member.name === "internalPropertyValue",
+  );
   assert.equal(internalPropertyValue?.internal, true);
   assert.equal(internalPropertyValue?.attribute, undefined);
 
@@ -58,13 +60,16 @@ test("captures only declared CSS custom properties and @property metadata", () =
   const disabled = (decl.members ?? []).find((member) => member.name === "disabled");
   assert.equal(disabled?.attribute, "disabled");
   assert.deepEqual(disabled?.inheritedFrom, decl.mixins?.[0]);
-  const mixin = (manifest.modules ?? []).flatMap((module) => module.declarations).find((item) => item.name === "InputMixin");
+  const mixin = (manifest.modules ?? [])
+    .flatMap((module) => module.declarations)
+    .find((item) => item.name === "InputMixin");
   assert.equal(mixin?.kind, "mixin");
   assert.ok(mixin?.members?.some((member) => member.name === "disabled"));
   assert.equal(
-    manifest.modules.find((module) => module.declarations.some((item) => item.name === "LitCssPropsEl"))?.exports
-      ?.some((entry) => entry.kind === "js" && entry.name === "InputMixin"),
-    true
+    manifest.modules
+      .find((module) => module.declarations.some((item) => item.name === "LitCssPropsEl"))
+      ?.exports?.some((entry) => entry.kind === "js" && entry.name === "InputMixin"),
+    true,
   );
 
   const chainedValue = (decl.members ?? []).find((member) => member.name === "chainedValue");
@@ -74,7 +79,10 @@ test("captures only declared CSS custom properties and @property metadata", () =
     .flatMap((module) => module.declarations)
     .find((item) => item.name === "ImportedLitElement");
   assert.equal(importedElement?.tagName, "imported-lit-element");
-  assert.equal(importedElement?.members?.find((member) => member.name === "externalValue")?.attribute, "external-value");
+  assert.equal(
+    importedElement?.members?.find((member) => member.name === "externalValue")?.attribute,
+    "external-value",
+  );
 
   const registeredElement = manifest.modules
     .flatMap((module) => module.declarations)
@@ -95,19 +103,42 @@ test("captures only declared CSS custom properties and @property metadata", () =
     .flatMap((module) => module.declarations)
     .find((item) => item.name === "CollapsedElement");
   assert.equal(collapsed?.tagName, "collapsed-element");
-  assert.ok(collapsed?.members?.some((member) => member.name === "lastName" && member.default === '"Doe"'));
-  assert.ok(collapsed?.members?.some((member) => member.name === "firstName" && member.default === '"John"'));
-  assert.ok(collapsed?.members?.some((member) => member.name === "mixA" && member.inheritedFrom?.name === "MixinA"));
-  assert.ok(collapsed?.members?.some((member) => member.name === "mixB" && member.inheritedFrom?.name === "MixinB"));
+  assert.ok(
+    collapsed?.members?.some((member) => member.name === "lastName" && member.default === '"Doe"'),
+  );
+  assert.ok(
+    collapsed?.members?.some(
+      (member) => member.name === "firstName" && member.default === '"John"',
+    ),
+  );
+  assert.ok(
+    collapsed?.members?.some(
+      (member) => member.name === "mixA" && member.inheritedFrom?.name === "MixinA",
+    ),
+  );
+  assert.ok(
+    collapsed?.members?.some(
+      (member) => member.name === "mixB" && member.inheritedFrom?.name === "MixinB",
+    ),
+  );
 
   const crossModule = manifest.modules
     .flatMap((module) => module.declarations)
     .find((item) => item.name === "CrossModuleLitElement");
   assert.equal(crossModule?.tagName, "cross-module-lit");
 
-  assert.equal((decl.members ?? []).some((member) => member.name === "render"), false);
-  assert.equal((decl.members ?? []).some((member) => member.name === "properties"), false);
-  assert.equal((decl.members ?? []).some((member) => member.name === "styles"), false);
+  assert.equal(
+    (decl.members ?? []).some((member) => member.name === "render"),
+    false,
+  );
+  assert.equal(
+    (decl.members ?? []).some((member) => member.name === "properties"),
+    false,
+  );
+  assert.equal(
+    (decl.members ?? []).some((member) => member.name === "styles"),
+    false,
+  );
   for (const internalName of [
     "controllers",
     "addController",
@@ -115,7 +146,11 @@ test("captures only declared CSS custom properties and @property metadata", () =
     "hostConnected",
     "hostDisconnected",
   ]) {
-    assert.equal((decl.members ?? []).some((member) => member.name === internalName), false, internalName);
+    assert.equal(
+      (decl.members ?? []).some((member) => member.name === internalName),
+      false,
+      internalName,
+    );
   }
 
   const cssProps = decl.cssProperties ?? [];
@@ -135,7 +170,10 @@ test("captures only declared CSS custom properties and @property metadata", () =
   assert.ok(jsdocOnly, "Expected @cssprop JSDoc token");
   assert.equal(jsdocOnly.description, "Documented by JSDoc only");
 
-  assert.equal(cssProps.some((p) => p.name === "--usage-only"), false);
+  assert.equal(
+    cssProps.some((p) => p.name === "--usage-only"),
+    false,
+  );
 
   const parts = decl.cssParts ?? [];
   const buttonPart = parts.find((p) => p.name === "button");

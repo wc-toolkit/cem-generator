@@ -24,18 +24,18 @@ const manifest = generateCem({
 
 Each rule accepts one of three severity levels:
 
-| Severity | Behavior |
-|----------|----------|
-| `"off"` | Do not run the rule. |
+| Severity    | Behavior                                                      |
+| ----------- | ------------------------------------------------------------- |
+| `"off"`     | Do not run the rule.                                          |
 | `"warning"` | Report failures through `onWarning`, but return the manifest. |
-| `"error"` | Throw `ManifestValidationError` and stop generation. |
+| `"error"`   | Throw `ManifestValidationError` and stop generation.          |
 
 The defaults are:
 
-| Rule | Default |
-|------|---------|
-| `invariants` | `"error"` |
-| `exportTypes` | `"off"` |
+| Rule          | Default   |
+| ------------- | --------- |
+| `invariants`  | `"error"` |
+| `exportTypes` | `"off"`   |
 
 Exported-type validation is opt-in because a component can intentionally use a
 type supplied by another package. Enable it once the package's public type
@@ -131,10 +131,7 @@ Errors throw `ManifestValidationError`. The error exposes the structured
 failures through its `failures` property:
 
 ```ts
-import {
-  ManifestValidationError,
-  generateCem,
-} from "@wc-toolkit/cem-generator";
+import { ManifestValidationError, generateCem } from "@wc-toolkit/cem-generator";
 
 try {
   generateCem({

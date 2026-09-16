@@ -33,7 +33,7 @@ export default {
   conflictPolicy: "last-wins",
   include: ["src/**/*.ts"],
   sort: true,
-  deprecatedLast: true
+  deprecatedLast: true,
 };
 ```
 
@@ -44,20 +44,20 @@ The prompt is opt-in and is skipped by `cem init --yes`.
 
 ## Options reference
 
-| Option | Alias | Description |
-|--------|-------|-------------|
-| `--tsconfig` | | Path to tsconfig.json |
-| `--config`, `-c` | | Path to config file |
-| `--output`, `-o` | | Output file path; overrides config `filePath` |
-| `--include` | | Glob patterns to include |
-| `--exclude` | | Glob patterns to exclude |
-| `--no-inheritance` | | Disable inheritance |
-| `--plugin` | | Additional plugin paths |
-| `--conflict-policy` | | `last-wins` or `throw` |
-| `--no-sort` | | Disable alphabetical sorting |
-| `--deprecated-last` | | Move deprecated to end |
-| `--validate-exported-types <severity>` | | `off`, `warning`, or `error` |
-| `--validation-invariants <severity>` | | Set invariant validation severity |
+| Option                                 | Alias | Description                                   |
+| -------------------------------------- | ----- | --------------------------------------------- |
+| `--tsconfig`                           |       | Path to tsconfig.json                         |
+| `--config`, `-c`                       |       | Path to config file                           |
+| `--output`, `-o`                       |       | Output file path; overrides config `filePath` |
+| `--include`                            |       | Glob patterns to include                      |
+| `--exclude`                            |       | Glob patterns to exclude                      |
+| `--no-inheritance`                     |       | Disable inheritance                           |
+| `--plugin`                             |       | Additional plugin paths                       |
+| `--conflict-policy`                    |       | `last-wins` or `throw`                        |
+| `--no-sort`                            |       | Disable alphabetical sorting                  |
+| `--deprecated-last`                    |       | Move deprecated to end                        |
+| `--validate-exported-types <severity>` |       | `off`, `warning`, or `error`                  |
+| `--validation-invariants <severity>`   |       | Set invariant validation severity             |
 
 The config file's `filePath` controls the default manifest location when
 `--output` is omitted.

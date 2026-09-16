@@ -61,7 +61,7 @@ export class StandardTagsElement extends HTMLElement {
   counter = 3;
 
   /** @summary Auto-detected default from string literal initializer. */
-  label = 'primary';
+  label = "primary";
 
   /** @summary Increments the private counter. */
   #increment() {

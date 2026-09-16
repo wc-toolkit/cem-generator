@@ -60,7 +60,11 @@ test("shouldAnalyze() is evaluated once per plugin per file", () => {
     },
   };
 
-  generateCem({ tsConfigPath: fixturesTsConfig, include: ["inheritance-fixture.ts"], plugins: [detector] });
+  generateCem({
+    tsConfigPath: fixturesTsConfig,
+    include: ["inheritance-fixture.ts"],
+    plugins: [detector],
+  });
 
   assert.equal(shouldAnalyzeCalls, 1);
 });
@@ -74,7 +78,13 @@ test("CSS-only custom elements require a JSDoc comment", () => {
   assert.match(badge?.description ?? "", /styled without a JavaScript definition/);
   assert.deepEqual(
     badge?.attributes?.map(({ name, description, type }) => ({ name, description, type })),
-    [{ name: "variant", description: "Selects the badge style.", type: { text: '\"danger\" | \"success\"' } }]
+    [
+      {
+        name: "variant",
+        description: "Selects the badge style.",
+        type: { text: '"danger" | "success"' },
+      },
+    ],
   );
   assert.deepEqual(
     badge?.cssProperties?.map(({ name, default: value }) => [name, value]),
@@ -85,10 +95,20 @@ test("CSS-only custom elements require a JSDoc comment", () => {
       ["--badge-fg-color", "black"],
       ["--badge-outline-color", undefined],
       ["--badge-padding", "8px"],
-    ]
+    ],
   );
-  assert.equal(moduleDoc?.declarations.some((declaration) => declaration.tagName === "my-undocumented-element"), false);
-  assert.equal(moduleDoc?.declarations.some((declaration) => declaration.tagName === "my-regular-comment-element"), false);
+  assert.equal(
+    moduleDoc?.declarations.some(
+      (declaration) => declaration.tagName === "my-undocumented-element",
+    ),
+    false,
+  );
+  assert.equal(
+    moduleDoc?.declarations.some(
+      (declaration) => declaration.tagName === "my-regular-comment-element",
+    ),
+    false,
+  );
 });
 
 test("detectors without shouldAnalyze analyze files by default", () => {
@@ -130,8 +150,13 @@ test("detector conflicts can throw when explicitly configured", () => {
   };
 
   assert.throws(
-    () => generateCem({ tsConfigPath: fixturesTsConfig, plugins: [first, second], conflictPolicy: "throw" }),
-    /Detector conflict/
+    () =>
+      generateCem({
+        tsConfigPath: fixturesTsConfig,
+        plugins: [first, second],
+        conflictPolicy: "throw",
+      }),
+    /Detector conflict/,
   );
 });
 
@@ -156,7 +181,11 @@ test("detector conflicts use last-wins by default", () => {
     },
   };
 
-  const manifest = generateCem({ tsConfigPath: fixturesTsConfig, include: ["inheritance-fixture.ts"], plugins: [first, second] });
+  const manifest = generateCem({
+    tsConfigPath: fixturesTsConfig,
+    include: ["inheritance-fixture.ts"],
+    plugins: [first, second],
+  });
   const elA = getClass(manifest, "inheritance-fixture.ts", "ElA");
   assert.equal(elA?.tagName, "x-b");
 });
@@ -188,7 +217,11 @@ test("afterAllFiles patch can target module+class declaration", () => {
     },
   };
 
-  const manifest = generateCem({ tsConfigPath: fixturesTsConfig, include: ["inheritance-fixture.ts", "parsed-types-element.ts"], plugins: [detector] });
+  const manifest = generateCem({
+    tsConfigPath: fixturesTsConfig,
+    include: ["inheritance-fixture.ts", "parsed-types-element.ts"],
+    plugins: [detector],
+  });
 
   const aDecl = getClass(manifest, "inheritance-fixture.ts", "Shared");
   const bDecl = getClass(manifest, "parsed-types-element.ts", "Shared");
@@ -219,7 +252,7 @@ test("annotator cannot overwrite existing fields", () => {
 
   assert.throws(
     () => generateCem({ tsConfigPath: fixturesTsConfig, plugins: [detector, annotator] }),
-    /attempted to overwrite existing field/
+    /attempted to overwrite existing field/,
   );
 });
 
@@ -247,14 +280,15 @@ test("afterGenerate receives the finalized CEM package after validation", () => 
 
 test("exported-type validation rejects unexported local public types", () => {
   assert.throws(
-    () => generateCem({
-      tsConfigPath: fixturesTsConfig,
-      include: ["parsed-types-element.ts"],
-      validation: { exportTypes: "error" },
-    }),
+    () =>
+      generateCem({
+        tsConfigPath: fixturesTsConfig,
+        include: ["parsed-types-element.ts"],
+        validation: { exportTypes: "error" },
+      }),
     (error) =>
       error?.name === "ManifestValidationError" &&
-      error.failures.some((failure) => failure.message.includes('local type "Mode"'))
+      error.failures.some((failure) => failure.message.includes('local type "Mode"')),
   );
 });
 
@@ -282,7 +316,7 @@ test("exported-type validation can be disabled", () => {
       tsConfigPath: fixturesTsConfig,
       include: ["parsed-types-element.ts"],
       validation: { exportTypes: "off" },
-    })
+    }),
   );
 });
 
@@ -292,7 +326,9 @@ test("parsed type expansion remains bounded for recursive types", () => {
   const sourceFile = program.getSourceFile(fixturePath);
   const checker = program.getTypeChecker();
   const declaration = sourceFile.statements.find(
-    (statement) => ts.isVariableStatement(statement) && statement.declarationList.declarations[0]?.name.getText() === "largeValue",
+    (statement) =>
+      ts.isVariableStatement(statement) &&
+      statement.declarationList.declarations[0]?.name.getText() === "largeValue",
   );
   const variable = declaration.declarationList.declarations[0];
 
@@ -308,17 +344,26 @@ test("typeParsing none disables parsed type expansion", () => {
     include: ["parsed-types-element.ts"],
     typeParsing: "none",
   });
-  const declaration = manifest.modules.flatMap((module) => module.declarations)
+  const declaration = manifest.modules
+    .flatMap((module) => module.declarations)
     .find((item) => item.name === "ParsedTypesElement");
 
   assert.ok(declaration);
-  assert.equal(declaration.members?.find((member) => member.name === "mode")?.parsedType, undefined);
-  assert.equal(declaration.events?.find((event) => event.name === "payload-change")?.parsedType, undefined);
+  assert.equal(
+    declaration.members?.find((member) => member.name === "mode")?.parsedType,
+    undefined,
+  );
+  assert.equal(
+    declaration.events?.find((event) => event.name === "payload-change")?.parsedType,
+    undefined,
+  );
 });
 
 test("reuses class member analysis for the same declaration and checker", () => {
   const result = createProgramFromTsConfig(fixturesTsConfig);
-  const sourceFile = result.sourceFiles.find((file) => file.fileName.endsWith("inheritance-fixture.ts"));
+  const sourceFile = result.sourceFiles.find((file) =>
+    file.fileName.endsWith("inheritance-fixture.ts"),
+  );
   const declaration = sourceFile.statements.find(
     (statement) => ts.isClassDeclaration(statement) && statement.name?.text === "BaseElement",
   );
@@ -374,10 +419,10 @@ test("manifest invariant validation rejects broken export references", () => {
         { schemaVersion: "2.1.0", modules: [] },
         {},
         [],
-        { invariants: "error" }
+        { invariants: "error" },
       ),
     (error) =>
       error?.name === "ManifestValidationError" &&
-      error.failures.some((failure) => failure.message.includes("missing declaration"))
+      error.failures.some((failure) => failure.message.includes("missing declaration")),
   );
 });

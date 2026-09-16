@@ -119,12 +119,12 @@ customElements.define("status-panel", StatusPanel);
 Use the variable-level JSDoc comment for metadata that describes the whole
 element:
 
-| JSDoc | Manifest API | Example |
-|---|---|---|
-| Comment body | `description` | `A notification panel...` |
-| `@summary` | `summary` | `@summary Displays status information.` |
-| `@tag` or `@tagname` | `tagName` | `@tag status-panel` |
-| `@deprecated` | `deprecated` | `@deprecated Use alert-panel instead.` |
+| JSDoc                | Manifest API  | Example                                 |
+| -------------------- | ------------- | --------------------------------------- |
+| Comment body         | `description` | `A notification panel...`               |
+| `@summary`           | `summary`     | `@summary Displays status information.` |
+| `@tag` or `@tagname` | `tagName`     | `@tag status-panel`                     |
+| `@deprecated`        | `deprecated`  | `@deprecated Use alert-panel instead.`  |
 
 The tag passed to `customElements.define` is used as `tagName` when no `@tag`
 tag is present.

@@ -2,8 +2,21 @@
   "name": "exports-fixture",
   "type": "module",
   "exports": {
-    ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" },
-    "./components/*": { "types": "./dist/components/*", "import": "./dist/components/*" },
-    "./legacy": [null, { "node": { "default": "./dist/legacy.js" } }]
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./components/*": {
+      "types": "./dist/components/*",
+      "import": "./dist/components/*"
+    },
+    "./legacy": [
+      null,
+      {
+        "node": {
+          "default": "./dist/legacy.js"
+        }
+      }
+    ]
   }
 }

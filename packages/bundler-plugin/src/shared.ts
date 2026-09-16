@@ -1,11 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import {
-  generateCem,
-  loadConfig,
-  mergeConfig,
-  type RunOptions,
-} from "@wc-toolkit/cem-generator";
+import { generateCem, loadConfig, mergeConfig, type RunOptions } from "@wc-toolkit/cem-generator";
 
 const SOURCE_EXTENSIONS = new Set([".js", ".mjs", ".cjs", ".ts", ".mts", ".cts", ".jsx", ".tsx"]);
 

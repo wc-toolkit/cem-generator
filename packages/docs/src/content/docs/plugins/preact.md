@@ -129,7 +129,11 @@ export function MessageCard({ message, expanded }: MessageProps) {
   return (
     <article part="card">
       <slot></slot>
-      {expanded && <div><slot name="actions"></slot></div>}
+      {expanded && (
+        <div>
+          <slot name="actions"></slot>
+        </div>
+      )}
     </article>
   );
 }
@@ -146,15 +150,15 @@ register(MessageCard, "message-card", ["message", "expanded"]);
 
 The example documents the following manifest APIs:
 
-| Source | Manifest API |
-|---|---|
-| Function comment | `description`, `summary`, `tagName`, `deprecated` |
-| Props interface and property JSDoc | `members` and `attributes` |
-| `@event` / `@fires` | `events` |
-| `@slot` | `slots` |
-| `@csspart` | `cssParts` |
-| `@cssprop` | `cssProperties` |
-| `@cssState` | `cssStates` |
+| Source                             | Manifest API                                      |
+| ---------------------------------- | ------------------------------------------------- |
+| Function comment                   | `description`, `summary`, `tagName`, `deprecated` |
+| Props interface and property JSDoc | `members` and `attributes`                        |
+| `@event` / `@fires`                | `events`                                          |
+| `@slot`                            | `slots`                                           |
+| `@csspart`                         | `cssParts`                                        |
+| `@cssprop`                         | `cssProperties`                                   |
+| `@cssState`                        | `cssStates`                                       |
 
 Preact function props are the source of truth for member types. The attribute
 list passed as the third argument to `register()` controls which props become
@@ -239,8 +243,7 @@ After loading the module that calls `register()`, use the generated custom
 element like any other HTML element:
 
 ```html
-<x-greeting name="Ada"></x-greeting>
-<x-status label="Build" state="ready" dismissible></x-status>
+<x-greeting name="Ada"></x-greeting> <x-status label="Build" state="ready" dismissible></x-status>
 ```
 
 ## Usage

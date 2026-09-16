@@ -35,7 +35,7 @@ async function loadConfigFile(configPath: string): Promise<GeneratorConfig> {
     } catch {
       throw new Error(
         `Failed to load TypeScript config "${configPath}". ` +
-          `Install "tsx" to use .ts config files: npm install --save-dev tsx`
+          `Install "tsx" to use .ts config files: npm install --save-dev tsx`,
       );
     }
   } else {
@@ -128,7 +128,10 @@ export function mergeConfig(cliOptions: RunOptions, fileOptions: GeneratorConfig
   }
 
   if (cliOptions.inheritance !== undefined && fileOptions.inheritance !== undefined) {
-    merged.inheritance = { ...(fileOptions.inheritance as object), ...(cliOptions.inheritance as object) };
+    merged.inheritance = {
+      ...(fileOptions.inheritance as object),
+      ...(cliOptions.inheritance as object),
+    };
   } else if (cliOptions.inheritance !== undefined) {
     merged.inheritance = cliOptions.inheritance;
   } else if (fileOptions.inheritance !== undefined) {

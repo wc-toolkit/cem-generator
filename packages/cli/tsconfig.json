@@ -10,10 +10,7 @@
     "composite": true,
     "skipLibCheck": true
   },
-  "references": [
-    { "path": "../core-utils" },
-    { "path": "../core" }
-  ],
+  "references": [{ "path": "../core-utils" }, { "path": "../core" }],
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]
 }

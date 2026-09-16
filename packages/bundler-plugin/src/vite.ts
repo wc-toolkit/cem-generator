@@ -51,7 +51,9 @@ export function cemGeneratorPlugin(options: CemGeneratorPluginOptions = {}) {
     configureServer(server: ViteServer) {
       if (!runInServe) return;
       initialize(server.config.logger);
-      void runner!.run().catch((error) => (server.config.logger.error ?? console.error)(error.message));
+      void runner!
+        .run()
+        .catch((error) => (server.config.logger.error ?? console.error)(error.message));
       const onChange = (filePath: string) => {
         if (shouldTrigger(filePath, runner?.outputPath)) runner?.scheduleRun();
       };

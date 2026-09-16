@@ -100,7 +100,7 @@ objects:
 import { readFileSync } from "node:fs";
 
 const externalCem = JSON.parse(
-  readFileSync("./node_modules/@acme/components/custom-elements.json", "utf8")
+  readFileSync("./node_modules/@acme/components/custom-elements.json", "utf8"),
 );
 
 generateCem({

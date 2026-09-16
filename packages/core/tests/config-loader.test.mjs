@@ -75,7 +75,7 @@ describe("config-loader", () => {
   it("throws when explicit config path not found", async () => {
     await assert.rejects(
       loadConfig({ cwd: testDir, configPath: "nonexistent.mjs" }),
-      /Config file not found/
+      /Config file not found/,
     );
   });
 
@@ -124,7 +124,7 @@ describe("config-loader", () => {
   it("merges validation rules", () => {
     const merged = mergeConfig(
       { validation: { exportTypes: "warning" } },
-      { validation: { invariants: "off", exportTypes: "error" } }
+      { validation: { invariants: "off", exportTypes: "error" } },
     );
 
     assert.deepStrictEqual(merged.validation, {

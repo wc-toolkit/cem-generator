@@ -102,15 +102,15 @@ while code mode uses `tsx` for the generated script.
 Available plugin names are `lit`, `fast`, `stencil`, `preact`, `vue`, `solid`,
 and `svelte`.
 
-| Command | Description |
-|---------|-------------|
-| `cem init` | Prompt for framework plugins and create `cem-generator.config.mjs` |
-| `cem init --mode cli --plugin lit vue` | Create a config with selected plugins |
-| `cem init --mode code --plugin lit` | Create a code-based `generate-cem.ts` workflow |
-| `cem init --mode cli --yes` | Create a vanilla-only config without prompting |
-| `cem init --mode cli --plugin lit --install` | Create a config and install selected plugins |
-| `cem init --force` | Overwrite an existing output file |
-| `cem init --config ./config/cem.mjs` | Write a CLI config to a custom path |
+| Command                                      | Description                                                        |
+| -------------------------------------------- | ------------------------------------------------------------------ |
+| `cem init`                                   | Prompt for framework plugins and create `cem-generator.config.mjs` |
+| `cem init --mode cli --plugin lit vue`       | Create a config with selected plugins                              |
+| `cem init --mode code --plugin lit`          | Create a code-based `generate-cem.ts` workflow                     |
+| `cem init --mode cli --yes`                  | Create a vanilla-only config without prompting                     |
+| `cem init --mode cli --plugin lit --install` | Create a config and install selected plugins                       |
+| `cem init --force`                           | Overwrite an existing output file                                  |
+| `cem init --config ./config/cem.mjs`         | Write a CLI config to a custom path                                |
 
 ## Generate a manifest
 
@@ -124,16 +124,16 @@ cem generate --tsconfig tsconfig.json --output custom-elements.json
 
 ## Options
 
-| Option | Description | Default |
-|--------|-------------|---------|
-| `--tsconfig <path>` | Path to `tsconfig.json` | `./tsconfig.json` |
-| `-c, --config <path>` | Path to generator config file | auto-detected |
-| `-o, --output <path>` | Output file path; overrides config `filePath` | `./custom-elements.json` |
-| `--include <patterns...>` | Glob patterns to include | — |
-| `--exclude <patterns...>` | Glob patterns to exclude | — |
-| `--no-inheritance` | Disable inheritance materialization | — |
-| `--plugin <paths...>` | Additional plugin paths to load | — |
-| `--conflict-policy <policy>` | Detector conflict policy: `throw` \| `last-wins` | `last-wins` |
+| Option                       | Description                                      | Default                  |
+| ---------------------------- | ------------------------------------------------ | ------------------------ |
+| `--tsconfig <path>`          | Path to `tsconfig.json`                          | `./tsconfig.json`        |
+| `-c, --config <path>`        | Path to generator config file                    | auto-detected            |
+| `-o, --output <path>`        | Output file path; overrides config `filePath`    | `./custom-elements.json` |
+| `--include <patterns...>`    | Glob patterns to include                         | —                        |
+| `--exclude <patterns...>`    | Glob patterns to exclude                         | —                        |
+| `--no-inheritance`           | Disable inheritance materialization              | —                        |
+| `--plugin <paths...>`        | Additional plugin paths to load                  | —                        |
+| `--conflict-policy <policy>` | Detector conflict policy: `throw` \| `last-wins` | `last-wins`              |
 
 ## Examples
 

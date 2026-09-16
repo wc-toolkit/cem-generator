@@ -2,28 +2,28 @@
   "name": "@wc-toolkit/cem-generator-svelte",
   "version": "0.1.6",
   "description": "Svelte detector plugin for generating Custom Elements Manifests.",
+  "keywords": [
+    "custom-elements",
+    "custom-elements-manifest",
+    "svelte",
+    "web-components"
+  ],
+  "homepage": "https://wc-toolkit.github.io/cem-generator/plugins/svelte/",
+  "bugs": {
+    "url": "https://github.com/wc-toolkit/cem-generator/issues"
+  },
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/wc-toolkit/cem-generator.git",
     "directory": "packages/plugins/svelte"
   },
-  "bugs": {
-    "url": "https://github.com/wc-toolkit/cem-generator/issues"
-  },
-  "homepage": "https://wc-toolkit.github.io/cem-generator/plugins/svelte/",
-  "keywords": [
-    "custom-elements",
-    "custom-elements-manifest",
-    "web-components",
-    "svelte"
+  "files": [
+    "dist"
   ],
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "files": [
-    "dist"
-  ],
   "publishConfig": {
     "access": "public",
     "provenance": true

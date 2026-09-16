@@ -9,12 +9,15 @@ import {
   parseCemMemberTags,
 } from "@wc-toolkit/cem-generator-utils";
 
-const memberCache = new WeakMap<ts.ClassLikeDeclaration, WeakMap<ts.TypeChecker, ClassFragment["members"]>>();
+const memberCache = new WeakMap<
+  ts.ClassLikeDeclaration,
+  WeakMap<ts.TypeChecker, ClassFragment["members"]>
+>();
 
 /** Detects public class fields and methods for framework-specific detectors. */
 export function detectClassMembers(
   node: ts.ClassLikeDeclaration,
-  context: FileContext
+  context: FileContext,
 ): ClassFragment["members"] {
   const cachedByChecker = memberCache.get(node);
   if (cachedByChecker?.has(context.checker)) {
@@ -53,11 +56,14 @@ export function detectClassMembers(
         static: isStatic(modifiers),
         readonly: isReadonly(member),
         type: typeText,
-        parsedType: parsedTypeText && !areTypeTextsEquivalent(parsedTypeText, typeText, { ignoreUndefined: true })
-          ? parsedTypeText
-          : undefined,
+        parsedType:
+          parsedTypeText &&
+          !areTypeTextsEquivalent(parsedTypeText, typeText, { ignoreUndefined: true })
+            ? parsedTypeText
+            : undefined,
         attribute:
-          memberDoc.attribute ?? (memberDoc.attributeFromFieldName ? normalizeAttributeName(nameText) : undefined),
+          memberDoc.attribute ??
+          (memberDoc.attributeFromFieldName ? normalizeAttributeName(nameText) : undefined),
         reflects: memberDoc.reflects,
         internal: memberDoc.internal,
         default:
@@ -74,8 +80,16 @@ export function detectClassMembers(
         deprecated: memberDoc.deprecated,
         privacy,
         static: isStatic(modifiers),
-         parameters: getMethodParameters(member, context, shouldParseMember(privacy, isStatic(modifiers), context.typeParsing)),
-         return: getMethodReturn(member, context, shouldParseMember(privacy, isStatic(modifiers), context.typeParsing)),
+        parameters: getMethodParameters(
+          member,
+          context,
+          shouldParseMember(privacy, isStatic(modifiers), context.typeParsing),
+        ),
+        return: getMethodReturn(
+          member,
+          context,
+          shouldParseMember(privacy, isStatic(modifiers), context.typeParsing),
+        ),
         customJsDocTags: memberDoc.customJsDocTags,
       });
     }
@@ -115,17 +129,26 @@ function shouldParseMember(
 function getMethodParameters(
   method: ts.MethodDeclaration,
   context: FileContext,
-  parseTypes: boolean
-): Array<{ name: string; type?: string; parsedType?: string; optional?: boolean; rest?: boolean; default?: string }> {
+  parseTypes: boolean,
+): Array<{
+  name: string;
+  type?: string;
+  parsedType?: string;
+  optional?: boolean;
+  rest?: boolean;
+  default?: string;
+}> {
   return method.parameters.map((p) => {
     const typeText = getNodeTypeText(p, context.checker);
     const parsedTypeText = parseTypes ? getParsedTypeText(p, context.checker) : undefined;
     return {
       name: p.name.getText(),
       type: typeText,
-      parsedType: parsedTypeText && !areTypeTextsEquivalent(parsedTypeText, typeText, { ignoreUndefined: true })
-        ? parsedTypeText
-        : undefined,
+      parsedType:
+        parsedTypeText &&
+        !areTypeTextsEquivalent(parsedTypeText, typeText, { ignoreUndefined: true })
+          ? parsedTypeText
+          : undefined,
       optional: p.questionToken ? true : undefined,
       rest: p.dotDotDotToken ? true : undefined,
       default: p.initializer ? p.initializer.getText() : undefined,
@@ -136,7 +159,7 @@ function getMethodParameters(
 function getMethodReturn(
   method: ts.MethodDeclaration,
   context: FileContext,
-  parseTypes: boolean
+  parseTypes: boolean,
 ): { type?: string; parsedType?: string; description?: string } | undefined {
   const type = getNodeTypeText(method, context.checker);
   if (!type) return undefined;
@@ -145,11 +168,14 @@ function getMethodReturn(
     const signature = context.checker.getSignatureFromDeclaration(method);
     const returnType = signature ? context.checker.getReturnTypeOfSignature(signature) : undefined;
     if (returnType) {
-      const expanded = parseTypes ? getParsedTypeTextFromType(returnType, context.checker) : undefined;
-      const returnTypeText = context.checker.typeToString(returnType).trim();
-      parsedType = expanded && !areTypeTextsEquivalent(expanded, returnTypeText, { ignoreUndefined: true })
-        ? expanded
+      const expanded = parseTypes
+        ? getParsedTypeTextFromType(returnType, context.checker)
         : undefined;
+      const returnTypeText = context.checker.typeToString(returnType).trim();
+      parsedType =
+        expanded && !areTypeTextsEquivalent(expanded, returnTypeText, { ignoreUndefined: true })
+          ? expanded
+          : undefined;
     }
   } catch {
     parsedType = undefined;
@@ -157,12 +183,13 @@ function getMethodReturn(
   return { type, parsedType };
 }
 
-
 function isStatic(modifiers: readonly ts.Modifier[] | undefined): boolean | undefined {
   return modifiers?.some((m) => m.kind === ts.SyntaxKind.StaticKeyword) ? true : undefined;
 }
 
-function getPrivacy(modifiers: readonly ts.Modifier[] | undefined): "public" | "private" | "protected" | undefined {
+function getPrivacy(
+  modifiers: readonly ts.Modifier[] | undefined,
+): "public" | "private" | "protected" | undefined {
   if (!modifiers) return undefined;
   if (modifiers.some((m) => m.kind === ts.SyntaxKind.PrivateKeyword)) return "private";
   if (modifiers.some((m) => m.kind === ts.SyntaxKind.ProtectedKeyword)) return "protected";

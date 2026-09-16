@@ -10,17 +10,17 @@ CSS metadata is parsed with the core CSS parser, so `:host` declarations and
 
 ## What's detected
 
-| Feature | Source | Output |
-|---------|--------|--------|
-| Custom elements | `class extends HTMLElement` + `customElements.define()` | `declarations[].tagName` |
-| Attributes | `static observedAttributes` | `attributes[]` |
-| Properties & methods | Class fields/methods | `members[]` |
-| Events | `dispatchEvent(new Event/CustomEvent(...))` + `@fires` JSDoc tag | `events[]` |
-| Slots | `<slot>` elements in template literals + `@slot` JSDoc tag | `slots[]` |
-| CSS custom properties | `:host` + `@property` in templates, `@cssprop` JSDoc tag | `cssProperties[]` |
-| CSS shadow parts | `part="..."` in templates + `@csspart` JSDoc tag | `cssParts[]` |
-| CSS custom states | `ElementInternals` `.states.add(...)` + `@cssState` JSDoc tag | `cssStates[]` |
-| Metadata | `@summary`, `@deprecated`, comment body | Per-item fields |
+| Feature               | Source                                                           | Output                   |
+| --------------------- | ---------------------------------------------------------------- | ------------------------ |
+| Custom elements       | `class extends HTMLElement` + `customElements.define()`          | `declarations[].tagName` |
+| Attributes            | `static observedAttributes`                                      | `attributes[]`           |
+| Properties & methods  | Class fields/methods                                             | `members[]`              |
+| Events                | `dispatchEvent(new Event/CustomEvent(...))` + `@fires` JSDoc tag | `events[]`               |
+| Slots                 | `<slot>` elements in template literals + `@slot` JSDoc tag       | `slots[]`                |
+| CSS custom properties | `:host` + `@property` in templates, `@cssprop` JSDoc tag         | `cssProperties[]`        |
+| CSS shadow parts      | `part="..."` in templates + `@csspart` JSDoc tag                 | `cssParts[]`             |
+| CSS custom states     | `ElementInternals` `.states.add(...)` + `@cssState` JSDoc tag    | `cssStates[]`            |
+| Metadata              | `@summary`, `@deprecated`, comment body                          | Per-item fields          |
 
 ## Usage
 
@@ -35,9 +35,11 @@ const manifest = generateCem();
 Core also detects statically named platform events dispatched from a component:
 
 ```ts
-this.dispatchEvent(new CustomEvent("value-changed", {
-  detail: this.value,
-}));
+this.dispatchEvent(
+  new CustomEvent("value-changed", {
+    detail: this.value,
+  }),
+);
 ```
 
 The generated event includes `name: "value-changed"`, `type: "CustomEvent"`, and
@@ -79,24 +81,27 @@ customElements.define("my-toggle", MyToggle);
 ```
 
 Output (trimmed):
+
 ```json
 {
-  "declarations": [{
-    "kind": "class",
-    "customElement": true,
-    "name": "MyToggle",
-    "description": "A simple toggle element.",
-    "tagName": "my-toggle",
-    "members": [
-      { "kind": "field", "name": "disabled", "type": { "text": "boolean" } },
-      { "kind": "method", "name": "toggle" }
-    ],
-    "attributes": [{ "name": "disabled" }],
-    "events": [{ "name": "my-toggle", "type": { "text": "Event" } }],
-    "slots": [
-      { "name": "", "description": "Default content" },
-      { "name": "icon", "description": "Icon slot" }
-    ]
-  }]
+  "declarations": [
+    {
+      "kind": "class",
+      "customElement": true,
+      "name": "MyToggle",
+      "description": "A simple toggle element.",
+      "tagName": "my-toggle",
+      "members": [
+        { "kind": "field", "name": "disabled", "type": { "text": "boolean" } },
+        { "kind": "method", "name": "toggle" }
+      ],
+      "attributes": [{ "name": "disabled" }],
+      "events": [{ "name": "my-toggle", "type": { "text": "Event" } }],
+      "slots": [
+        { "name": "", "description": "Default content" },
+        { "name": "icon", "description": "Icon slot" }
+      ]
+    }
+  ]
 }
 ```

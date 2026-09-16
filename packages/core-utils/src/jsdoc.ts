@@ -56,14 +56,15 @@ export interface ParsedJSDocClassInfo {
 export function getJSDocInfo(node: ts.Node): JSDocInfo {
   const tags = ts.getJSDocTags(node).map((tag) => ({
     tagName: tag.tagName.text,
-    text: typeof tag.comment === "string" ? tag.comment : ts.getTextOfJSDocComment(tag.comment) ?? "",
+    text:
+      typeof tag.comment === "string" ? tag.comment : (ts.getTextOfJSDocComment(tag.comment) ?? ""),
   }));
 
-  const description =
-    ts.getJSDocCommentsAndTags(node).find(ts.isJSDoc)?.comment;
+  const description = ts.getJSDocCommentsAndTags(node).find(ts.isJSDoc)?.comment;
 
   return {
-    description: typeof description === "string" ? description : ts.getTextOfJSDocComment(description) ?? "",
+    description:
+      typeof description === "string" ? description : (ts.getTextOfJSDocComment(description) ?? ""),
     tags,
   };
 }
@@ -117,8 +118,8 @@ const RESERVED_JSDOC_TAGS = new Set([
 
 /** Collects tags that don't map to a built-in manifest field. */
 function collectCustomJsDocTags(node: ts.Node): Array<{ name: string; text: string }> | undefined {
-  const custom = getJSDocInfo(node).tags
-    .filter((t) => !RESERVED_JSDOC_TAGS.has(t.tagName))
+  const custom = getJSDocInfo(node)
+    .tags.filter((t) => !RESERVED_JSDOC_TAGS.has(t.tagName))
     .map((t) => ({ name: t.tagName, text: t.text }));
   return custom.length ? custom : undefined;
 }
@@ -258,9 +259,9 @@ function parseNamedTag(rawText: string): { name?: string; description?: string }
  * Used for preserved custom tags so `@status beta - not ready for production`
  * becomes `{ name: "beta", description: "not ready for production" }`.
  */
-export function parseCustomTagValue(rawText: string):
-  | { name?: string; description?: string; default?: string; type?: string }
-  | undefined {
+export function parseCustomTagValue(
+  rawText: string,
+): { name?: string; description?: string; default?: string; type?: string } | undefined {
   const { type, rest } = readLeadingType(rawText);
   const text = rest.trim();
   if (!text) return type ? { type } : undefined;
@@ -272,7 +273,10 @@ export function parseCustomTagValue(rawText: string):
       const eq = bracket.indexOf("=");
       const name = (eq >= 0 ? bracket.slice(0, eq) : bracket).trim();
       const defaultValue = eq >= 0 ? bracket.slice(eq + 1).trim() : undefined;
-      const description = text.slice(end + 1).replace(/^\s*-\s*/, "").trim();
+      const description = text
+        .slice(end + 1)
+        .replace(/^\s*-\s*/, "")
+        .trim();
       return {
         name: name || undefined,
         default: defaultValue || undefined,
@@ -291,7 +295,7 @@ export function parseCustomTagValue(rawText: string):
 }
 
 function parseTypedNamedTag(
-  rawText: string
+  rawText: string,
 ): { name?: string; description?: string; type?: string } | undefined {
   const { type, rest } = readLeadingType(rawText);
   const named = parseNamedTag(rest);
@@ -312,9 +316,9 @@ function parseSlotTag(rawText: string): { name: string; description?: string } |
   return { name: parsed.name, description: parsed.description };
 }
 
-function parseCssPropertyTag(rawText: string):
-  | { name: string; description?: string; default?: string }
-  | undefined {
+function parseCssPropertyTag(
+  rawText: string,
+): { name: string; description?: string; default?: string } | undefined {
   const text = stripLeadingType(rawText);
   if (!text) return undefined;
 
@@ -325,7 +329,10 @@ function parseCssPropertyTag(rawText: string):
       const eq = bracket.indexOf("=");
       const tokenName = eq >= 0 ? bracket.slice(0, eq) : bracket;
       const defaultValue = eq >= 0 ? bracket.slice(eq + 1).trim() : undefined;
-      const description = text.slice(end + 1).replace(/^\s*-\s*/, "").trim();
+      const description = text
+        .slice(end + 1)
+        .replace(/^\s*-\s*/, "")
+        .trim();
       const name = tokenName.trim();
       if (!name) return undefined;
       return {
@@ -341,14 +348,18 @@ function parseCssPropertyTag(rawText: string):
   return { name: named.name, description: named.description };
 }
 
-function parseEventTag(rawText: string): { name?: string; description?: string; type?: string } | undefined {
+function parseEventTag(
+  rawText: string,
+): { name?: string; description?: string; type?: string } | undefined {
   const { type, rest } = readLeadingType(rawText);
   const named = parseNamedTag(rest);
   if (!named?.name) return undefined;
   return { name: named.name, description: named.description, type: type || undefined };
 }
 
-function parseOmitInheritedTags(tags: JSDocTagInfo[]): ParsedJSDocClassInfo["omitInherited"] | undefined {
+function parseOmitInheritedTags(
+  tags: JSDocTagInfo[],
+): ParsedJSDocClassInfo["omitInherited"] | undefined {
   const out: NonNullable<ParsedJSDocClassInfo["omitInherited"]> = {};
 
   const add = (key: keyof NonNullable<ParsedJSDocClassInfo["omitInherited"]>, rawText: string) => {
