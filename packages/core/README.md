@@ -14,6 +14,8 @@ Core engine package for developers and agents building CEM analysis flows.
 - Runs detector plugins per source file and merges fragments by class name
 - Runs annotator plugins after manifest assembly with additive-only enforcement
 - Includes built-in vanilla `HTMLElement` detection (always on)
+- Includes built-in CSS-only detection for documented custom-element selectors
+  in `.css` files, including `:is()`/`:where()`/`@scope` selectors and slots
 - Re-exports shared helpers from `@wc-toolkit/cem-generator-utils`
 
 ## Plugin lifecycle
