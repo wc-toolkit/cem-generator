@@ -4,7 +4,10 @@ description: Document custom elements that are defined by CSS without a JavaScri
 ---
 
 The built-in CSS detector finds UNdefined custom elements that are intended to work without JavaScript. It scans project `.css` files and emits a CEM declaration
-when a custom-element selector is preceded by a JSDoc-style comment.
+when a custom-element selector is preceded by a JSDoc-style comment. It reads
+element names from plain selectors, selector lists, `:is()`, `:where()`, and
+`@scope` roots, and it discovers slots from `slot="..."` selectors and `@slot`
+tags.
 
 ## Documenting An Element
 
@@ -55,6 +58,36 @@ my-undocumented-element {
 }
 ```
 
+## Selector Support
+
+The comment is attached to the rule that follows it, so the detector reads the
+element names from that rule's selector. Plain selectors, selector lists,
+`:is()`, `:where()`, and `@scope` roots are all recognized:
+
+```css
+/** Shared reset. */
+:where(my-badge, my-chip, my-tag) {
+  box-sizing: border-box;
+}
+
+/** Card styles. */
+@scope (my-card) to ([slot]) {
+  h3 {
+    font-weight: 600;
+  }
+}
+```
+
+This emits `my-badge`, `my-chip`, and `my-tag` from the `:where()` list (each
+sharing the reset description) and `my-card` from the `@scope` root. `:is()` is
+treated the same way, including when it lists a class fallback such as
+`:is(my-badge, .my-badge)`.
+
+Names inside `:not()`/`:has()` are not treated as elements, and a class-only
+selector such as `.my-badge` is never emitted. When the same element is
+documented by more than one rule, the declarations are merged and the first
+description wins.
+
 ## CSS Custom Properties
 
 Custom-property declarations inside a CSS-only element must also have their own
@@ -88,6 +121,48 @@ my-badge {
   }
 }
 ```
+
+## Slots
+
+CSS-only elements have no shadow root, so `slot="..."` is a naming convention
+rather than browser-level projection. The detector still records those names so
+composition is visible in the manifest.
+
+Slots are discovered from `slot="..."` attribute selectors anywhere in the
+element's rule, including nested and descendant selectors:
+
+```css
+/** A badge. */
+my-badge {
+  [slot="icon-start"] {
+    order: -1;
+  }
+  [slot="icon-end"] {
+    order: 1;
+  }
+}
+```
+
+This emits `icon-start` and `icon-end`. Use `@slot` in the element comment to
+document them, or to declare slots that are not styled directly:
+
+```css
+/**
+ * A card.
+ * @slot media - The media area.
+ * @slot header - The card heading.
+ * @slot body - The card body.
+ * @slot footer - The card footer.
+ */
+@scope (my-card) to ([slot]) {
+  h3 {
+    font-weight: 600;
+  }
+}
+```
+
+`@slot` and discovered names are merged by name; the `@slot` description wins.
+Presence-only `[slot]` selectors do not create a named slot.
 
 ## Conservative Attribute Detection
 
@@ -139,9 +214,19 @@ alert-box[dismissible] {
 
 This emits `dismissible` with `type.text` set to `boolean`.
 
-The conservative detector only handles simple attribute selectors attached to
-the custom-element selector, or nested selectors beginning with `&`. Descendant
-selectors and complex selector functions are intentionally not inferred.
+Attribute detection handles selectors attached directly to the custom-element
+selector, selectors attached to an `:is()`/`:where()` wrapper, and nested
+selectors beginning with `&`:
+
+```css
+/** A compact badge. */
+:where(my-badge)[compact] {
+  padding: 2px;
+}
+```
+
+Attributes on descendant selectors are intentionally not inferred, since those
+selectors target child elements rather than the custom element itself.
 
 ## File Filtering
 

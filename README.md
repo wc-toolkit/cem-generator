@@ -49,7 +49,9 @@ handful of deliberate departures from it.
   **built-in vanilla detection**: `class X extends HTMLElement`,
   `observedAttributes` (both `static get` and `static` field forms),
   `customElements.define()` tag-name mapping, public members, `@fires`
-  JSDoc events
+  JSDoc events. Also includes **built-in CSS-only detection**: documented
+  custom-element selectors in `.css` files, including `:is()`/`:where()`/
+  `@scope` selectors, slots, attributes, and custom properties.
 - `packages/core-utils` — JSDoc extraction, inheritance resolution
 - `packages/bundler-plugin` — Vite/Rollup/Rolldown and Webpack integrations
 - `packages/plugins/lit` — an example framework plugin, kept as a

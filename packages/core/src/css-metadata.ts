@@ -68,35 +68,77 @@ export function parseCssElements(source: string): ManifestFragment {
 
   const fragment: ManifestFragment = {};
   const registeredProperties = parseRegisteredProperties(root);
+
   root.walkRules((rule) => {
     const comment = getLeadingJsDocComment(rule);
     if (!comment) return;
     const jsdoc = parseCssJsDoc(comment);
+    const slots = mergeSlots(collectRuleSlots(rule), jsdoc.slots);
 
     for (const tagName of customElementSelectors(rule.selector)) {
-      const cssProperties = mergeCssProperties(
-        mergeCssProperties(parseRuleProperties(rule), registeredProperties),
-        jsdoc.cssProperties,
-      );
-      const attributes = mergeAttributes(collectRuleAttributes(rule), jsdoc.attributes);
-      fragment[tagName] = {
+      addCssElement(fragment, tagName, {
         name: tagName,
         tagName,
         customElement: true,
         description: jsdoc.description,
-        cssProperties,
-        attributes,
-      };
+        cssProperties: mergeCssProperties(
+          mergeCssProperties(parseRuleProperties(rule), registeredProperties),
+          jsdoc.cssProperties,
+        ),
+        attributes: mergeAttributes(collectRuleAttributes(rule), jsdoc.attributes),
+        slots,
+      });
+    }
+  });
+
+  root.walkAtRules("scope", (atRule) => {
+    const comment = getLeadingJsDocComment(atRule);
+    if (!comment) return;
+    const jsdoc = parseCssJsDoc(comment);
+    const rootSelector = scopeRootSelector(atRule.params);
+
+    for (const tagName of customElementSelectors(rootSelector)) {
+      addCssElement(fragment, tagName, {
+        name: tagName,
+        tagName,
+        customElement: true,
+        description: jsdoc.description,
+        cssProperties: jsdoc.cssProperties,
+        attributes: jsdoc.attributes,
+        slots: jsdoc.slots,
+      });
     }
   });
 
   return fragment;
 }
 
+/** Merges a rule's findings into any data already recorded for the same tag. */
+function addCssElement(fragment: ManifestFragment, tagName: string, incoming: ClassFragment): void {
+  const existing = fragment[tagName];
+  if (!existing) {
+    fragment[tagName] = incoming;
+    return;
+  }
+
+  fragment[tagName] = {
+    ...incoming,
+    ...existing,
+    name: tagName,
+    tagName,
+    customElement: true,
+    description: existing.description ?? incoming.description,
+    cssProperties: mergeCssProperties(existing.cssProperties, incoming.cssProperties),
+    attributes: mergeAttributes(existing.attributes, incoming.attributes),
+    slots: mergeSlots(existing.slots, incoming.slots),
+  };
+}
+
 function parseCssJsDoc(comment: string): {
   description?: string;
   cssProperties?: ClassFragment["cssProperties"];
   attributes?: ClassFragment["attributes"];
+  slots?: ClassFragment["slots"];
 } {
   const sourceFile = ts.createSourceFile(
     "css-only-element.ts",
@@ -113,6 +155,7 @@ function parseCssJsDoc(comment: string): {
     description: info.description || undefined,
     cssProperties: tags.cssProperties,
     attributes: tags.attributes,
+    slots: tags.slots,
   };
 }
 
@@ -211,8 +254,15 @@ function attributeSelectors(
     suffix = trimmed.slice(1);
   } else {
     const match = trimmed.match(/^[a-z][a-z0-9]*-[a-z0-9-]*/i);
-    if (!match) return [];
-    suffix = trimmed.slice(match[0].length);
+    if (match) {
+      suffix = trimmed.slice(match[0].length);
+    } else {
+      const pseudo = trimmed.match(/^:(?:is|where|matches)\(/i);
+      if (!pseudo) return [];
+      const close = matchingParen(trimmed, pseudo[0].length - 1);
+      if (close < 0) return [];
+      suffix = trimmed.slice(close + 1);
+    }
   }
 
   if (!suffix?.startsWith("[")) return [];
@@ -248,13 +298,185 @@ function mergeAttributes(
   return byName.size ? [...byName.values()] : undefined;
 }
 
+/**
+ * Finds the custom-element tag names a selector targets, including names nested
+ * in `:is()`/`:where()` functions and selector lists.
+ */
 function customElementSelectors(selector: string): string[] {
   const tags = new Set<string>();
-  for (const part of selector.split(",")) {
-    const match = part.trim().match(/^([a-z][a-z0-9]*-[a-z0-9-]*)(?=$|[.#:[>+~\s])/i);
-    if (match) tags.add(match[1].toLowerCase());
+  for (const complex of splitTopLevel(selector, (char) => char === ",")) {
+    for (const compound of splitCompounds(complex)) {
+      for (const tag of tagsInCompound(compound)) tags.add(tag);
+    }
   }
   return [...tags];
+}
+
+function tagsInCompound(compound: string): string[] {
+  const tags: string[] = [];
+  const match = compound.match(/^([a-z][a-z0-9]*-[a-z0-9-]*)/i);
+  if (match) tags.push(match[1].toLowerCase());
+
+  for (const args of functionalPseudoArgs(compound)) {
+    tags.push(...customElementSelectors(args));
+  }
+  return tags;
+}
+
+/** Extracts the arguments of `:is()`/`:where()`/`:matches()` functions in a compound. */
+function functionalPseudoArgs(compound: string): string[] {
+  const args: string[] = [];
+  for (let index = 0; index < compound.length; index += 1) {
+    if (compound[index] !== ":" || compound[index - 1] === "\\") continue;
+    const match = compound.slice(index + 1).match(/^(is|where|matches|-webkit-any|-moz-any)\(/i);
+    if (!match) continue;
+    const open = index + match[0].length;
+    const close = matchingParen(compound, open);
+    if (close < 0) continue;
+    args.push(compound.slice(open + 1, close));
+    index = close;
+  }
+  return args;
+}
+
+/** Returns the index of the `)` matching the `(` at `open`, or -1. */
+function matchingParen(text: string, open: number): number {
+  let depth = 0;
+  let quote: string | undefined;
+  for (let index = open; index < text.length; index += 1) {
+    const char = text[index];
+    if (quote) {
+      if (char === quote && text[index - 1] !== "\\") quote = undefined;
+      continue;
+    }
+    if (char === '"' || char === "'") {
+      quote = char;
+      continue;
+    }
+    if (char === "(") depth += 1;
+    if (char === ")" && --depth === 0) return index;
+  }
+  return -1;
+}
+
+/** Splits `text` on a separator character at the top level, ignoring brackets/quotes. */
+function splitTopLevel(text: string, isSeparator: (char: string) => boolean): string[] {
+  const parts: string[] = [];
+  let current = "";
+  let depth = 0;
+  let quote: string | undefined;
+
+  for (let index = 0; index < text.length; index += 1) {
+    const char = text[index];
+    if (quote) {
+      current += char;
+      if (char === quote && text[index - 1] !== "\\") quote = undefined;
+      continue;
+    }
+    if (char === '"' || char === "'") {
+      quote = char;
+      current += char;
+      continue;
+    }
+    if (char === "(" || char === "[") {
+      depth += 1;
+      current += char;
+      continue;
+    }
+    if (char === ")" || char === "]") {
+      depth = Math.max(0, depth - 1);
+      current += char;
+      continue;
+    }
+    if (depth === 0 && isSeparator(char)) {
+      parts.push(current);
+      current = "";
+      continue;
+    }
+    current += char;
+  }
+
+  parts.push(current);
+  return parts.map((part) => part.trim()).filter(Boolean);
+}
+
+/** Splits a complex selector into its compound selectors (around combinators). */
+function splitCompounds(complex: string): string[] {
+  return splitTopLevel(complex, (char) => /[\s>+~]/.test(char));
+}
+
+/** Reads the selector that anchors an `@scope` at-rule, before its scope limit. */
+function scopeRootSelector(params: string): string {
+  const trimmed = params.trim();
+  const toIndex = findScopeLimit(trimmed);
+  const root = toIndex >= 0 ? trimmed.slice(0, toIndex).trim() : trimmed;
+  if (root.startsWith("(") && matchingParen(root, 0) === root.length - 1) {
+    return root.slice(1, -1).trim();
+  }
+  return root;
+}
+
+function findScopeLimit(params: string): number {
+  let depth = 0;
+  let quote: string | undefined;
+  for (let index = 0; index < params.length; index += 1) {
+    const char = params[index];
+    if (quote) {
+      if (char === quote && params[index - 1] !== "\\") quote = undefined;
+      continue;
+    }
+    if (char === '"' || char === "'") {
+      quote = char;
+      continue;
+    }
+    if (char === "(" || char === "[") depth += 1;
+    if (char === ")" || char === "]") depth = Math.max(0, depth - 1);
+    if (depth === 0 && params.startsWith(" to ", index)) return index;
+  }
+  return -1;
+}
+
+/** Discovers slot names referenced by `slot="..."` selectors in a rule and its nested rules. */
+function collectRuleSlots(rule: Rule): ClassFragment["slots"] {
+  const byName = new Map<string, NonNullable<ClassFragment["slots"]>[number]>();
+  const selectors = [rule.selector];
+  rule.walkRules((nested) => {
+    selectors.push(nested.selector);
+  });
+
+  for (const selector of selectors) {
+    for (const name of slotNamesInSelector(selector)) {
+      if (!byName.has(name)) byName.set(name, { name });
+    }
+  }
+  return byName.size ? [...byName.values()] : undefined;
+}
+
+function slotNamesInSelector(selector: string): string[] {
+  const names: string[] = [];
+  const matches = selector.matchAll(/\[\s*slot\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\]\s]+))\s*\]/gi);
+  for (const match of matches) {
+    const name = match[1] ?? match[2] ?? match[3];
+    if (name) names.push(name);
+  }
+  return names;
+}
+
+function mergeSlots(
+  first: ClassFragment["slots"],
+  second: ClassFragment["slots"],
+): ClassFragment["slots"] {
+  if (!first && !second) return undefined;
+  const byName = new Map<string, NonNullable<ClassFragment["slots"]>[number]>();
+  for (const slot of first ?? []) byName.set(slot.name, slot);
+  for (const slot of second ?? []) {
+    byName.set(slot.name, {
+      name: slot.name,
+      ...byName.get(slot.name),
+      ...Object.fromEntries(Object.entries(slot).filter(([, value]) => value !== undefined)),
+    });
+  }
+  return byName.size ? [...byName.values()] : undefined;
 }
 
 function unwrapCssTemplate(source: string): string {

@@ -1,0 +1,51 @@
+/**
+ * A badge styled without a JavaScript definition.
+ * @slot icon-start - The leading icon.
+ * @slot icon-end - The trailing icon.
+ */
+my-badge {
+  display: inline-flex;
+
+  &[variant="danger"] {
+    color: red;
+  }
+
+  [slot="icon-start"] {
+    order: -1;
+  }
+
+  [slot="icon-end"] {
+    order: 1;
+  }
+}
+
+/** Shared reset for tag-like components. */
+:where(my-badge, my-chip, my-tag) {
+  box-sizing: border-box;
+}
+
+/** Compact badge layout. */
+:where(my-badge)[compact] {
+  padding: 2px;
+}
+
+/**
+ * A card composed from named slots.
+ * @slot media - The media area.
+ * @slot header - The card heading.
+ * @slot body - The card body.
+ * @slot footer - The card footer.
+ */
+@scope (my-card) to ([slot]) {
+  h3 {
+    font-weight: 600;
+  }
+  p {
+    color: gray;
+  }
+}
+
+/** An aliased selector list that styles a badge slot. */
+:is(my-badge, .my-badge) [slot="status"] {
+  padding: 2px;
+}
