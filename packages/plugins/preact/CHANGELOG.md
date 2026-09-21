@@ -1,5 +1,12 @@
 # @wc-toolkit/cem-generator-preact
 
+## 0.1.8
+
+### Patch Changes
+
+- Updated dependencies [7bc58bc]
+  - @wc-toolkit/cem-generator@0.1.8
+
 ## 0.1.7
 
 ### Patch Changes

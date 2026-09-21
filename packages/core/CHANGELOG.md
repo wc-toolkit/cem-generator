@@ -1,5 +1,11 @@
 # @wc-toolkit/cem-generator
 
+## 0.1.8
+
+### Patch Changes
+
+- 7bc58bc: Detect CSS-only custom elements referenced through selector lists, `:is()`, `:where()`, and `@scope` roots, and emit their documented and discovered slots.
+
 ## 0.1.7
 
 ### Patch Changes
