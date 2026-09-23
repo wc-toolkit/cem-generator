@@ -30,7 +30,10 @@ my-badge {
 ```
 
 The generated declaration uses `my-badge` as both its `name` and `tagName`, and
-the selector comment becomes its `description`.
+the selector comment becomes its `description`. Because CSS-only elements have
+no JavaScript implementation, the declaration references `HTMLUnknownElement`
+as its `superclass`, which is the browser's representation of an undefined
+custom element.
 
 The element comment can also use `@cssprop` or `@cssproperty` tags. These tags
 are merged into the generated `cssProperties` collection and override matching

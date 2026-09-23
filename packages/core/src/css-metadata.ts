@@ -57,6 +57,8 @@ export function parseCssMetadata(source: string): ClassFragment["cssProperties"]
 }
 
 /** Finds documented CSS-only custom elements and their base custom properties. */
+const CSS_ONLY_SUPERCLASS = { name: "HTMLUnknownElement" } as const;
+
 export function parseCssElements(source: string): ManifestFragment {
   const css = unwrapCssTemplate(source);
   let root: ReturnType<typeof postcss.parse>;
@@ -80,6 +82,7 @@ export function parseCssElements(source: string): ManifestFragment {
         name: tagName,
         tagName,
         customElement: true,
+        superclass: CSS_ONLY_SUPERCLASS,
         description: jsdoc.description,
         cssProperties: mergeCssProperties(
           mergeCssProperties(parseRuleProperties(rule), registeredProperties),
@@ -102,6 +105,7 @@ export function parseCssElements(source: string): ManifestFragment {
         name: tagName,
         tagName,
         customElement: true,
+        superclass: CSS_ONLY_SUPERCLASS,
         description: jsdoc.description,
         cssProperties: jsdoc.cssProperties,
         attributes: jsdoc.attributes,
