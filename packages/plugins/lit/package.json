@@ -1,6 +1,6 @@
 {
   "name": "@wc-toolkit/cem-generator-lit",
-  "version": "0.1.9",
+  "version": "0.1.10",
   "description": "Lit detector plugin for generating Custom Elements Manifests.",
   "keywords": [
     "custom-elements",
