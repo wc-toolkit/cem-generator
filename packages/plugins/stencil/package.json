@@ -1,6 +1,6 @@
 {
   "name": "@wc-toolkit/cem-generator-stencil",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "description": "Stencil detector plugin for generating Custom Elements Manifests.",
   "keywords": [
     "custom-elements",

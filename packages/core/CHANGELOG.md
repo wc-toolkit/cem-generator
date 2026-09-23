@@ -1,5 +1,11 @@
 # @wc-toolkit/cem-generator
 
+## 0.1.9
+
+### Patch Changes
+
+- f7f9f92: Emit `HTMLUnknownElement` as the superclass of CSS-only custom element declarations.
+
 ## 0.1.8
 
 ### Patch Changes
