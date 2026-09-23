@@ -34,6 +34,17 @@ test("CSS-only detection supports :where(), :is(), and @scope selectors", () => 
   assert.ok(declaration(manifest, "my-card"), "@scope root");
 });
 
+test("CSS-only declarations reference HTMLUnknownElement as their superclass", () => {
+  const manifest = generate();
+
+  for (const tagName of ["my-badge", "my-chip", "my-tag", "my-card"]) {
+    assert.deepEqual(declaration(manifest, tagName)?.superclass, {
+      name: "HTMLUnknownElement",
+      module: undefined,
+    });
+  }
+});
+
 test("CSS-only detection discovers slots from selectors and @slot tags", () => {
   const manifest = generate();
   const badge = declaration(manifest, "my-badge");
