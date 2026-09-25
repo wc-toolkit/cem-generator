@@ -1,5 +1,12 @@
 # @wc-toolkit/cem-generator-bundler
 
+## 0.1.10
+
+### Patch Changes
+
+- Updated dependencies [301a28c]
+  - @wc-toolkit/cem-generator@0.1.10
+
 ## 0.1.9
 
 ### Patch Changes

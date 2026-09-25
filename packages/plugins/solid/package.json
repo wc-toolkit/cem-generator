@@ -1,6 +1,6 @@
 {
   "name": "@wc-toolkit/cem-generator-solid",
-  "version": "0.1.9",
+  "version": "0.1.10",
   "description": "Solid detector plugin for generating Custom Elements Manifests.",
   "keywords": [
     "custom-elements",
