@@ -34,7 +34,7 @@
   "dependencies": {
     "@wc-toolkit/cem-generator-utils": "workspace:*",
     "postcss": "^8.5.6",
-    "typescript": "^5.9.0"
+    "@typescript/typescript6": "^6.0.2"
   },
   "devDependencies": {
     "@types/node": "^26.4.1"

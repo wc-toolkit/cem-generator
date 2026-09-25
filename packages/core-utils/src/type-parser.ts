@@ -1,4 +1,4 @@
-import ts from "typescript";
+import ts from "@typescript/typescript6";
 
 const typeLookupCache = new WeakMap<ts.SourceFile, Map<string, ts.Node>>();
 const nodeTypeTextCache = new WeakMap<ts.Node, WeakMap<ts.TypeChecker, string | undefined>>();

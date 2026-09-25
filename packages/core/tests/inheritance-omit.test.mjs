@@ -72,7 +72,7 @@ test("resolveInheritedCollection omits inherited names from class metadata + con
 
 test("parseCemClassTags exposes omitInherited from JSDoc tags", async () => {
   const { parseCemClassTags } = await import("@wc-toolkit/cem-generator-utils");
-  const { default: ts } = await import("typescript");
+  const { default: ts } = await import("@typescript/typescript6");
 
   const source = ts.createSourceFile(
     "fixture.ts",

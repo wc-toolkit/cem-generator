@@ -1,6 +1,6 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import ts from "typescript";
+import ts from "@typescript/typescript6";
 import { parseCemClassTags, parseCemMemberTags, getNodeTypeText } from "../src/index.ts";
 
 const source = `

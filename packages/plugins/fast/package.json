@@ -35,7 +35,7 @@
   "dependencies": {
     "@wc-toolkit/cem-generator": "workspace:*",
     "@wc-toolkit/cem-generator-utils": "workspace:*",
-    "typescript": "^5.9.0"
+    "@typescript/typescript6": "^6.0.2"
   },
   "devDependencies": {
     "@microsoft/fast-element": "^3.0.2"

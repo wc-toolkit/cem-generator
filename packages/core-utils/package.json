@@ -31,6 +31,6 @@
     "demo": "tsx demo/run.ts"
   },
   "dependencies": {
-    "typescript": "^5.9.0"
+    "@typescript/typescript6": "^6.0.2"
   }
 }

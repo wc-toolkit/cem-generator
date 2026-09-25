@@ -1,4 +1,4 @@
-import ts from "typescript";
+import ts from "@typescript/typescript6";
 
 /** Finds statically named custom-element registrations in a source file. */
 export function detectCustomElementRegistrations(sourceFile: ts.SourceFile): Map<string, string> {
