@@ -1,5 +1,11 @@
 # @wc-toolkit/cem-generator-utils
 
+## 0.1.3
+
+### Patch Changes
+
+- 301a28c: Upgrade the workspace compiler to TypeScript 7 while retaining the TypeScript 6 compiler API compatibility package for AST and type analysis.
+
 ## 0.1.2
 
 ### Patch Changes
