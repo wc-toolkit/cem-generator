@@ -1,4 +1,4 @@
-import ts from "typescript";
+import ts from "@typescript/typescript6";
 import type { Package as CemPackage } from "custom-elements-manifest/schema";
 import type { ClassFragment, InternalManifest } from "./types.js";
 

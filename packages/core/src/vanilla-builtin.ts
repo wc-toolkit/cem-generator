@@ -1,4 +1,4 @@
-import ts from "typescript";
+import ts from "@typescript/typescript6";
 import type { DetectorPlugin, FileContext, ManifestFragment, ClassFragment } from "./types.js";
 import {
   getJSDocInfo,

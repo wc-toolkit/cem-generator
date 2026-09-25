@@ -42,6 +42,7 @@
     "release": "pnpm build && changeset publish"
   },
   "devDependencies": {
+    "@typescript/typescript6": "^6.0.2",
     "@changesets/cli": "^2.29.7",
     "@types/node": "^26.4.1",
     "ajv": "^8.20.0",
@@ -50,7 +51,7 @@
     "oxlint": "^1.83.0",
     "ts-node": "^10.9.2",
     "tsx": "^4.23.13",
-    "typescript": "^5.9.0"
+    "typescript": "^7.0.2"
   },
   "homepage": "https://cem-generator.wc-toolkit.com/"
 }

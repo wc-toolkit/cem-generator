@@ -1,4 +1,4 @@
-import ts from "typescript";
+import ts from "@typescript/typescript6";
 import postcss, {
   type AtRule,
   type Comment,
