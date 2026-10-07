@@ -1,5 +1,12 @@
 # @wc-toolkit/cem-generator-utils
 
+## 0.1.4
+
+### Patch Changes
+
+- 8fe821d: Read lowercase `@cssstate` JSDoc tags as CSS custom states and keep them out of custom tag output.
+- 2fba859: Preserve valid JSDoc CSS custom property syntax annotations in generated manifests.
+
 ## 0.1.3
 
 ### Patch Changes

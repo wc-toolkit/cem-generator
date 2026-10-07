@@ -1,5 +1,15 @@
 # @wc-toolkit/cem-generator
 
+## 0.1.12
+
+### Patch Changes
+
+- defd658: Fix inferred method return types so unannotated methods emit the return value type instead of the full method signature.
+- 77f8852: Mark getter-only class accessors as readonly fields in generated manifests.
+- Updated dependencies [8fe821d]
+- Updated dependencies [2fba859]
+  - @wc-toolkit/cem-generator-utils@0.1.4
+
 ## 0.1.11
 
 ### Patch Changes
