@@ -517,7 +517,7 @@ function getDecoratedProperties(
           ? undefined
           : (options.attribute ?? memberDoc.attribute ?? nameText),
       reflects: options.reflect ?? memberDoc.reflects,
-      default: memberDoc.default,
+      default: memberDoc.default ?? member.initializer?.getText(),
     });
   }
 
