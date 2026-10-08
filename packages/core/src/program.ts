@@ -44,7 +44,7 @@ function createProgramFromParsed(
   });
 }
 
-function getSourceFiles(program: ts.Program): ts.SourceFile[] {
+export function getAnalyzableSourceFiles(program: ts.Program): ts.SourceFile[] {
   return program
     .getSourceFiles()
     .filter((sf) => !sf.isDeclarationFile && !sf.fileName.includes("node_modules"));
@@ -73,7 +73,7 @@ export function createProgramFromTsConfig(
   const compilerOptions = buildCompilerOptions(parsed);
   const program = createProgramFromParsed(parsed, compilerOptions);
   const checker = program.getTypeChecker();
-  const sourceFiles = getSourceFiles(program);
+  const sourceFiles = getAnalyzableSourceFiles(program);
 
   return { program, checker, sourceFiles };
 }

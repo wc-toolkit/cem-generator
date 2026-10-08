@@ -105,6 +105,7 @@ const manifest = generateCem({
 | Option           | Type                                | Default                                       | Description                                                                                  |
 | ---------------- | ----------------------------------- | --------------------------------------------- | -------------------------------------------------------------------------------------------- |
 | `tsConfigPath`   | `string`                            | `"./tsconfig.json"`                           | Path to TypeScript config. Program created from this config.                                 |
+| `program`        | `ts.Program`                        | `undefined`                                   | Prebuilt TypeScript program, built with a compatible `@typescript/typescript6`.              |
 | `plugins`        | `Plugin[]`                          | `[]`                                          | Additional detector/annotator plugins. Vanilla detector always runs.                         |
 | `conflictPolicy` | `"throw" \| "last-wins"`            | `"last-wins"`                                 | How to resolve when multiple detectors produce different values for same class field.        |
 | `inheritance`    | `false \| InheritancePluginOptions` | `{}`                                          | Built-in inheritance materialization. Set `false` to disable.                                |
@@ -116,6 +117,34 @@ const manifest = generateCem({
 `filePath` is a CLI config option and is not passed to `generateCem()`. It
 controls where `cem generate` writes the returned manifest. Use `--output` to
 override it for one invocation.
+
+### Reusing a TypeScript Program
+
+Building the TypeScript program is the expensive part of a run. Tools that
+already hold one, such as a dev server or an editor integration, can pass it
+with `program` instead of letting `generateCem()` build a new one from
+`tsConfigPath`. Programs must come from a compatible `@typescript/typescript6`;
+an incompatible TypeScript version is rejected with an error. With
+`program`, only the program's files are analyzed; the directory scans for
+CSS-only elements and `.svelte` files are skipped.
+
+```ts
+import ts from "@typescript/typescript6";
+import { generateCem } from "@wc-toolkit/cem-generator";
+
+// Analyze one file and what it imports.
+const program = ts.createProgram({
+  rootNames: ["src/my-element.ts"],
+  options: { allowJs: true },
+});
+const manifest = generateCem({ program });
+
+// Or reuse a language service: unchanged files are not parsed again.
+const next = generateCem({ program: languageService.getProgram()! });
+```
+
+`generateCem()` turns on `allowJs` for the programs it builds itself. Set it
+yourself when your program should include JavaScript files.
 
 ## Inheritance Options
 

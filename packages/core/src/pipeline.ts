@@ -12,7 +12,7 @@ import {
   isDetectorPlugin,
   isAnnotatorPlugin,
 } from "./types.js";
-import type { ProgramResult } from "./program.js";
+import { getAnalyzableSourceFiles, type ProgramResult } from "./program.js";
 import { vanillaBuiltin } from "./vanilla-builtin.js";
 import { cssBuiltin } from "./css-builtin.js";
 import type {
@@ -78,6 +78,8 @@ export interface RunOptions {
   inheritance?: false | InheritancePluginOptions;
   /** Path to tsconfig.json. Defaults to ./tsconfig.json. */
   tsConfigPath?: string;
+  /** Prebuilt TypeScript program. Build it with compatible `@typescript/typescript6`. Only its files are analyzed. */
+  program?: ts.Program;
   /**
    * Glob patterns limiting which program files are analyzed for declarations.
    * If omitted or empty, every non-declaration, non-`node_modules` file in
@@ -136,6 +138,7 @@ export function generateCem(options: RunOptions = {}): CemPackage {
     conflictPolicy = "last-wins",
     inheritance = {},
     tsConfigPath,
+    program: providedProgram,
     include,
     exclude,
     sort = true,
@@ -160,26 +163,24 @@ export function generateCem(options: RunOptions = {}): CemPackage {
         ? {}
         : undefined;
 
-  const configFilePath = tsConfigPath ?? DEFAULT_TS_CONFIG_PATH;
-  const resolvedPath = path.resolve(configFilePath);
-  const programResult = createProgramResult(resolvedPath);
+  const resolvedPath = path.resolve(tsConfigPath ?? DEFAULT_TS_CONFIG_PATH);
+  const programResult = providedProgram
+    ? createProgramResultFromProgram(providedProgram)
+    : createProgramResult(resolvedPath);
   const { program, checker, sourceFiles } = programResult;
-  const projectDir = path.dirname(resolvedPath);
+  const projectDir =
+    providedProgram && !tsConfigPath ? program.getCurrentDirectory() : path.dirname(resolvedPath);
+  const compilerOptions = program.getCompilerOptions();
   const runtimeResolver = modulePathSkip
     ? (sourceFile: string) => sourceFile
-    : createRuntimeResolver(projectDir, readCompilerOptions(resolvedPath));
+    : createRuntimeResolver(projectDir, compilerOptions);
   const allPlugins: Plugin[] = [vanillaBuiltin(), cssBuiltin(), ...plugins];
-  const additionalFiles = getAdditionalPluginFiles(
-    projectDir,
-    allPlugins,
-    sourceFiles,
-    program.getCompilerOptions(),
-  );
-  const cssFiles = getCssFiles(
-    projectDir,
-    [...sourceFiles, ...additionalFiles],
-    program.getCompilerOptions(),
-  );
+  const additionalFiles = providedProgram
+    ? []
+    : getAdditionalPluginFiles(projectDir, allPlugins, sourceFiles, compilerOptions);
+  const cssFiles = providedProgram
+    ? []
+    : getCssFiles(projectDir, [...sourceFiles, ...additionalFiles], compilerOptions);
   const filteredFiles = filterSourceFiles(
     [...sourceFiles, ...additionalFiles, ...cssFiles],
     include,
@@ -347,13 +348,6 @@ function getAdditionalPluginFiles(
 }
 
 type ExportTarget = { key: string; types?: string; runtime?: string };
-
-function readCompilerOptions(configFilePath: string): ts.CompilerOptions {
-  const configFile = ts.readConfigFile(configFilePath, ts.sys.readFile);
-  if (configFile.error) return {};
-  return ts.parseJsonConfigFileContent(configFile.config, ts.sys, path.dirname(configFilePath))
-    .options;
-}
 
 function createRuntimeResolver(
   projectDir: string,
@@ -570,10 +564,27 @@ function createProgramResult(configFilePath: string): ProgramResult {
   };
   const program = ts.createProgram({ rootNames: parsed.fileNames, options });
   const checker = program.getTypeChecker();
-  const sourceFiles = program
-    .getSourceFiles()
-    .filter((sf) => !sf.isDeclarationFile && !sf.fileName.includes("node_modules"));
+  const sourceFiles = getAnalyzableSourceFiles(program);
   return { program, checker, sourceFiles };
+}
+
+function createProgramResultFromProgram(program: ts.Program): ProgramResult {
+  assertCompatibleProgram(program);
+  return {
+    program,
+    checker: program.getTypeChecker(),
+    sourceFiles: getAnalyzableSourceFiles(program),
+  };
+}
+
+function assertCompatibleProgram(program: ts.Program): void {
+  const [firstSourceFile] = program.getSourceFiles();
+  if (firstSourceFile && firstSourceFile.kind !== ts.SyntaxKind.SourceFile) {
+    throw new Error(
+      "The provided program was built with an incompatible TypeScript version. " +
+        "Build programs with @typescript/typescript6, the version this package depends on.",
+    );
+  }
 }
 
 function createDefaultProgram(projectDir: string): ProgramResult {
@@ -588,18 +599,14 @@ function createDefaultProgram(projectDir: string): ProgramResult {
     };
     const program = ts.createProgram({ rootNames: parsed.fileNames, options });
     const checker = program.getTypeChecker();
-    const sourceFiles = program
-      .getSourceFiles()
-      .filter((sf) => !sf.isDeclarationFile && !sf.fileName.includes("node_modules"));
+    const sourceFiles = getAnalyzableSourceFiles(program);
     return { program, checker, sourceFiles };
   }
 
   const options: ts.CompilerOptions = { allowJs: true, checkJs: false };
   const program = ts.createProgram({ rootNames: discoverSourceFiles(projectDir), options });
   const checker = program.getTypeChecker();
-  const sourceFiles = program
-    .getSourceFiles()
-    .filter((sf) => !sf.isDeclarationFile && !sf.fileName.includes("node_modules"));
+  const sourceFiles = getAnalyzableSourceFiles(program);
   return { program, checker, sourceFiles };
 }
 
