@@ -192,3 +192,30 @@ const manifest = generateCem();
 
 fs.writeFileSync("custom-elements.json", JSON.stringify(manifest, null, 2));
 ```
+
+### Programmatic watch mode
+
+Use a generator session when an application needs to regenerate the manifest as
+source files change. The session reuses its TypeScript program between runs.
+
+```ts
+import { createGeneratorSession } from "@wc-toolkit/cem-generator";
+import fs from "node:fs";
+
+const session = createGeneratorSession({ tsConfigPath: "./tsconfig.json" });
+const watch = session.watch({
+  onManifest(manifest) {
+    fs.writeFileSync("custom-elements.json", JSON.stringify(manifest, null, 2) + "\n");
+  },
+  onError(error) {
+    console.error(error);
+  },
+});
+
+await watch.ready;
+// Call watch.close() when the host application shuts down.
+```
+
+The initial generation is delivered through `onManifest`, and subsequent
+changes are debounced by 120ms by default. Use `watch.close()` or
+`session.close()` to stop watching.

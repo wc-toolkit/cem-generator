@@ -1,11 +1,11 @@
 ---
-title: Overview
+title: Why cem-generator?
 description: What cem-generator does, why it helps, and how to get started.
 ---
 
 `cem-generator` generates a **Custom Elements Manifest (CEM)** — a machine-readable JSON file describing your custom elements. This manifest powers documentation sites, IDE autocomplete, and tooling across the web components ecosystem.
 
-## Why cem-generator?
+## Core Features
 
 `cem-generator` keeps your component source, documentation, and tooling metadata
 in sync without asking you to maintain the same API in multiple places. You write
