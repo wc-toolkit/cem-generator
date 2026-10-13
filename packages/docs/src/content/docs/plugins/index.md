@@ -56,7 +56,7 @@ depend directly on one another. Cross-plugin enrichment belongs in annotators.
 
 ## Build Integrations
 
-- [Bundler Plugin](/guide/bundler/) — Generates the manifest from Vite, Rollup, Rolldown, or Webpack builds.
+- [Using in Your Bundler](/guide/bundler/) — Generates the manifest from Vite, Rollup, Rolldown, or Webpack builds.
 
 ## Built-in
 

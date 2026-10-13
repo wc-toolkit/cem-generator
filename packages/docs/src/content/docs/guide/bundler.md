@@ -1,5 +1,5 @@
 ---
-title: Bundler Plugin
+title: Using in Your Bundler
 description: Generate custom-elements.json from Vite, Rollup, Rolldown, or Webpack.
 ---
 
