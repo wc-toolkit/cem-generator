@@ -1,5 +1,11 @@
 # @wc-toolkit/cem-generator-lit
 
+## 0.1.14
+
+### Patch Changes
+
+- 67460a5: Preserve initializer defaults for Lit decorated properties and their generated attributes.
+
 ## 0.1.13
 
 ### Patch Changes
