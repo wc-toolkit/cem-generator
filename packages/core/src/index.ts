@@ -3,6 +3,7 @@ export * from "./program.js";
 export * from "./pipeline.js";
 export * from "./inheritance-plugin.js";
 export * from "./config-loader.js";
+export * from "./session.js";
 export * from "./validation.js";
 export { vanillaBuiltin } from "./vanilla-builtin.js";
 export { cssBuiltin } from "./css-builtin.js";
