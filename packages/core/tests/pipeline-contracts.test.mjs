@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { generateCem } from "../dist/pipeline.js";
+import { generateCem, generateCemWithProgram } from "../dist/pipeline.js";
 import { validateGeneratedManifest } from "../dist/validation.js";
 import ts from "@typescript/typescript6";
 import { getParsedTypeText } from "../../core-utils/dist/index.js";
@@ -21,6 +21,15 @@ test("uses project-relative module paths when no package exports are configured"
 
   assert.equal(manifest.modules[0].path, "inheritance-fixture.ts");
   assert.equal(path.isAbsolute(manifest.modules[0].path), false);
+});
+
+test("reuses a previous program without changing output", () => {
+  const first = generateCemWithProgram({ tsConfigPath: fixturesTsConfig });
+  const second = generateCemWithProgram(
+    { tsConfigPath: fixturesTsConfig },
+    first.programResult.program,
+  );
+  assert.deepEqual(second.manifest, first.manifest);
 });
 
 function getClass(manifest, moduleSuffix, className) {

@@ -147,6 +147,7 @@ file.
 - Webpack watch mode reruns when changed files match a source extension or a
   generator config file.
 - Changes to `custom-elements.json` never trigger another generation.
+- Watch reruns reuse the previous TypeScript program to reduce setup time.
 
 Use `runInServe: false` to generate only during Vite/Rollup/Rolldown builds.
 

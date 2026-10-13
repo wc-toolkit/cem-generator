@@ -130,7 +130,20 @@ export interface RunOptions {
   typeParsing?: "none" | "public" | "all";
 }
 
+export interface GenerationResult {
+  manifest: CemPackage;
+  programResult: ProgramResult;
+}
+
 export function generateCem(options: RunOptions = {}): CemPackage {
+  return generateCemWithProgram(options).manifest;
+}
+
+/** Generates a manifest while optionally reusing a previous TypeScript program. */
+export function generateCemWithProgram(
+  options: RunOptions = {},
+  previousProgram?: ts.Program,
+): GenerationResult {
   const {
     plugins = [],
     conflictPolicy = "last-wins",
@@ -167,6 +180,7 @@ export function generateCem(options: RunOptions = {}): CemPackage {
     include,
     exclude,
     path.dirname(resolvedPath),
+    previousProgram,
   );
   const { program, checker, sourceFiles } = programResult;
   const projectDir = path.dirname(resolvedPath);
@@ -257,7 +271,7 @@ export function generateCem(options: RunOptions = {}): CemPackage {
   for (const plugin of allPlugins) {
     plugin.afterGenerate?.(cem);
   }
-  return cem;
+  return { manifest: cem, programResult };
 }
 
 function getCssFiles(
@@ -561,6 +575,7 @@ function createProgramResult(
   include?: string[],
   exclude?: string[],
   projectDir = path.dirname(configFilePath),
+  oldProgram?: ts.Program,
 ): ProgramResult {
   const configFile = ts.readConfigFile(configFilePath, ts.sys.readFile);
   if (configFile.error) {
@@ -579,7 +594,7 @@ function createProgramResult(
     allowJs: true,
     checkJs: parsed.options.checkJs ?? false,
   };
-  const program = ts.createProgram({ rootNames, options });
+  const program = ts.createProgram({ rootNames, options, oldProgram });
   const checker = program.getTypeChecker();
   const sourceFiles = program
     .getSourceFiles()

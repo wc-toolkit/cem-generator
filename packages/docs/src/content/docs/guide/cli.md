@@ -120,6 +120,9 @@ cem generate
 
 # With options
 cem generate --tsconfig tsconfig.json --output custom-elements.json
+
+# Regenerate on source changes
+cem generate --watch
 ```
 
 ## Options
@@ -134,6 +137,7 @@ cem generate --tsconfig tsconfig.json --output custom-elements.json
 | `--no-inheritance`           | Disable inheritance materialization              | —                        |
 | `--plugin <paths...>`        | Additional plugin paths to load                  | —                        |
 | `--conflict-policy <policy>` | Detector conflict policy: `throw` \| `last-wins` | `last-wins`              |
+| `--watch`                    | Regenerate when source files change              | —                        |
 
 ## Examples
 

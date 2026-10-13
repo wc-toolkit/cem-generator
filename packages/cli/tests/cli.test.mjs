@@ -17,6 +17,7 @@ test("documents validation severity CLI options", () => {
   assert.equal(result.status, 0);
   assert.match(result.stdout, /--validate-exported-types <severity>/);
   assert.match(result.stdout, /--validation-invariants <severity>/);
+  assert.match(result.stdout, /--watch/);
 });
 
 test("generate uses source defaults and excludes common non-component files", () => {

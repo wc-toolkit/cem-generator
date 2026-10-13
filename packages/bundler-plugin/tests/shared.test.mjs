@@ -30,6 +30,10 @@ test("generates a manifest at the configured output path", async () => {
     const manifest = JSON.parse(fs.readFileSync(outputPath, "utf8"));
     assert.equal(manifest.schemaVersion, "2.1.0");
     assert.ok(Array.isArray(manifest.modules));
+
+    await runner.run();
+    const rerunManifest = JSON.parse(fs.readFileSync(outputPath, "utf8"));
+    assert.deepEqual(rerunManifest, manifest);
   } finally {
     fs.rmSync(output, { recursive: true, force: true });
   }

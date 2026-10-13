@@ -7,7 +7,12 @@ import readline from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
 import { spawnSync } from "node:child_process";
 import inquirer from "inquirer";
-import { generateCem, type RunOptions, loadConfig, mergeConfig } from "@wc-toolkit/cem-generator";
+import {
+  generateCemWithProgram,
+  type RunOptions,
+  loadConfig,
+  mergeConfig,
+} from "@wc-toolkit/cem-generator";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -89,6 +94,7 @@ program
     "--validation-invariants <severity>",
     "Manifest invariant validation: off | warning | error",
   )
+  .option("--watch", "Regenerate when source files change")
   .action(async (options) => {
     try {
       const cwd = process.cwd();
@@ -154,18 +160,23 @@ program
         console.log(`Using config file: ${configPath}`);
       }
 
-      const manifest = generateCem(mergedOptions);
-
       const outputPath = path.resolve(
         options.output ?? mergedOptions.filePath ?? "./custom-elements.json",
       );
-      const outputDir = path.dirname(outputPath);
-      if (!fs.existsSync(outputDir)) {
-        fs.mkdirSync(outputDir, { recursive: true });
-      }
+      let previousProgram: Parameters<typeof generateCemWithProgram>[1];
+      const generate = () => {
+        const result = generateCemWithProgram(mergedOptions, previousProgram);
+        previousProgram = result.programResult.program;
+        const outputDir = path.dirname(outputPath);
+        if (!fs.existsSync(outputDir)) {
+          fs.mkdirSync(outputDir, { recursive: true });
+        }
+        fs.writeFileSync(outputPath, JSON.stringify(result.manifest, null, 2) + "\n", "utf-8");
+        console.log(`Generated manifest at ${outputPath}`);
+      };
 
-      fs.writeFileSync(outputPath, JSON.stringify(manifest, null, 2) + "\n", "utf-8");
-      console.log(`Generated manifest at ${outputPath}`);
+      generate();
+      if (options.watch) await watchProject(cwd, outputPath, generate);
     } catch (error) {
       console.error("Error generating manifest:", error instanceof Error ? error.message : error);
       process.exit(1);
@@ -633,6 +644,81 @@ function parseSelection(
     return choices[index].name;
   });
   return names;
+}
+
+function watchProject(root: string, outputPath: string, generate: () => void): Promise<void> {
+  const watchedExtensions = new Set([
+    ".css",
+    ".cjs",
+    ".js",
+    ".jsx",
+    ".mjs",
+    ".cts",
+    ".mts",
+    ".ts",
+    ".tsx",
+  ]);
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  let running = false;
+  let lastGeneratedAt = Date.now();
+
+  console.log("Watching for source changes. Press Ctrl+C to stop.");
+
+  return new Promise((resolve, reject) => {
+    const watcher = fs.watch(root, { recursive: true }, (_event, filename) => {
+      if (!filename) return;
+      const relativePath = filename.toString().replaceAll(path.sep, "/");
+      const pathSegments = relativePath.split("/");
+      if (
+        pathSegments.includes("node_modules") ||
+        pathSegments.includes("dist") ||
+        pathSegments.includes(".git") ||
+        pathSegments.includes(".astro")
+      ) {
+        return;
+      }
+
+      const filePath = path.resolve(root, relativePath);
+      if (filePath === outputPath) return;
+      try {
+        if (fs.statSync(filePath).mtimeMs <= lastGeneratedAt) return;
+      } catch {
+        // A removed file still needs to trigger regeneration.
+      }
+      if (!watchedExtensions.has(path.extname(relativePath))) {
+        return;
+      }
+
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => {
+        timer = undefined;
+        if (running) return;
+        running = true;
+        try {
+          generate();
+          lastGeneratedAt = Date.now();
+        } catch (error) {
+          console.error(
+            "Error generating manifest:",
+            error instanceof Error ? error.message : error,
+          );
+        } finally {
+          running = false;
+        }
+      }, 120);
+    });
+
+    const stop = () => {
+      if (timer) clearTimeout(timer);
+      watcher.close();
+      process.off("SIGINT", stop);
+      process.off("SIGTERM", stop);
+      resolve();
+    };
+    watcher.on("error", reject);
+    process.once("SIGINT", stop);
+    process.once("SIGTERM", stop);
+  });
 }
 
 function createConfigSource(
