@@ -1,5 +1,5 @@
 ---
-title: Overview
+title: Why cem-generator?
 description: What cem-generator does, why it helps, and how to get started.
 ---
 

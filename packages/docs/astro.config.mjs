@@ -55,7 +55,8 @@ export default defineConfig({
         {
           label: "Guide",
           items: [
-            { label: "Overview", link: "/guide/overview/" },
+            { label: "Overview", link: "/" },
+            { label: "Why cem-generator?", link: "/guide/why-cem-generator/" },
             { label: "Documenting", link: "/guide/documenting/" },
             { label: "Configuration", link: "/guide/configuration/" },
             { label: "CLI", link: "/guide/cli/" },
