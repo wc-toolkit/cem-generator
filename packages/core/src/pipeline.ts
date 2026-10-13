@@ -162,7 +162,12 @@ export function generateCem(options: RunOptions = {}): CemPackage {
 
   const configFilePath = tsConfigPath ?? DEFAULT_TS_CONFIG_PATH;
   const resolvedPath = path.resolve(configFilePath);
-  const programResult = createProgramResult(resolvedPath);
+  const programResult = createProgramResult(
+    resolvedPath,
+    include,
+    exclude,
+    path.dirname(resolvedPath),
+  );
   const { program, checker, sourceFiles } = programResult;
   const projectDir = path.dirname(resolvedPath);
   const runtimeResolver = modulePathSkip
@@ -551,7 +556,12 @@ function matchExportTarget(
   return candidate.slice(prefix.length, candidate.length - suffix.length || undefined);
 }
 
-function createProgramResult(configFilePath: string): ProgramResult {
+function createProgramResult(
+  configFilePath: string,
+  include?: string[],
+  exclude?: string[],
+  projectDir = path.dirname(configFilePath),
+): ProgramResult {
   const configFile = ts.readConfigFile(configFilePath, ts.sys.readFile);
   if (configFile.error) {
     const fallback = createDefaultProgram(path.dirname(configFilePath));
@@ -563,12 +573,13 @@ function createProgramResult(configFilePath: string): ProgramResult {
     ts.sys,
     path.dirname(configFilePath),
   );
+  const rootNames = filterRootFileNames(parsed.fileNames, include, exclude, projectDir);
   const options: ts.CompilerOptions = {
     ...parsed.options,
     allowJs: true,
     checkJs: parsed.options.checkJs ?? false,
   };
-  const program = ts.createProgram({ rootNames: parsed.fileNames, options });
+  const program = ts.createProgram({ rootNames, options });
   const checker = program.getTypeChecker();
   const sourceFiles = program
     .getSourceFiles()
@@ -640,6 +651,23 @@ function filterSourceFiles(
       return matchesAnyPattern(sf.fileName, include, projectDir);
     }
     return true;
+  });
+}
+
+function filterRootFileNames(
+  fileNames: string[],
+  include: string[] | undefined,
+  exclude: string[] | undefined,
+  projectDir: string,
+): string[] {
+  if ((!include || include.length === 0) && (!exclude || exclude.length === 0)) {
+    return fileNames;
+  }
+  return fileNames.filter((fileName) => {
+    if (exclude && exclude.length > 0 && matchesAnyPattern(fileName, exclude, projectDir)) {
+      return false;
+    }
+    return !include || include.length === 0 || matchesAnyPattern(fileName, include, projectDir);
   });
 }
 
