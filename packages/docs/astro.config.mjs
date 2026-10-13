@@ -59,6 +59,7 @@ export default defineConfig({
             { label: "Documenting", link: "/guide/documenting/" },
             { label: "Configuration", link: "/guide/configuration/" },
             { label: "CLI", link: "/guide/cli/" },
+            { label: "Programmatic API", link: "/guide/programmatic-api/" },
             { label: "Bundler Plugin", link: "/guide/bundler/" },
           ],
         },
