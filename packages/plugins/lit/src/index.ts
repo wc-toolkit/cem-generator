@@ -21,8 +21,12 @@ import {
   areTypeTextsEquivalent,
 } from "@wc-toolkit/cem-generator-utils";
 
+const decoratorNameCache = new WeakMap<ts.SourceFile, Map<string, string | undefined>>();
+
 export function litPlugin(): DetectorPlugin {
   const registeredTags = new Map<string, string>();
+  const mixinResults = new WeakMap<ts.Declaration, LitMixin | undefined>();
+  const baseMemberResults = new WeakMap<ts.ClassDeclaration, ClassFragment["members"]>();
 
   return {
     name: "lit",
@@ -48,14 +52,21 @@ export function litPlugin(): DetectorPlugin {
           const classDoc = parseCemClassTags(node);
           const discoveredApis = discoverFrameworkApis(node, context.sourceFile, context.checker);
           const mixinNames = getLitMixinNames(node);
-          for (const name of mixinNames) resolveLitMixin(name, node, context, mixins, new Set());
+          for (const name of mixinNames)
+            resolveLitMixin(name, node, context, mixins, new Set(), mixinResults);
           addMixinFragments(fragment, mixins);
           const ownMembers = mergeLitMembers(
             filterLitMembers(detectClassMembers(node, context)),
             getDecoratedProperties(node, context),
             getStaticPropertyMetadata(node),
           );
-          const baseMembers = getLitBaseClassMembers(node, context, mixins);
+          const baseMembers = getLitBaseClassMembers(
+            node,
+            context,
+            mixins,
+            baseMemberResults,
+            mixinResults,
+          );
           const members = mergeLitMembers(
             ...mixinNames.flatMap((name) => {
               const mixin = mixins.get(name);
@@ -172,6 +183,7 @@ function resolveLitMixin(
   context: FileContext,
   mixins: Map<string, LitMixin>,
   resolving: Set<string>,
+  mixinResults: WeakMap<ts.Declaration, LitMixin | undefined>,
 ): LitMixin | undefined {
   const existing = mixins.get(name);
   if (existing) return existing;
@@ -187,8 +199,15 @@ function resolveLitMixin(
   const declaration = resolvedSymbol?.declarations?.find(
     (candidate) => ts.isFunctionDeclaration(candidate) || ts.isVariableDeclaration(candidate),
   );
+  if (declaration && mixinResults.has(declaration)) {
+    const cached = mixinResults.get(declaration);
+    if (cached) mixins.set(name, cached);
+    resolving.delete(name);
+    return cached;
+  }
   const implementation = declaration ? findMixinImplementation(declaration) : undefined;
   if (!declaration || !implementation) {
+    if (declaration) mixinResults.set(declaration, undefined);
     resolving.delete(name);
     return undefined;
   }
@@ -203,7 +222,14 @@ function resolveLitMixin(
   };
   const nestedNames = getLitMixinNames(implementation);
   const nestedMembers = nestedNames.flatMap((nestedName) => {
-    const nested = resolveLitMixin(nestedName, implementation, mixinContext, mixins, resolving);
+    const nested = resolveLitMixin(
+      nestedName,
+      implementation,
+      mixinContext,
+      mixins,
+      resolving,
+      mixinResults,
+    );
     return nested?.members ? [nested.members] : [];
   });
   const ownMembers = mergeLitMembers(
@@ -219,6 +245,7 @@ function resolveLitMixin(
     },
   }));
   if (!members?.length) {
+    mixinResults.set(declaration, undefined);
     resolving.delete(name);
     return undefined;
   }
@@ -235,6 +262,7 @@ function resolveLitMixin(
       : undefined,
   };
   mixins.set(name, result);
+  mixinResults.set(declaration, result);
   resolving.delete(name);
   return result;
 }
@@ -342,7 +370,11 @@ function getLitBaseClassMembers(
   node: ts.ClassDeclaration,
   context: FileContext,
   mixins: Map<string, LitMixin>,
+  baseMemberResults: WeakMap<ts.ClassDeclaration, ClassFragment["members"]>,
+  mixinResults: WeakMap<ts.Declaration, LitMixin | undefined>,
 ): ClassFragment["members"] {
+  if (baseMemberResults.has(node)) return baseMemberResults.get(node);
+
   const heritage = node.heritageClauses?.find(
     (clause) => clause.token === ts.SyntaxKind.ExtendsKeyword,
   );
@@ -363,7 +395,7 @@ function getLitBaseClassMembers(
     if (!declaration) return;
 
     const nestedMembers = getLitMixinNames(declaration, context.checker).flatMap((name) => {
-      const mixin = resolveLitMixin(name, declaration, context, mixins, new Set());
+      const mixin = resolveLitMixin(name, declaration, context, mixins, new Set(), mixinResults);
       return mixin?.members ? [mixin.members] : [];
     });
     const ownMembers = mergeLitMembers(
@@ -388,7 +420,9 @@ function getLitBaseClassMembers(
 
   const expression = heritage?.types[0]?.expression;
   if (expression) visit(expression);
-  return mergeLitMembers(...baseMembers);
+  const result = mergeLitMembers(...baseMembers);
+  baseMemberResults.set(node, result);
+  return result;
 }
 
 function getLitSuperclass(
@@ -561,6 +595,9 @@ function getDecoratorName(decorator: ts.Decorator, sourceFile: ts.SourceFile): s
     : decorator.expression;
   if (!ts.isIdentifier(expression)) return undefined;
 
+  const names = decoratorNameCache.get(sourceFile) ?? new Map<string, string | undefined>();
+  if (names.has(expression.text)) return names.get(expression.text);
+
   for (const statement of sourceFile.statements) {
     if (!ts.isImportDeclaration(statement) || !ts.isStringLiteral(statement.moduleSpecifier))
       continue;
@@ -569,9 +606,16 @@ function getDecoratorName(decorator: ts.Decorator, sourceFile: ts.SourceFile): s
     const named = statement.importClause?.namedBindings;
     if (!named || !ts.isNamedImports(named)) continue;
     const imported = named.elements.find((element) => element.name.text === expression.text);
-    if (imported) return imported.propertyName?.text ?? imported.name.text;
+    if (imported) {
+      const name = imported.propertyName?.text ?? imported.name.text;
+      names.set(expression.text, name);
+      decoratorNameCache.set(sourceFile, names);
+      return name;
+    }
   }
 
+  names.set(expression.text, expression.text);
+  decoratorNameCache.set(sourceFile, names);
   return expression.text;
 }
 
