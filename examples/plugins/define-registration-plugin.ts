@@ -1,4 +1,4 @@
-import ts from "@typescript/typescript6";
+import ts from "typescript";
 import type { DetectorPlugin, FileContext, ManifestFragment } from "@wc-toolkit/cem-generator";
 
 /**
