@@ -1,5 +1,14 @@
 # @wc-toolkit/cem-generator-lit
 
+## 0.1.16
+
+### Patch Changes
+
+- 223c0e4: Standardize the workspace and published packages on the TypeScript 6 compiler API.
+- Updated dependencies [223c0e4]
+  - @wc-toolkit/cem-generator-utils@0.1.5
+  - @wc-toolkit/cem-generator@0.2.1
+
 ## 0.1.15
 
 ### Patch Changes
