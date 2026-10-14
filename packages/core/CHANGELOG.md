@@ -1,5 +1,13 @@
 # @wc-toolkit/cem-generator
 
+## 0.2.0
+
+### Minor Changes
+
+- bb083d4: Add reusable TypeScript programs for watch-mode generation and CLI `--watch` support.
+
+  The programmatic `createGeneratorSession()` API, Vite, Rollup, Rolldown, and Webpack watch reruns now reuse the previous TypeScript program instead of rebuilding the project from scratch. Initial builds are unchanged, while subsequent reruns avoid most TypeScript program and type-checker setup time.
+
 ## 0.1.12
 
 ### Patch Changes
