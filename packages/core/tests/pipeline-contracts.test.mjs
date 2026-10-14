@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 
 import { generateCem, generateCemWithProgram } from "../dist/pipeline.js";
 import { validateGeneratedManifest } from "../dist/validation.js";
-import ts from "@typescript/typescript6";
+import ts from "typescript";
 import { getParsedTypeText } from "../../core-utils/dist/index.js";
 import { createProgramFromTsConfig } from "../dist/program.js";
 import { detectClassMembers } from "../dist/api-members.js";
