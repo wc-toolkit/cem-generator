@@ -42,10 +42,10 @@
     "@wc-toolkit/cem-generator-utils": "workspace:*",
     "commander": "^12.1.0",
     "custom-elements-manifest": "^2.1.0",
-    "inquirer": "^14.2.2"
+    "inquirer": "^14.2.2",
+    "typescript": "catalog:"
   },
   "devDependencies": {
-    "@types/node": "^26.4.1",
-    "typescript": "^6.0.3"
+    "@types/node": "^26.4.1"
   }
 }
