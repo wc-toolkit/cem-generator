@@ -302,6 +302,27 @@ test("auto-discovers CSS parts from part attributes in templates", () => {
   assert.equal(footer.description, "JSDoc override description");
 });
 
+test("skips interpolated template parts, slot names, and CSS states", () => {
+  const manifest = generateCem({ tsConfigPath: fixturesTsConfig });
+  const decl = manifest.modules
+    .flatMap((module) => module.declarations)
+    .find((declaration) => declaration.name === "DynamicTemplateApisElement");
+
+  assert.ok(decl, "Expected DynamicTemplateApisElement declaration");
+  assert.deepEqual(
+    decl.cssParts?.map((part) => part.name),
+    ["section"],
+  );
+  assert.deepEqual(
+    decl.slots?.map((slot) => slot.name),
+    ["static-slot"],
+  );
+  assert.equal(
+    (decl.cssStates ?? []).some((state) => state.name.includes("${")),
+    false,
+  );
+});
+
 test("slot description does not leak from preceding non-slot element comments", () => {
   const manifest = generateCem({ tsConfigPath: fixturesTsConfig });
 

@@ -286,7 +286,7 @@ function discoverSlotsFromNode(
           const nameMatch = attrs.match(/\bname="([^"]*)"/i) ?? attrs.match(/\bname='([^']*)'/i);
           const slotName = nameMatch?.[1] ?? "";
 
-          if (!seenNames.has(slotName)) {
+          if (!slotName.includes("${") && !seenNames.has(slotName)) {
             seenNames.add(slotName);
             slots.push({ name: slotName, description: pendingDescription });
           }
@@ -391,7 +391,7 @@ function discoverCssPartsFromNode(
           .split(/\s+/)
           .map((v) => v.trim())
           .filter(Boolean)) {
-          if (!byName.has(token)) byName.set(token, { name: token });
+          if (!token.includes("${") && !byName.has(token)) byName.set(token, { name: token });
         }
       }
 
@@ -405,6 +405,7 @@ function discoverCssPartsFromNode(
           .split(/\s+/)
           .map((v) => v.trim())
           .filter(Boolean)) {
+          if (token.includes("${")) continue;
           const existing = byName.get(token);
           if (!existing) continue;
           if (!existing.description) existing.description = description;

@@ -31,7 +31,9 @@ export function discoverFrameworkApis(
       }
       for (const name of getJsxAttributeValue(opening, "part")?.split(/\s+/).filter(Boolean) ??
         []) {
-        addNamed(cssParts, { name, description: getJsxLeadingComment(opening, sourceFile) });
+        if (!name.includes("${")) {
+          addNamed(cssParts, { name, description: getJsxLeadingComment(opening, sourceFile) });
+        }
       }
     }
 
@@ -78,21 +80,25 @@ export function discoverFrameworkApis(
   function scanText(text: string) {
     for (const match of text.matchAll(/<slot\b([^>]*)>/g)) {
       const name = match[1]?.match(/\bname\s*=\s*["']([^"']+)["']/)?.[1] ?? "";
-      addNamed(slots, {
-        name,
-        description: getTrailingHtmlComment(text.slice(0, match.index ?? 0)),
-      });
-    }
-    for (const match of text.matchAll(/<[^>]*\bpart\s*=\s*["']([^"']+)["'][^>]*>/g)) {
-      for (const name of match[1].split(/\s+/).filter(Boolean))
-        addNamed(cssParts, {
+      if (!name.includes("${")) {
+        addNamed(slots, {
           name,
           description: getTrailingHtmlComment(text.slice(0, match.index ?? 0)),
         });
+      }
+    }
+    for (const match of text.matchAll(/<[^>]*\bpart\s*=\s*["']([^"']+)["'][^>]*>/g)) {
+      for (const name of match[1].split(/\s+/).filter(Boolean))
+        if (!name.includes("${")) {
+          addNamed(cssParts, {
+            name,
+            description: getTrailingHtmlComment(text.slice(0, match.index ?? 0)),
+          });
+        }
     }
     for (const property of parseCssMetadata(text) ?? []) addNamed(cssProperties, property);
     for (const match of text.matchAll(/\.states\.add\(\s*["']([^"']+)["']\s*\)/g)) {
-      addNamed(cssStates, { name: match[1] });
+      if (!match[1].includes("${")) addNamed(cssStates, { name: match[1] });
     }
   }
 
