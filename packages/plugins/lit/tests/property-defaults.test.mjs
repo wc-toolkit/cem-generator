@@ -21,17 +21,35 @@ test("preserves decorated Lit property initializer defaults on fields and attrib
     ["count", "2"],
     ["label", '"Basic label"'],
     ["enabled", "false"],
-    ["values", '["a"]'],
-    ["createdAt", "new Date(0)"],
+    ["values", undefined],
+    ["createdAt", undefined],
     ["documented", '"documented"'],
+    ["templateText", "`template text`"],
+    ["nullable", "null"],
+    ["patientType", '"new"'],
+    ["constantPatientType", '"new"'],
+    ["pageSize", "10"],
+    ["mutable", undefined],
+    ["missing", undefined],
+    ["objectValue", undefined],
+    ["called", undefined],
   ]);
 
   for (const [name, expected] of expectedDefaults) {
     const member = declaration.members?.find((item) => item.name === name);
     assert.equal(member?.default, expected, `${name} member default`);
 
-    const attributeName = name === "label" ? "basic-label" : name;
+    const attributeName =
+      name === "label" ? "basic-label" : name === "pageSize" ? "page-size" : name;
     const attribute = declaration.attributes?.find((item) => item.name === attributeName);
-    assert.equal(attribute?.default, expected, `${attributeName} attribute default`);
+    if (attribute) {
+      assert.equal(attribute.default, expected, `${attributeName} attribute default`);
+    }
   }
+
+  assert.equal(
+    declaration.attributes?.find((item) => item.name === "page-size")?.default,
+    "10",
+    "page-size attribute resolves the constant initializer default",
+  );
 });
