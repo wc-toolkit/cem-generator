@@ -2,4 +2,4 @@
 "@wc-toolkit/cem-generator-lit": patch
 ---
 
-Only emit exact literal initializer defaults for decorated Lit fields, resolving const string and number literals while skipping computed values.
+Use the shared exact-literal default extractor for decorated Lit fields. Const string and number literals resolve to their values, explicit `@default` tags remain authoritative, and computed initializers are omitted.

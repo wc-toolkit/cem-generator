@@ -38,3 +38,20 @@ test("detects Solid Element registrations and props", () => {
   assert.equal(greeting?.cssParts?.[0]?.description, "Greeting label");
   assert.equal(greeting?.cssProperties?.[0]?.name, "--greeting-color");
 });
+
+test("records only literal Solid custom-element defaults", () => {
+  const manifest = generateCem({ tsConfigPath: fixturesTsConfig, plugins: [solidPlugin()] });
+  const declaration = manifest.modules
+    .flatMap((module) => module.declarations)
+    .find((item) => item.name === "SolidDefaultValues");
+  const defaults = new Map(declaration?.members?.map((member) => [member.name, member.default]));
+
+  assert.ok(declaration);
+  assert.equal(defaults.get("pageSize"), "10");
+  assert.equal(defaults.get("mode"), '"compact"');
+  assert.equal(defaults.get("enabled"), "false");
+  assert.equal(defaults.get("nullable"), "null");
+  for (const name of ["values", "options", "createdAt", "computed", "mutable", "missing"]) {
+    assert.equal(defaults.get(name), undefined, `${name} has no exact default`);
+  }
+});

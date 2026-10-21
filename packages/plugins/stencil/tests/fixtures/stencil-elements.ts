@@ -26,3 +26,25 @@ export class TodoList {
 type MyController = { connected: boolean };
 type Todo = { id: string };
 type EventEmitter<T> = { emit(value: T): void };
+
+const STENCIL_PAGE_SIZE = 10;
+const STENCIL_MODE = "compact" as const;
+let stencilMutableDefault = 4;
+
+function makeStencilDefault() {
+  return 2;
+}
+
+@Component({ tag: "stencil-default-values" })
+export class StencilDefaultValues {
+  @Prop({ attribute: "page-size" }) pageSize = STENCIL_PAGE_SIZE;
+  @Prop() mode = STENCIL_MODE;
+  @Prop() enabled = false;
+  @Prop() nullable = null;
+  @Prop() values = [];
+  @Prop() options = {};
+  @Prop() createdAt = new Date(0);
+  @Prop() computed = makeStencilDefault();
+  @Prop() mutable = stencilMutableDefault;
+  @Prop() missing = undefined;
+}

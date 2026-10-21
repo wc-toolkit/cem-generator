@@ -19,6 +19,7 @@ import {
   parseCemClassTags,
   parseCemMemberTags,
   areTypeTextsEquivalent,
+  getLiteralDefaultText,
 } from "@wc-toolkit/cem-generator-utils";
 
 const decoratorNameCache = new WeakMap<ts.SourceFile, Map<string, string | undefined>>();
@@ -551,92 +552,11 @@ function getDecoratedProperties(
           ? undefined
           : (options.attribute ?? memberDoc.attribute ?? nameText),
       reflects: options.reflect ?? memberDoc.reflects,
-      default:
-        memberDoc.default ??
-        (member.initializer ? getLiteralDefault(member.initializer, context.checker) : undefined),
+      default: memberDoc.default ?? getLiteralDefaultText(member.initializer, context.checker),
     });
   }
 
   return members;
-}
-
-function getLiteralDefault(
-  initializer: ts.Expression,
-  checker: ts.TypeChecker,
-): string | undefined {
-  if (ts.isNoSubstitutionTemplateLiteral(initializer)) {
-    return initializer.getText();
-  }
-
-  if (
-    ts.isStringLiteralLike(initializer) ||
-    ts.isNumericLiteral(initializer) ||
-    initializer.kind === ts.SyntaxKind.TrueKeyword ||
-    initializer.kind === ts.SyntaxKind.FalseKeyword ||
-    initializer.kind === ts.SyntaxKind.NullKeyword
-  ) {
-    return initializer.getText();
-  }
-
-  if (!ts.isIdentifier(initializer)) return undefined;
-
-  const symbol = checker.getSymbolAtLocation(initializer);
-  const declaration = symbol?.valueDeclaration;
-  if (
-    !declaration ||
-    !ts.isVariableDeclaration(declaration) ||
-    !declaration.initializer ||
-    !ts.isVariableDeclarationList(declaration.parent) ||
-    !(declaration.parent.flags & ts.NodeFlags.Const)
-  ) {
-    return undefined;
-  }
-
-  const type = checker.getTypeAtLocation(initializer);
-  if (type.flags & ts.TypeFlags.StringLiteral) {
-    return (
-      getStringLiteralInitializerText(declaration.initializer, checker) ??
-      JSON.stringify((type as ts.StringLiteralType).value)
-    );
-  }
-  if (type.flags & ts.TypeFlags.NumberLiteral) {
-    return String((type as ts.NumberLiteralType).value);
-  }
-
-  return undefined;
-}
-
-function getStringLiteralInitializerText(
-  expression: ts.Expression,
-  checker: ts.TypeChecker,
-  seen = new Set<ts.Symbol>(),
-): string | undefined {
-  if (ts.isStringLiteralLike(expression)) return expression.getText();
-  if (
-    ts.isAsExpression(expression) ||
-    ts.isTypeAssertionExpression(expression) ||
-    ts.isNonNullExpression(expression) ||
-    ts.isParenthesizedExpression(expression) ||
-    ts.isSatisfiesExpression(expression)
-  ) {
-    return getStringLiteralInitializerText(expression.expression, checker, seen);
-  }
-  if (!ts.isIdentifier(expression)) return undefined;
-  const symbol = checker.getSymbolAtLocation(expression);
-  const declaration = symbol?.valueDeclaration;
-  if (
-    !symbol ||
-    seen.has(symbol) ||
-    !declaration ||
-    !ts.isVariableDeclaration(declaration) ||
-    !declaration.initializer ||
-    !ts.isVariableDeclarationList(declaration.parent) ||
-    !(declaration.parent.flags & ts.NodeFlags.Const)
-  ) {
-    return undefined;
-  }
-  seen.add(symbol);
-  return getStringLiteralInitializerText(declaration.initializer, checker, seen);
 }
 
 function shouldParseDecoratedType(

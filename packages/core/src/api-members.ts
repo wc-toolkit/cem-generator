@@ -7,6 +7,7 @@ import {
   getParsedTypeTextFromType,
   areTypeTextsEquivalent,
   parseCemMemberTags,
+  getLiteralDefaultText,
 } from "@wc-toolkit/cem-generator-utils";
 
 const memberCache = new WeakMap<
@@ -68,7 +69,9 @@ export function detectClassMembers(
         internal: memberDoc.internal,
         default:
           memberDoc.default ??
-          (ts.isPropertyDeclaration(member) ? member.initializer?.getText() : undefined),
+          (ts.isPropertyDeclaration(member)
+            ? getLiteralDefaultText(member.initializer, context.checker)
+            : undefined),
         customJsDocTags: memberDoc.customJsDocTags,
       });
     } else if (ts.isMethodDeclaration(member) && !existing) {
