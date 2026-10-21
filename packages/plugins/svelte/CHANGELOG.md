@@ -1,5 +1,12 @@
 # @wc-toolkit/cem-generator-svelte
 
+## 0.1.15
+
+### Patch Changes
+
+- Updated dependencies [a4849ab]
+  - @wc-toolkit/cem-generator@0.2.2
+
 ## 0.1.14
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @wc-toolkit/cem-generator
 
+## 0.2.2
+
+### Patch Changes
+
+- a4849ab: Skip interpolated tokens when discovering template slots, CSS parts, and CSS states.
+
 ## 0.2.1
 
 ### Patch Changes
