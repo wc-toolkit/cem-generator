@@ -564,6 +564,10 @@ function getLiteralDefault(
   initializer: ts.Expression,
   checker: ts.TypeChecker,
 ): string | undefined {
+  if (ts.isNoSubstitutionTemplateLiteral(initializer)) {
+    return initializer.getText();
+  }
+
   if (
     ts.isStringLiteralLike(initializer) ||
     ts.isNumericLiteral(initializer) ||
@@ -572,10 +576,6 @@ function getLiteralDefault(
     initializer.kind === ts.SyntaxKind.NullKeyword
   ) {
     return initializer.getText();
-  }
-
-  if (ts.isNoSubstitutionTemplateLiteral(initializer)) {
-    return JSON.stringify(initializer.text);
   }
 
   if (!ts.isIdentifier(initializer)) return undefined;
