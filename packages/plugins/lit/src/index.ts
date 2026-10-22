@@ -19,6 +19,7 @@ import {
   parseCemClassTags,
   parseCemMemberTags,
   areTypeTextsEquivalent,
+  getLiteralDefaultText,
 } from "@wc-toolkit/cem-generator-utils";
 
 const decoratorNameCache = new WeakMap<ts.SourceFile, Map<string, string | undefined>>();
@@ -551,7 +552,7 @@ function getDecoratedProperties(
           ? undefined
           : (options.attribute ?? memberDoc.attribute ?? nameText),
       reflects: options.reflect ?? memberDoc.reflects,
-      default: memberDoc.default ?? member.initializer?.getText(),
+      default: memberDoc.default ?? getLiteralDefaultText(member.initializer, context.checker),
     });
   }
 

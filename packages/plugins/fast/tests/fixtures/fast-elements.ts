@@ -1,6 +1,13 @@
 import { FASTElement, attr, customElement } from "@microsoft/fast-element";
 
 const importedStyles = `:host { /** Imported indicator color. */ --imported-indicator-color: blue; }`;
+const FAST_PAGE_SIZE = 10;
+const FAST_MODE = "compact" as const;
+let fastMutableDefault = 4;
+
+function makeFastDefault() {
+  return 2;
+}
 
 @customElement({ name: "name-tag" })
 export class NameTag extends FASTElement {
@@ -37,4 +44,18 @@ export class DerivedFastElement extends BaseFastElement {
 @customElement("imported-styles-fast-element")
 export class ImportedStylesFastElement extends FASTElement {
   static styles = importedStyles;
+}
+
+@customElement("fast-default-values")
+export class FastDefaultValues extends FASTElement {
+  @attr({ attribute: "page-size" }) pageSize = FAST_PAGE_SIZE;
+  @attr mode = FAST_MODE;
+  @attr enabled = false;
+  @attr nullable = null;
+  @attr values = [];
+  @attr options = {};
+  @attr createdAt = new Date(0);
+  @attr computed = makeFastDefault();
+  @attr mutable = fastMutableDefault;
+  @attr missing = undefined;
 }

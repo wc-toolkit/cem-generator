@@ -11,6 +11,7 @@ import {
   getNodeTypeText,
   getParsedTypeText,
   parseCemClassTags,
+  getLiteralDefaultText,
 } from "@wc-toolkit/cem-generator-utils";
 
 /** Detects custom elements registered with Solid Element's `customElement`. */
@@ -150,7 +151,7 @@ function getMembers(
         type: getExpressionType(property.initializer, context),
         parsedType: getParsedTypeText(property, context.checker) || undefined,
         description: getJSDocInfo(property).description || undefined,
-        default: property.initializer.getText(),
+        default: getLiteralDefaultText(property.initializer, context.checker),
         attribute,
       });
     }
