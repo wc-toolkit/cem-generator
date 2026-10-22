@@ -1,5 +1,14 @@
 # @wc-toolkit/cem-generator-lit
 
+## 0.1.18
+
+### Patch Changes
+
+- c57d034: Use the shared exact-literal default extractor for decorated Lit fields. Const string and number literals resolve to their values, explicit `@default` tags remain authoritative, and computed initializers are omitted.
+- Updated dependencies [176b325]
+  - @wc-toolkit/cem-generator-utils@0.1.6
+  - @wc-toolkit/cem-generator@0.2.3
+
 ## 0.1.17
 
 ### Patch Changes
