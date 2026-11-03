@@ -1,5 +1,11 @@
 # @wc-toolkit/cem-generator-utils
 
+## 0.1.6
+
+### Patch Changes
+
+- 176b325: Share literal-only initializer defaults across core, Solid, FAST, and Stencil. Computed expressions are no longer serialized as manifest defaults.
+
 ## 0.1.5
 
 ### Patch Changes
