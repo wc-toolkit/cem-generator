@@ -1,5 +1,11 @@
 # @wc-toolkit/cem-generator-cli
 
+## 0.2.4
+
+### Patch Changes
+
+- 5f41e6e: Add `@wc-toolkit/cem-generator-lwc`, a detector plugin for Salesforce Lightning Web Components. It documents `@api` properties as attributes and members, `@api` methods, dispatched `CustomEvent`s, template slots, and bundle-based tag names. The CLI `--plugin` option now accepts `lwc`.
+
 ## 0.2.3
 
 ### Patch Changes
