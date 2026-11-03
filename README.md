@@ -62,6 +62,7 @@ handful of deliberate departures from it.
 - `packages/plugins/stencil` — detects Stencil components, props, attributes, and events.
 - `packages/plugins/vue` — detects Vue custom elements, props, and emitted events.
 - `packages/plugins/solid` — detects `solid-element` registrations, props, slots, parts, and events.
+- `packages/plugins/lwc` — detects Lightning Web Components, `@api` members and attributes, dispatched events, and template slots.
 - `packages/plugins/svelte` — detects Svelte components compiled as custom
   elements, including props, slots, parts, styles, and events.
 - `examples/` — fixture components and a runnable script showing vanilla

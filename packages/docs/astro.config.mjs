@@ -88,6 +88,7 @@ export default defineConfig({
             { label: "Vue Plugin", link: "/plugins/vue/" },
             { label: "Solid Plugin", link: "/plugins/solid/" },
             { label: "Svelte Plugin", link: "/plugins/svelte/" },
+            { label: "LWC Plugin", link: "/plugins/lwc/" },
             { label: "Stencil Plugin", link: "/plugins/stencil/" },
           ],
         },

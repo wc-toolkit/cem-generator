@@ -100,7 +100,7 @@ while code mode uses `tsx` for the generated script.
 ## Initialize a project
 
 Available plugin names are `lit`, `fast`, `stencil`, `preact`, `vue`, `solid`,
-and `svelte`.
+`svelte`, and `lwc`.
 
 | Command                                      | Description                                                        |
 | -------------------------------------------- | ------------------------------------------------------------------ |
