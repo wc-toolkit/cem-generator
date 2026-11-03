@@ -28,7 +28,7 @@ workflow.
 | **Complete, configurable inheritance** | Automatically includes inherited APIs across multi-level superclass chains, while JSDoc tags let you hide individual inherited members when they are not part of a component's intended public surface.       |
 | **Useful library metadata**            | Preserves type information, inherited API provenance, external-manifest relationships, events, slots, and CSS metadata in the generated CEM.                                                                  |
 | **Predictable extension points**       | Clear detector and annotator roles make custom behavior easier to add and safer to maintain, without forcing every plugin to understand the whole pipeline.                                                   |
-| **Framework coverage without lock-in** | Start with vanilla components and add only the integrations you need. The same manifest workflow works across Lit, FAST, Stencil, Preact, Vue, Solid, and Svelte.                                             |
+| **Framework coverage without lock-in** | Start with vanilla components and add only the integrations you need. The same manifest workflow works across Lit, FAST, Stencil, Preact, Vue, Solid, Svelte, and LWC.                                        |
 | **Stable output**                      | Deterministic sorting produces cleaner diffs and makes generated manifests easier to review in pull requests.                                                                                                 |
 | **Modular installation**               | Core, CLI, framework plugins, and bundler adapters are separate packages, so projects install only what they use.                                                                                             |
 

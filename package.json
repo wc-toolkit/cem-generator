@@ -27,6 +27,7 @@
     "demo:vue": "pnpm --filter @wc-toolkit/cem-generator-vue demo",
     "demo:solid": "pnpm --filter @wc-toolkit/cem-generator-solid demo",
     "demo:svelte": "pnpm --filter @wc-toolkit/cem-generator-svelte demo",
+    "demo:lwc": "pnpm --filter @wc-toolkit/cem-generator-lwc demo",
     "test:vue": "pnpm --filter @wc-toolkit/cem-generator-vue test",
     "test:solid": "pnpm --filter @wc-toolkit/cem-generator-solid test",
     "test:svelte": "pnpm --filter @wc-toolkit/cem-generator-svelte test",

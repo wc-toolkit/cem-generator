@@ -25,6 +25,7 @@ const PLUGIN_CHOICES = [
   { name: "vue", packageName: "@wc-toolkit/cem-generator-vue", factory: "vuePlugin" },
   { name: "solid", packageName: "@wc-toolkit/cem-generator-solid", factory: "solidPlugin" },
   { name: "svelte", packageName: "@wc-toolkit/cem-generator-svelte", factory: "sveltePlugin" },
+  { name: "lwc", packageName: "@wc-toolkit/cem-generator-lwc", factory: "lwcPlugin" },
 ] as const;
 
 const LIBRARY_CHOICES = [{ name: "nothing" }, ...PLUGIN_CHOICES] as const;
