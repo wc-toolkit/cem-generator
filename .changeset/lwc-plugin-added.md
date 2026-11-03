@@ -1,5 +1,5 @@
 ---
-"@wc-toolkit/cem-generator-lwc": minor
+"@wc-toolkit/cem-generator-lwc": major
 "@wc-toolkit/cem-generator-cli": patch
 ---
 
