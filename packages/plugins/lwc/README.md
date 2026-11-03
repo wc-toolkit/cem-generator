@@ -31,6 +31,15 @@ namespace:
 lwcPlugin({ namespace: "acme" }); // acme-greeting-card
 ```
 
+## Options
+
+| Option      | Type     | Default | Description                                                                                                                                     |
+| ----------- | -------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `namespace` | `string` | `"c"`   | Prefix for generated tag names. The tag is `<namespace>-<kebab-case bundle name>`. Affects only tags; attribute and member names are unchanged. |
+
+The namespace applies only to tags generated from bundle folders. An explicit
+`@tag` JSDoc tag on the class overrides it.
+
 ## Usage
 
 ```ts
