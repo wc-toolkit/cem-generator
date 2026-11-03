@@ -20,12 +20,13 @@ export function vanillaBuiltin(): DetectorPlugin {
 
     onFile(context: FileContext): ManifestFragment {
       const fragment: ManifestFragment = {};
-      const tagNamesByClass = detectCustomElementRegistrations(context.sourceFile);
+      const tagNamesByClass = detectCustomElementRegistrations(context.sourceFile, context.checker);
 
       ts.forEachChild(context.sourceFile, function visit(node) {
         if (ts.isClassDeclaration(node) && node.name) {
           const className = node.name.text;
-          const shouldInclude = extendsHTMLElement(node) || tagNamesByClass.has(className);
+          const shouldInclude =
+            tagNamesByClass.has(className) || inheritsHTMLElement(node, context.checker);
           if (!shouldInclude) {
             ts.forEachChild(node, visit);
             return;
@@ -105,10 +106,53 @@ function getExportName(node: ts.ClassDeclaration): string | undefined {
   return node.name?.text;
 }
 
-function extendsHTMLElement(node: ts.ClassDeclaration): boolean {
-  if (!node.heritageClauses) return false;
-  return node.heritageClauses.some((clause) =>
-    clause.types.some((t) => t.expression.getText().match(/HTMLElement$/)),
+/**
+ * Whether a base class of `node`, at any depth, is the global `HTMLElement` of the DOM lib, by the
+ * type checker: a subclass of a custom base class, as `class Card extends CardBase`, is an element
+ * too, and a class of the user's own named `HTMLElement` is not.
+ */
+function inheritsHTMLElement(node: ts.ClassDeclaration, checker: ts.TypeChecker): boolean {
+  if (!node.heritageClauses || !node.name) return false;
+  const symbol = checker.getSymbolAtLocation(node.name);
+  if (!symbol) return false;
+
+  // Without the DOM lib, `HTMLElement` resolves to nothing: the name in the extends clause is all
+  // there is to go by, when it names no class of the user's own.
+  const htmlElement = checker.resolveName("HTMLElement", undefined, ts.SymbolFlags.Type, false);
+  if (!htmlElement) {
+    return node.heritageClauses.some((clause) =>
+      clause.types.some(
+        (t) =>
+          t.expression.getText().endsWith("HTMLElement") &&
+          !checker.getSymbolAtLocation(t.expression),
+      ),
+    );
+  }
+
+  const seen = new Set<ts.Symbol>();
+  // Whether `type` is HTMLElement, or reaches it by its bases. A mixin's base, as
+  // `WithTheme(CardBase)`, is an intersection: it is one if a type of it is.
+  const isOrReaches = (type: ts.Type): boolean => {
+    if (type.isIntersection()) return type.types.some(isOrReaches);
+    const symbol = type.getSymbol();
+    if (!symbol || seen.has(symbol)) return false;
+    seen.add(symbol);
+    return symbol === htmlElement || reaches(type);
+  };
+  const reaches = (type: ts.Type): boolean => {
+    // A base given type arguments, as `extends Base<string>`, is a reference to its class: its
+    // bases are the class's.
+    const declared = isTypeReference(type) ? type.target : type;
+    return (declared.isClassOrInterface() ? checker.getBaseTypes(declared) : []).some(isOrReaches);
+  };
+
+  return reaches(checker.getDeclaredTypeOfSymbol(symbol));
+}
+
+function isTypeReference(type: ts.Type): type is ts.TypeReference {
+  return (
+    (type.flags & ts.TypeFlags.Object) !== 0 &&
+    ((type as ts.ObjectType).objectFlags & ts.ObjectFlags.Reference) !== 0
   );
 }
 
