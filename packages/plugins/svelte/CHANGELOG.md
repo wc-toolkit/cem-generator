@@ -1,5 +1,11 @@
 # @wc-toolkit/cem-generator-svelte
 
+## 0.1.18
+
+### Patch Changes
+
+- 06bf0d9: Emit custom JSDoc tags from Svelte component and prop comments when `customJsDocTags` is enabled. Prop descriptions no longer include tag text, and prop comments no longer bleed into neighbouring fields.
+
 ## 0.1.17
 
 ### Patch Changes
