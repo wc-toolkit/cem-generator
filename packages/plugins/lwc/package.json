@@ -1,6 +1,6 @@
 {
   "name": "@wc-toolkit/cem-generator-lwc",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Lightning Web Components detector plugin for generating Custom Elements Manifests.",
   "keywords": [
     "custom-elements",
