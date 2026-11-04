@@ -1,5 +1,12 @@
 # @wc-toolkit/cem-generator-cli
 
+## 0.2.5
+
+### Patch Changes
+
+- Updated dependencies [2427586]
+  - @wc-toolkit/cem-generator@0.2.4
+
 ## 0.2.4
 
 ### Patch Changes
