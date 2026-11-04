@@ -104,3 +104,64 @@ test("parseCemClassTags exposes omitInherited from JSDoc tags", async () => {
   assert.deepEqual(parsed.omitInherited?.cssStates, ["old-state"]);
   assert.deepEqual(parsed.omitInherited?.slots, ["old-slot"]);
 });
+
+test("resolveInheritedCollection allows same class name across different modules", () => {
+  const base = {
+    name: "Example",
+    module: "/tmp/base.js",
+    members: [{ name: "baseMethod" }],
+  };
+
+  const child = {
+    name: "Example",
+    module: "/tmp/child.js",
+    superclass: { name: "Example", module: "/tmp/base.js" },
+    members: [{ name: "childMethod" }],
+  };
+
+  const byRef = new Map([
+    ["/tmp/base.js#Example", base],
+    ["/tmp/child.js#Example", child],
+    ["#Example", child],
+  ]);
+
+  const findByRef = (ref) => byRef.get(`${ref.module ?? ""}#${ref.name}`);
+
+  const members = resolveInheritedCollection(findByRef, child, "members");
+
+  assert.deepEqual(members, [
+    {
+      name: "baseMethod",
+      inheritedFrom: { name: "Example", module: "/tmp/base.js" },
+    },
+    { name: "childMethod" },
+  ]);
+});
+
+test("resolveInheritedCollection still throws on true circular references", () => {
+  const a = {
+    name: "Example",
+    module: "/tmp/a.js",
+    superclass: { name: "Example", module: "/tmp/b.js" },
+    members: [{ name: "aMethod" }],
+  };
+
+  const b = {
+    name: "Example",
+    module: "/tmp/b.js",
+    superclass: { name: "Example", module: "/tmp/a.js" },
+    members: [{ name: "bMethod" }],
+  };
+
+  const byRef = new Map([
+    ["/tmp/a.js#Example", a],
+    ["/tmp/b.js#Example", b],
+  ]);
+
+  const findByRef = (ref) => byRef.get(`${ref.module ?? ""}#${ref.name}`);
+
+  assert.throws(
+    () => resolveInheritedCollection(findByRef, a, "members"),
+    /Circular superclass reference detected/,
+  );
+});

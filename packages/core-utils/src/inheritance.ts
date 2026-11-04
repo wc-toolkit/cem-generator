@@ -67,16 +67,17 @@ export function resolveInheritedCollection<K extends InheritableCollectionKey>(
 ): InheritableMember[] {
   const omitted = getOmittedNamesForClass(decl, key, options?.omit);
   const omitCacheKey = omitted.size ? [...omitted].sort().join("|") : "";
-  const cacheKey = `${key}:${decl.name}:${omitCacheKey}`;
+  const identity = declarationIdentity(decl);
+  const cacheKey = `${key}:${identity}:${omitCacheKey}`;
   if (resolved.has(cacheKey)) return resolved.get(cacheKey)!;
 
-  if (inProgress.has(decl.name)) {
+  if (inProgress.has(identity)) {
     throw new Error(
       `Circular superclass reference detected while resolving "${decl.name}". ` +
         `Check for a class that (directly or transitively) extends itself.`,
     );
   }
-  inProgress.add(decl.name);
+  inProgress.add(identity);
 
   const own = decl[key] ?? [];
   const base = decl.superclass && findByRef(decl.superclass);
@@ -96,9 +97,13 @@ export function resolveInheritedCollection<K extends InheritableCollectionKey>(
     ...own,
   ];
 
-  inProgress.delete(decl.name);
+  inProgress.delete(identity);
   resolved.set(cacheKey, merged);
   return merged;
+}
+
+function declarationIdentity(decl: Pick<ClassLike, "name" | "module">): string {
+  return `${decl.module ?? ""}#${decl.name}`;
 }
 
 function getOmittedNamesForClass(
