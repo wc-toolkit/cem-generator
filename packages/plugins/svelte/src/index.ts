@@ -1,4 +1,5 @@
 import path from "node:path";
+import ts from "typescript";
 import {
   parseCssMetadata,
   type ClassFragment,
@@ -6,6 +7,7 @@ import {
   type FileContext,
   type ManifestFragment,
 } from "@wc-toolkit/cem-generator";
+import { parseCemClassTags } from "@wc-toolkit/cem-generator-utils";
 
 /** Detects Svelte components compiled as custom elements. */
 export function sveltePlugin(): DetectorPlugin {
@@ -47,6 +49,7 @@ export function sveltePlugin(): DetectorPlugin {
         cssParts: mergeNamed(discoverParts(source), metadata.cssParts),
         cssProperties: mergeNamed(discoverCssProperties(source), metadata.cssProperties),
         cssStates: metadata.cssStates,
+        customJsDocTags: metadata.customJsDocTags,
       };
       return { [fragment.name]: fragment };
     },
@@ -64,6 +67,7 @@ type SvelteMetadata = Pick<
   | "cssParts"
   | "cssProperties"
   | "cssStates"
+  | "customJsDocTags"
 >;
 
 function getTagName(source: string): string | undefined {
@@ -84,22 +88,32 @@ function getProps(
 ): Array<NonNullable<ClassFragment["members"]>[number] & { attribute?: string }> {
   const props: Array<NonNullable<ClassFragment["members"]>[number] & { attribute?: string }> = [];
   const script = source.match(/<script\b[^>]*>([\s\S]*?)<\/script>/)?.[1] ?? "";
-  const interfaces = new Map<string, { type?: string; description?: string }>();
-  for (const match of script.matchAll(/(?:\/\*\*([\s\S]*?)\*\/\s*)?(\w+)\??\s*:\s*([^;\n,}]+)/g)) {
-    interfaces.set(match[2], { type: match[3].trim(), description: cleanComment(match[1]) });
+  const interfaces = new Map<
+    string,
+    { type?: string; description?: string; customJsDocTags?: ClassFragment["customJsDocTags"] }
+  >();
+  for (const match of script.matchAll(
+    /(?:\/\*\*((?:(?!\*\/)[\s\S])*)\*\/\s*)?(\w+)\??\s*:\s*([^;\n,}]+)/g,
+  )) {
+    interfaces.set(match[2], {
+      type: match[3].trim(),
+      description: getDescription(match[1]),
+      customJsDocTags: parseCustomJsDocTags(match[1]),
+    });
   }
 
   for (const match of script.matchAll(
-    /(?:\/\*\*([\s\S]*?)\*\/\s*)?export\s+let\s+(\w+)\s*(?::\s*([^=;]+))?\s*(?:=\s*([^;\n]+))?/g,
+    /(?:\/\*\*((?:(?!\*\/)[\s\S])*)\*\/\s*)?export\s+let\s+(\w+)\s*(?::\s*([^=;]+))?\s*(?:=\s*([^;\n]+))?/g,
   )) {
     const [, comment, name, type, defaultValue] = match;
     props.push({
       name,
       kind: "field",
       type: type?.trim() ?? inferType(defaultValue),
-      description: cleanComment(comment),
+      description: getDescription(comment),
       default: defaultValue?.trim(),
       attribute: name.toLowerCase(),
+      customJsDocTags: parseCustomJsDocTags(comment),
     });
   }
 
@@ -117,6 +131,7 @@ function getProps(
       description: info?.description,
       default: match[2]?.trim(),
       attribute: match[1].toLowerCase(),
+      customJsDocTags: info?.customJsDocTags,
     });
   }
 
@@ -145,7 +160,21 @@ function getComponentMetadata(source: string, tagName: string): SvelteMetadata {
     cssParts: parseNamedTags(comment, "csspart"),
     cssProperties: parseCssTags(comment),
     cssStates: parseNamedTags(comment, "cssState"),
+    customJsDocTags: parseCustomJsDocTags(comment),
   };
+}
+
+/** Reuses the shared JSDoc parser by wrapping a Svelte comment body as a JSDoc block. */
+function parseCustomJsDocTags(comment: string | undefined): ClassFragment["customJsDocTags"] {
+  if (!comment) return undefined;
+  const sourceFile = ts.createSourceFile(
+    "comment.ts",
+    `/**${comment}*/\nclass Doc {}`,
+    ts.ScriptTarget.Latest,
+    true,
+  );
+  const node = sourceFile.statements.find(ts.isClassDeclaration);
+  return node ? parseCemClassTags(node).customJsDocTags : undefined;
 }
 
 function discoverSlots(source: string): ClassFragment["slots"] {
@@ -211,6 +240,10 @@ function parseCssTags(comment: string): ClassFragment["cssProperties"] {
 
 function getTagDescription(comment: string, tag: string): string | undefined {
   return comment.match(new RegExp(`@${tag}\\s+([^\\n]*)`))?.[1]?.trim() || undefined;
+}
+
+function getDescription(comment: string | undefined): string | undefined {
+  return cleanComment(comment?.replace(/(^|\s)@\w[\s\S]*/, "$1"));
 }
 
 function cleanComment(value: string | undefined): string | undefined {

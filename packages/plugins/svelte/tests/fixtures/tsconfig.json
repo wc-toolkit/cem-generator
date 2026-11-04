@@ -1,4 +1,4 @@
 {
-  "extends": "../../../../tsconfig.base.json",
-  "include": ["./Greeting.svelte"]
+  "extends": "../../../../../tsconfig.base.json",
+  "include": ["./Greeting.svelte", "./CustomTags.svelte"]
 }
