@@ -412,6 +412,21 @@ test("getter-only class members are readonly fields", () => {
   }
 });
 
+test("declare-only class fields are excluded from members", () => {
+  const manifest = generateCem({
+    tsConfigPath: fixturesTsConfig,
+    include: ["declare-members.ts"],
+  });
+  const declaration = getClass(manifest, "declare-members.ts", "DeclareMembersElement");
+
+  assert.ok(declaration);
+  const memberNames = declaration.members?.map((member) => member.name) ?? [];
+  assert.equal(memberNames.includes("addEventListener"), false);
+  assert.equal(memberNames.includes("emit"), false);
+  assert.equal(memberNames.includes("value"), true);
+  assert.equal(memberNames.includes("reset"), true);
+});
+
 test("reuses class member analysis for the same declaration and checker", () => {
   const result = createProgramFromTsConfig(fixturesTsConfig);
   const sourceFile = result.sourceFiles.find((file) =>

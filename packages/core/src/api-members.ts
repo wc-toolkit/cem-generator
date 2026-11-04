@@ -29,6 +29,7 @@ export function detectClassMembers(
 
   for (const member of node.members) {
     const modifiers = ts.canHaveModifiers(member) ? ts.getModifiers(member) : undefined;
+    if (ts.isPropertyDeclaration(member) && isDeclare(modifiers)) continue;
     const nameText = member.name?.getText();
     if (!nameText || nameText === "observedAttributes") continue;
     const privacy = nameText.startsWith("#") ? "private" : getPrivacy(modifiers);
@@ -207,6 +208,10 @@ function getReturnTypeText(type: ts.Type | undefined, checker: ts.TypeChecker): 
 
 function isStatic(modifiers: readonly ts.Modifier[] | undefined): boolean | undefined {
   return modifiers?.some((m) => m.kind === ts.SyntaxKind.StaticKeyword) ? true : undefined;
+}
+
+function isDeclare(modifiers: readonly ts.Modifier[] | undefined): boolean {
+  return modifiers?.some((m) => m.kind === ts.SyntaxKind.DeclareKeyword) ?? false;
 }
 
 function getPrivacy(
