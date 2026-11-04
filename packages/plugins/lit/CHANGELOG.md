@@ -1,5 +1,11 @@
 # @wc-toolkit/cem-generator-lit
 
+## 0.1.20
+
+### Patch Changes
+
+- e33faf9: Emit custom JSDoc tags on Lit class declarations when `customJsDocTags` is enabled, matching the other framework plugins.
+
 ## 0.1.19
 
 ### Patch Changes
