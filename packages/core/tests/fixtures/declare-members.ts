@@ -5,10 +5,7 @@ type TypedEventTarget<TEventMap> = {
   ): void;
 };
 
-type TypedEmit<TEventMap> = <K extends keyof TEventMap>(
-  type: K,
-  detail: TEventMap[K],
-) => boolean;
+type TypedEmit<TEventMap> = <K extends keyof TEventMap>(type: K, detail: TEventMap[K]) => boolean;
 
 type XEventMap = {
   "value-change": { value: string };
