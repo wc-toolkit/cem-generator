@@ -120,6 +120,7 @@ export function litPlugin(): DetectorPlugin {
             ),
             omitInherited: classDoc.omitInherited,
             attributes: classDoc.attributes,
+            customJsDocTags: classDoc.customJsDocTags,
           };
 
           for (const attr of fragment[className].attributes ?? []) {
