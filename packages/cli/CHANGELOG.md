@@ -1,5 +1,11 @@
 # @wc-toolkit/cem-generator-cli
 
+## 0.3.0
+
+### Minor Changes
+
+- d8385ff: Add `dotnet-tools` to the `cem init` integration choices. Selecting it writes a `dotnetTypesGeneratorPlugin` entry from `@wc-toolkit/dotnet-tools/plugin` into the generated config.
+
 ## 0.2.7
 
 ### Patch Changes
