@@ -37,8 +37,12 @@ cem generate --no-inheritance
 
 `cem init` writes `cem-generator.config.mjs`. In interactive mode it first asks
 which parser plugins to use, then presents a multi-select list of integrations:
-`react-wrappers`, `jsx-types`, `vuejs-types`, and `svelte-types`. The type
-integrations use `./types` and strongly typed events by default. The command
+`react-wrappers`, `jsx-types`, `vuejs-types`, `svelte-types`, and `dotnet-tools`.
+The type integrations use `./types` and strongly typed events by default. The
+`dotnet-tools` integration adds `dotnetTypesGeneratorPlugin` from
+`@wc-toolkit/dotnet-tools/plugin` with placeholder `packageId`, `namespace`, and
+`version` values (`Acme.Components` and `1.0.0`) that you must update before
+generating. The command
 also asks whether to add the generated manifest to `package.json` as the
 `customElements` property. It supports `--plugin <names...>`,
 `--yes`, `--force`, and `--config <path>`.
