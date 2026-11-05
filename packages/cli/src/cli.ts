@@ -59,6 +59,14 @@ const INTEGRATION_CHOICES = [
     factory: "svelteTypesGeneratorPlugin",
     options: { outdir: "./types", stronglyTypedEvents: true },
   },
+  {
+    name: "dotnet-tools",
+    label: ".NET Tools - ASP.NET Tag Helpers and Blazor wrappers",
+    packageName: "@wc-toolkit/dotnet-tools",
+    importPath: "@wc-toolkit/dotnet-tools/plugin",
+    factory: "dotnetTypesGeneratorPlugin",
+    options: { packageId: "Acme.Components", namespace: "Acme.Components", version: "1.0.0" },
+  },
 ] as const;
 
 const DEFAULT_SOURCE_INCLUDE = ["src/**/*.{ts,tsx,js,jsx}"];
@@ -264,6 +272,11 @@ program
         "utf-8",
       );
       console.log(`Created config file at ${configPath}`);
+      if (selectedIntegrations.some((integration) => integration.name === "dotnet-tools")) {
+        console.log(
+          "Update packageId, namespace, and version in the dotnet-tools plugin options before generating.",
+        );
+      }
       if (mode === "code") {
         fs.writeFileSync(outputPath, createCodeSource(configPath, outputPath), "utf-8");
         console.log(`Created code file at ${outputPath}`);
@@ -730,7 +743,7 @@ function createConfigSource(
 ): string {
   const choices = [...plugins, ...integrations];
   const imports = choices.map(
-    (plugin) => `import { ${plugin.factory} } from "${plugin.packageName}";`,
+    (plugin) => `import { ${plugin.factory} } from "${getImportPath(plugin)}";`,
   );
   const factories = choices.map(
     (plugin) => `    ${plugin.factory}(${getPluginOptionsSource(plugin)}),`,
@@ -747,6 +760,12 @@ function createConfigSource(
   ]
     .filter((line): line is string => line !== undefined)
     .join("\n");
+}
+
+function getImportPath(
+  plugin: (typeof PLUGIN_CHOICES)[number] | (typeof INTEGRATION_CHOICES)[number],
+): string {
+  return "importPath" in plugin && plugin.importPath ? plugin.importPath : plugin.packageName;
 }
 
 function getPluginOptionsSource(

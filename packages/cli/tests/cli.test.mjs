@@ -181,6 +181,27 @@ test("interactive init creates selected integrations with default options", () =
   assert.match(config, /\*\*\/\*\.stories\.\*/);
 });
 
+test("interactive init adds the dotnet-tools plugin from its plugin entry point", () => {
+  const projectDir = fs.mkdtempSync(path.join(os.tmpdir(), "cem-init-"));
+  const result = spawnSync(process.execPath, [cliPath, "init", "--mode", "cli"], {
+    cwd: projectDir,
+    input: "\n5\nn\n",
+    encoding: "utf8",
+  });
+
+  assert.equal(result.status, 0, result.stderr);
+  const config = fs.readFileSync(path.join(projectDir, "cem-generator.config.mjs"), "utf8");
+  assert.match(
+    config,
+    /import \{ dotnetTypesGeneratorPlugin \} from "@wc-toolkit\/dotnet-tools\/plugin"/,
+  );
+  assert.match(
+    config,
+    /dotnetTypesGeneratorPlugin\(\{ packageId: "Acme\.Components", namespace: "Acme\.Components", version: "1\.0\.0" \}\)/,
+  );
+  assert.match(result.stdout, /Update packageId, namespace, and version/);
+});
+
 test("interactive init configures React wrappers with typed events", () => {
   const projectDir = fs.mkdtempSync(path.join(os.tmpdir(), "cem-init-"));
   const result = spawnSync(process.execPath, [cliPath, "init", "--mode", "cli"], {
