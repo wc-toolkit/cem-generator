@@ -13,6 +13,7 @@ import {
   getJSDocInfo,
   getNodeTypeText,
   getParsedTypeText,
+  inheritsFrom,
   parseCemClassTags,
   resolveMeaningfulParsedTypeFromText,
 } from "@wc-toolkit/cem-generator-utils";
@@ -123,31 +124,13 @@ function getFastSuperclass(
 }
 
 function extendsFastElement(node: ts.ClassDeclaration, checker: ts.TypeChecker): boolean {
-  const heritage = node.heritageClauses?.find(
-    (clause) => clause.token === ts.SyntaxKind.ExtendsKeyword,
-  );
-  const seen = new Set<ts.Node>();
-
-  function visit(expression: ts.Expression): boolean {
-    if (seen.has(expression)) return false;
-    seen.add(expression);
-    if (
+  return inheritsFrom(
+    node,
+    checker,
+    ({ expression }) =>
       ts.isIdentifier(expression) &&
-      (expression.text === "FASTElement" || expression.text === "FastElement")
-    )
-      return true;
-    if (!ts.isIdentifier(expression)) return false;
-    const symbol = checker.getSymbolAtLocation(expression);
-    const resolved =
-      symbol && symbol.flags & ts.SymbolFlags.Alias ? checker.getAliasedSymbol(symbol) : symbol;
-    const declaration = resolved?.declarations?.find(ts.isClassDeclaration);
-    const base = declaration?.heritageClauses?.find(
-      (clause) => clause.token === ts.SyntaxKind.ExtendsKeyword,
-    );
-    return !!base?.types[0] && visit(base.types[0].expression);
-  }
-
-  return !!heritage?.types.some((type) => visit(type.expression));
+      (expression.text === "FASTElement" || expression.text === "FastElement"),
+  );
 }
 
 function getAttrMetadata(

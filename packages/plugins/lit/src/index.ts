@@ -15,6 +15,7 @@ import {
   getJSDocInfo,
   getNodeTypeText,
   getParsedTypeText,
+  inheritsFrom,
   resolveMeaningfulParsedTypeFromText,
   parseCemClassTags,
   parseCemMemberTags,
@@ -457,30 +458,11 @@ function getLitSuperclass(
 }
 
 function extendsLitElement(node: ts.ClassDeclaration, checker: ts.TypeChecker): boolean {
-  const heritage = node.heritageClauses?.find(
-    (clause) => clause.token === ts.SyntaxKind.ExtendsKeyword,
+  return inheritsFrom(
+    node,
+    checker,
+    ({ expression }) => ts.isIdentifier(expression) && expression.text === "LitElement",
   );
-  const seen = new Set<ts.Node>();
-  const containsLitElement = (expression: ts.Expression): boolean => {
-    if (seen.has(expression)) return false;
-    seen.add(expression);
-    if (expression.getText() === "LitElement") return true;
-    if (ts.isCallExpression(expression)) {
-      return expression.arguments.some((argument) => containsLitElement(argument));
-    }
-    if (ts.isIdentifier(expression)) {
-      const symbol = checker.getSymbolAtLocation(expression);
-      const resolved =
-        symbol && symbol.flags & ts.SymbolFlags.Alias ? checker.getAliasedSymbol(symbol) : symbol;
-      const declaration = resolved?.declarations?.find(ts.isClassDeclaration);
-      const base = declaration?.heritageClauses?.find(
-        (clause) => clause.token === ts.SyntaxKind.ExtendsKeyword,
-      );
-      return !!base?.types[0] && containsLitElement(base.types[0].expression);
-    }
-    return false;
-  };
-  return !!heritage?.types.some((type) => containsLitElement(type.expression));
 }
 
 /** Detects `@property({...}) name: Type;` and `@state() name: Type;` fields. */

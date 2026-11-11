@@ -12,6 +12,7 @@ import {
 } from "@wc-toolkit/cem-generator";
 import {
   getJSDocInfo,
+  inheritsFrom,
   parseCemClassTags,
   resolveMeaningfulParsedTypeFromText,
 } from "@wc-toolkit/cem-generator-utils";
@@ -217,20 +218,11 @@ function getLwcSuperclass(
 }
 
 function extendsLightningElement(node: ts.ClassDeclaration, checker: ts.TypeChecker): boolean {
-  const seen = new Set<ts.Node>();
-
-  function visit(expression: ts.Expression): boolean {
-    if (seen.has(expression)) return false;
-    seen.add(expression);
-    if (!ts.isIdentifier(expression)) return false;
-    if (expression.text === "LightningElement") return true;
-    const base = resolveClassDeclaration(expression, checker);
-    const baseExpression = base ? getBaseExpression(base) : undefined;
-    return !!baseExpression && visit(baseExpression);
-  }
-
-  const expression = getBaseExpression(node);
-  return !!expression && visit(expression);
+  return inheritsFrom(
+    node,
+    checker,
+    ({ expression }) => ts.isIdentifier(expression) && expression.text === "LightningElement",
+  );
 }
 
 function getBaseExpression(node: ts.ClassDeclaration): ts.Expression | undefined {
