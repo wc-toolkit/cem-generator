@@ -119,6 +119,58 @@ test("detectors without shouldAnalyze analyze files by default", () => {
   assert.equal(getClass(manifest, "inheritance-fixture.ts", "ElA")?.tagName, "x-a");
 });
 
+test("custom-element markers require a tag or an explicit registration signal", () => {
+  const detector = {
+    name: "base-class-markers",
+    onFile(context) {
+      if (!context.filePath.endsWith("inheritance-fixture.ts")) return {};
+      return {
+        BaseClass: { name: "BaseClass", module: context.filePath },
+        UnregisteredLeaf: {
+          name: "UnregisteredLeaf",
+          module: context.filePath,
+          superclass: { name: "BaseClass" },
+        },
+        RegisteredBase: {
+          name: "RegisteredBase",
+          module: context.filePath,
+          tagName: "x-registered-base",
+        },
+        RegisteredChild: {
+          name: "RegisteredChild",
+          module: context.filePath,
+          tagName: "x-registered-child",
+          superclass: { name: "RegisteredBase" },
+        },
+        ExplicitBase: {
+          name: "ExplicitBase",
+          module: context.filePath,
+          customElement: true,
+        },
+        ExplicitChild: {
+          name: "ExplicitChild",
+          module: context.filePath,
+          superclass: { name: "ExplicitBase" },
+        },
+      };
+    },
+  };
+
+  const manifest = generateCem({
+    tsConfigPath: fixturesTsConfig,
+    include: ["inheritance-fixture.ts"],
+    plugins: [detector],
+  });
+
+  assert.equal(getClass(manifest, "inheritance-fixture.ts", "BaseClass")?.customElement, false);
+  assert.equal(
+    getClass(manifest, "inheritance-fixture.ts", "UnregisteredLeaf")?.customElement,
+    false,
+  );
+  assert.equal(getClass(manifest, "inheritance-fixture.ts", "RegisteredBase")?.customElement, true);
+  assert.equal(getClass(manifest, "inheritance-fixture.ts", "ExplicitBase")?.customElement, true);
+});
+
 test("attribute types reflect linked member declarations", () => {
   const detector = {
     name: "declaration-links",

@@ -21,7 +21,12 @@ export function vanillaBuiltin(): DetectorPlugin {
 
     onFile(context: FileContext): ManifestFragment {
       const fragment: ManifestFragment = {};
-      const tagNamesByClass = detectCustomElementRegistrations(context.sourceFile, context.checker);
+      const registeredClasses = new Set<string>();
+      const tagNamesByClass = detectCustomElementRegistrations(
+        context.sourceFile,
+        context.checker,
+        registeredClasses,
+      );
 
       ts.forEachChild(context.sourceFile, function visit(node) {
         if (ts.isClassDeclaration(node) && node.name) {
@@ -42,6 +47,7 @@ export function vanillaBuiltin(): DetectorPlugin {
             description: jsdoc.description || undefined,
             summary: classDoc.summary,
             deprecated: classDoc.deprecated,
+            customElement: registeredClasses.has(className) ? true : undefined,
             tagName: classDoc.tagName ?? tagNamesByClass.get(className),
             superclass: getSuperclassRef(node),
             attributes: mergeByName(

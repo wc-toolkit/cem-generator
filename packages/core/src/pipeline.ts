@@ -1269,7 +1269,10 @@ function toCustomElementDeclaration(
 
   const known = {
     kind: asString(fragment.kind) ?? "class",
-    customElement: typeof fragment.customElement === "boolean" ? fragment.customElement : true,
+    customElement:
+      typeof fragment.customElement === "boolean"
+        ? fragment.customElement
+        : Boolean(asString(fragment.tagName)),
     name: fragment.name,
     description: asString(fragment.description),
     summary: asString(fragment.summary),

@@ -3,10 +3,12 @@ import ts from "typescript";
 /**
  * Finds statically named custom-element registrations in a source file: a tag given as a string
  * literal, or, with a `checker`, as a constant whose type is one (`customElements.define(TAG, El)`).
+ * Adds every registered class name to `registeredClasses`, including registrations with dynamic tags.
  */
 export function detectCustomElementRegistrations(
   sourceFile: ts.SourceFile,
   checker?: ts.TypeChecker,
+  registeredClasses?: Set<string>,
 ): Map<string, string> {
   const registrations = new Map<string, string>();
 
@@ -18,9 +20,10 @@ export function detectCustomElementRegistrations(
       node.expression.name.text === "define"
     ) {
       const [tagName, className] = node.arguments;
-      const tag = tagName && tagNameOf(tagName, checker);
-      if (tag && className && ts.isIdentifier(className)) {
-        registrations.set(className.text, tag);
+      if (className && ts.isIdentifier(className)) {
+        registeredClasses?.add(className.text);
+        const tag = tagName && tagNameOf(tagName, checker);
+        if (tag) registrations.set(className.text, tag);
       }
     }
     ts.forEachChild(node, visit);
