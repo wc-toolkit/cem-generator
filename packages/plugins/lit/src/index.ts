@@ -483,7 +483,7 @@ function extendsLitElement(node: ts.ClassDeclaration, checker: ts.TypeChecker): 
   return !!heritage?.types.some((type) => containsLitElement(type.expression));
 }
 
-/** Detects `@property({...}) name: Type;` and `@state() name: Type;` fields. */
+/** Detects `@property({...})` and `@state()` fields and accessors. */
 function getDecoratedProperties(
   node: ts.ClassLikeDeclaration,
   context: FileContext,
@@ -491,7 +491,12 @@ function getDecoratedProperties(
   const members: NonNullable<ClassFragment["members"]> = [];
 
   for (const member of node.members) {
-    if (!ts.isPropertyDeclaration(member)) continue;
+    if (
+      !ts.isPropertyDeclaration(member) &&
+      !ts.isGetAccessorDeclaration(member) &&
+      !ts.isSetAccessorDeclaration(member)
+    )
+      continue;
     const decorators = ts.getDecorators?.(member) ?? [];
 
     const propertyDecorator = decorators.find((d) => {
@@ -525,10 +530,15 @@ function getDecoratedProperties(
     const memberDoc = parseCemMemberTags(member);
     if (memberDoc.internal) continue;
     const modifiers = ts.canHaveModifiers(member) ? ts.getModifiers(member) : undefined;
-    const typeText = getNodeTypeText(member, context.checker);
+    const typeNode = getDecoratedPropertyTypeNode(member, node);
+    const typeSource = ts.isPropertyDeclaration(member) ? member : typeNode;
+    const typeText = getNodeTypeText(typeSource, context.checker);
     const parsedTypeText = shouldParseDecoratedType(member, modifiers, context.typeParsing)
-      ? getParsedTypeText(member, context.checker)
+      ? getParsedTypeText(typeSource, context.checker)
       : undefined;
+    const readonly = ts.isGetAccessorDeclaration(member)
+      ? !hasMatchingSetter(member, node) || undefined
+      : modifiers?.some((mod) => mod.kind === ts.SyntaxKind.ReadonlyKeyword) || undefined;
 
     members.push({
       name: nameText,
@@ -546,14 +556,18 @@ function getDecoratedProperties(
       deprecated: memberDoc.deprecated,
       privacy: getPrivacy(modifiers),
       static: modifiers?.some((mod) => mod.kind === ts.SyntaxKind.StaticKeyword) || undefined,
-      readonly: modifiers?.some((mod) => mod.kind === ts.SyntaxKind.ReadonlyKeyword) || undefined,
+      readonly,
       internal: isInternal || memberDoc.internal || undefined,
       attribute:
         isInternal || options.noAttribute
           ? undefined
           : (options.attribute ?? memberDoc.attribute ?? nameText),
       reflects: options.reflect ?? memberDoc.reflects,
-      default: memberDoc.default ?? getLiteralDefaultText(member.initializer, context.checker),
+      default:
+        memberDoc.default ??
+        (ts.isPropertyDeclaration(member)
+          ? getLiteralDefaultText(member.initializer, context.checker)
+          : undefined),
     });
   }
 
@@ -561,7 +575,7 @@ function getDecoratedProperties(
 }
 
 function shouldParseDecoratedType(
-  member: ts.PropertyDeclaration,
+  member: ts.PropertyDeclaration | ts.GetAccessorDeclaration | ts.SetAccessorDeclaration,
   modifiers: readonly ts.Modifier[] | undefined,
   mode: FileContext["typeParsing"],
 ): boolean {
@@ -573,6 +587,51 @@ function shouldParseDecoratedType(
       modifier.kind === ts.SyntaxKind.ProtectedKeyword ||
       modifier.kind === ts.SyntaxKind.StaticKeyword,
   );
+}
+
+function getDecoratedPropertyTypeNode(
+  member: ts.PropertyDeclaration | ts.GetAccessorDeclaration | ts.SetAccessorDeclaration,
+  owner: ts.ClassLikeDeclaration,
+): ts.Node {
+  if (ts.isPropertyDeclaration(member)) return member;
+
+  const memberName = member.name.getText();
+  const getter = ts.isGetAccessorDeclaration(member)
+    ? member
+    : owner.members.find(
+        (candidate): candidate is ts.GetAccessorDeclaration =>
+          ts.isGetAccessorDeclaration(candidate) && candidate.name.getText() === memberName,
+      );
+  if (getter?.type) return getter.type;
+
+  const setter = ts.isSetAccessorDeclaration(member)
+    ? member
+    : owner.members.find(
+        (candidate): candidate is ts.SetAccessorDeclaration =>
+          ts.isSetAccessorDeclaration(candidate) && candidate.name.getText() === memberName,
+      );
+  const parameter = setter?.parameters[0];
+  if (parameter?.type) return parameter.type;
+
+  return getter ?? parameter ?? member;
+}
+
+function hasMatchingSetter(
+  getter: ts.GetAccessorDeclaration,
+  owner: ts.ClassLikeDeclaration,
+): boolean {
+  const getterName = getter.name.getText();
+  const getterStatic = ts.canHaveModifiers(getter)
+    ? ts.getModifiers(getter)?.some((modifier) => modifier.kind === ts.SyntaxKind.StaticKeyword)
+    : false;
+  return owner.members.some((member) => {
+    if (!ts.isSetAccessorDeclaration(member) || member.name.getText() !== getterName) return false;
+    const modifiers = ts.canHaveModifiers(member) ? ts.getModifiers(member) : undefined;
+    return (
+      (modifiers?.some((modifier) => modifier.kind === ts.SyntaxKind.StaticKeyword) ?? false) ===
+      getterStatic
+    );
+  });
 }
 
 function mergeLitMembers(...sources: ClassFragment["members"][]): ClassFragment["members"] {
