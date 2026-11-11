@@ -1,5 +1,14 @@
 # @wc-toolkit/cem-generator-lit
 
+## 0.1.26
+
+### Patch Changes
+
+- 3cc4e91: Detect Lit components that extend custom base classes, including bases declared in other files.
+- Updated dependencies [2cdfdb2]
+  - @wc-toolkit/cem-generator-utils@0.1.8
+  - @wc-toolkit/cem-generator@0.2.9
+
 ## 0.1.25
 
 ### Patch Changes

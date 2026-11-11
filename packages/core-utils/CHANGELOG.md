@@ -1,5 +1,14 @@
 # @wc-toolkit/cem-generator-utils
 
+## 0.1.8
+
+### Patch Changes
+
+- 2cdfdb2: Add a shared `inheritsFrom()` heritage walker and reuse it in the core vanilla
+  detector and the Lit, FAST, and LWC plugins. Custom base classes are now
+  resolved the same way everywhere, including bases declared in other modules and
+  mixin arguments.
+
 ## 0.1.7
 
 ### Patch Changes
