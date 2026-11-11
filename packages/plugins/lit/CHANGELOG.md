@@ -1,5 +1,12 @@
 # @wc-toolkit/cem-generator-lit
 
+## 0.1.24
+
+### Patch Changes
+
+- f512c09: Capture reactive property metadata from decorated Lit getters and setters,
+  including JSDoc and tags written on either half of the accessor pair.
+
 ## 0.1.23
 
 ### Patch Changes
