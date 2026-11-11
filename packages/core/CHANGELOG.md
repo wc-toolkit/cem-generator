@@ -1,5 +1,11 @@
 # @wc-toolkit/cem-generator
 
+## 0.2.7
+
+### Patch Changes
+
+- 41ebd31: Derive attribute types from linked members when generating the Custom Elements Manifest.
+
 ## 0.2.6
 
 ### Patch Changes
