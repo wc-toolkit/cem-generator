@@ -1265,6 +1265,8 @@ function toCustomElementDeclaration(
   fragment: ClassFragment,
   customJsDocTagsConfig?: CustomTagOptions,
 ): CustomElementDeclaration {
+  const members = toMembers(fragment, customJsDocTagsConfig);
+
   const known = {
     kind: asString(fragment.kind) ?? "class",
     customElement: typeof fragment.customElement === "boolean" ? fragment.customElement : true,
@@ -1279,8 +1281,8 @@ function toCustomElementDeclaration(
           module: asString(fragment.superclass.module),
         }
       : undefined,
-    members: toMembers(fragment, customJsDocTagsConfig),
-    attributes: toAttributes(fragment.attributes),
+    members,
+    attributes: toAttributes(fragment.attributes, members),
     events: toEvents(fragment.events),
     slots: toSlots(fragment.slots),
     cssProperties: toCssProperties(fragment.cssProperties),
@@ -1413,24 +1415,35 @@ function toMembers(
   return converted.length ? converted : undefined;
 }
 
-function toAttributes(attributes: ClassFragment["attributes"]): Attribute[] | undefined {
+function toAttributes(
+  attributes: ClassFragment["attributes"],
+  members?: Array<ClassField | ClassMethod>,
+): Attribute[] | undefined {
   if (!attributes?.length) return undefined;
   const converted = attributes
-    .map((attr) => ({
-      name: attr.name,
-      description: asString(attr.description),
-      summary: asString(attr.summary),
-      deprecated: asDeprecated(attr.deprecated),
-      type: toType(attr.type),
-      ...(toType((attr as Record<string, unknown>).parsedType)
-        ? {
-            parsedType: toType((attr as Record<string, unknown>).parsedType),
-          }
-        : {}),
-      default: asString((attr as Record<string, unknown>).default),
-      fieldName: asString((attr as Record<string, unknown>).fieldName),
-      ...inheritedFrom(attr),
-    }))
+    .map((attr) => {
+      const fieldName = asString((attr as Record<string, unknown>).fieldName);
+      const member = members?.find(
+        (item) => item.name === fieldName || ("attribute" in item && item.attribute === attr.name),
+      );
+      const memberType = member && "type" in member ? member.type : undefined;
+
+      return {
+        name: attr.name,
+        description: asString(attr.description),
+        summary: asString(attr.summary),
+        deprecated: asDeprecated(attr.deprecated),
+        type: memberType ?? toType(attr.type),
+        ...(toType((attr as Record<string, unknown>).parsedType)
+          ? {
+              parsedType: toType((attr as Record<string, unknown>).parsedType),
+            }
+          : {}),
+        default: asString((attr as Record<string, unknown>).default),
+        fieldName,
+        ...inheritedFrom(attr),
+      };
+    })
     .filter((attr) => !!attr.name);
 
   return converted.length ? converted : undefined;
