@@ -2,4 +2,4 @@
 "@wc-toolkit/cem-generator": patch
 ---
 
-Do not infer untagged base declarations to be custom elements, while keeping tagged bases and unregistered leaf declarations marked.
+Infer custom-element status from a tag name or an explicit registration signal instead of class inheritance alone.

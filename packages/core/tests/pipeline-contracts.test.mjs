@@ -119,20 +119,17 @@ test("detectors without shouldAnalyze analyze files by default", () => {
   assert.equal(getClass(manifest, "inheritance-fixture.ts", "ElA")?.tagName, "x-a");
 });
 
-test("untagged base classes are not inferred to be custom elements", () => {
+test("custom-element markers require a tag or an explicit registration signal", () => {
   const detector = {
     name: "base-class-markers",
     onFile(context) {
-      if (context.filePath.endsWith("parsed-types-element.ts")) {
-        return { BaseClass: { name: "BaseClass", module: context.filePath } };
-      }
       if (!context.filePath.endsWith("inheritance-fixture.ts")) return {};
       return {
         BaseClass: { name: "BaseClass", module: context.filePath },
         UnregisteredLeaf: {
           name: "UnregisteredLeaf",
           module: context.filePath,
-          superclass: { name: "BaseClass", module: context.filePath },
+          superclass: { name: "BaseClass" },
         },
         RegisteredBase: {
           name: "RegisteredBase",
@@ -161,15 +158,14 @@ test("untagged base classes are not inferred to be custom elements", () => {
 
   const manifest = generateCem({
     tsConfigPath: fixturesTsConfig,
-    include: ["inheritance-fixture.ts", "parsed-types-element.ts"],
+    include: ["inheritance-fixture.ts"],
     plugins: [detector],
   });
 
   assert.equal(getClass(manifest, "inheritance-fixture.ts", "BaseClass")?.customElement, false);
-  assert.equal(getClass(manifest, "parsed-types-element.ts", "BaseClass")?.customElement, true);
   assert.equal(
     getClass(manifest, "inheritance-fixture.ts", "UnregisteredLeaf")?.customElement,
-    true,
+    false,
   );
   assert.equal(getClass(manifest, "inheritance-fixture.ts", "RegisteredBase")?.customElement, true);
   assert.equal(getClass(manifest, "inheritance-fixture.ts", "ExplicitBase")?.customElement, true);

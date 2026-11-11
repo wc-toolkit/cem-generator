@@ -28,6 +28,7 @@ const decoratorNameCache = new WeakMap<ts.SourceFile, Map<string, string | undef
 
 export function litPlugin(): DetectorPlugin {
   const registeredTags = new Map<string, string>();
+  const registeredClasses = new Set<string>();
   const mixinResults = new WeakMap<ts.Declaration, LitMixin | undefined>();
   const baseMemberResults = new WeakMap<ts.ClassDeclaration, ClassFragment["members"]>();
 
@@ -45,7 +46,11 @@ export function litPlugin(): DetectorPlugin {
     onFile(context: FileContext): ManifestFragment {
       const fragment: ManifestFragment = {};
       const mixins = new Map<string, LitMixin>();
-      const registrations = detectCustomElementRegistrations(context.sourceFile);
+      const registrations = detectCustomElementRegistrations(
+        context.sourceFile,
+        undefined,
+        registeredClasses,
+      );
       for (const [className, tagName] of registrations) registeredTags.set(className, tagName);
 
       ts.forEachChild(context.sourceFile, function visit(node) {
@@ -87,6 +92,10 @@ export function litPlugin(): DetectorPlugin {
             description: jsdoc.description || undefined,
             summary: classDoc.summary,
             deprecated: classDoc.deprecated,
+            customElement:
+              registeredClasses.has(className) || hasCustomElementDecorator(node)
+                ? true
+                : undefined,
             tagName:
               classDoc.tagName ?? getCustomElementTagName(node) ?? registrations.get(className),
             superclass: getLitSuperclass(node, context.checker),
@@ -145,12 +154,18 @@ export function litPlugin(): DetectorPlugin {
     },
 
     afterAllFiles(manifest) {
-      const byDeclaration: Record<string, { tagName: string }> = {};
+      const byDeclaration: Record<string, Partial<ClassFragment>> = {};
       for (const module of manifest.modules) {
         for (const declaration of module.declarations) {
           const tagName = registeredTags.get(declaration.name);
-          if (!tagName || declaration.tagName) continue;
-          byDeclaration[`${module.path}#${declaration.name}`] = { tagName };
+          const patch: Partial<ClassFragment> = {};
+          if (tagName && !declaration.tagName) patch.tagName = tagName;
+          if (registeredClasses.has(declaration.name) && declaration.customElement === undefined) {
+            patch.customElement = true;
+          }
+          if (Object.keys(patch).length > 0) {
+            byDeclaration[`${module.path}#${declaration.name}`] = patch;
+          }
         }
       }
       return { byDeclaration };
@@ -841,6 +856,12 @@ function getCustomElementTagName(node: ts.ClassDeclaration): string | undefined 
     if (tag && ts.isStringLiteralLike(tag)) return tag.text;
   }
   return undefined;
+}
+
+function hasCustomElementDecorator(node: ts.ClassDeclaration): boolean {
+  return (ts.getDecorators?.(node) ?? []).some(
+    (decorator) => getDecoratorName(decorator, node.getSourceFile()) === "customElement",
+  );
 }
 
 function filterLitMembers(members: ClassFragment["members"]): ClassFragment["members"] {

@@ -21,7 +21,12 @@ export function vanillaBuiltin(): DetectorPlugin {
 
     onFile(context: FileContext): ManifestFragment {
       const fragment: ManifestFragment = {};
-      const tagNamesByClass = detectCustomElementRegistrations(context.sourceFile, context.checker);
+      const registeredClasses = new Set<string>();
+      const tagNamesByClass = detectCustomElementRegistrations(
+        context.sourceFile,
+        context.checker,
+        registeredClasses,
+      );
 
       ts.forEachChild(context.sourceFile, function visit(node) {
         if (ts.isClassDeclaration(node) && node.name) {
@@ -42,8 +47,9 @@ export function vanillaBuiltin(): DetectorPlugin {
             description: jsdoc.description || undefined,
             summary: classDoc.summary,
             deprecated: classDoc.deprecated,
+            customElement: registeredClasses.has(className) ? true : undefined,
             tagName: classDoc.tagName ?? tagNamesByClass.get(className),
-            superclass: getSuperclassRef(node, context.checker),
+            superclass: getSuperclassRef(node),
             attributes: mergeByName(
               getObservedAttributes(node).map((name) => ({ name })),
               classDoc.attributes,
@@ -125,43 +131,17 @@ function inheritsHTMLElement(node: ts.ClassDeclaration, checker: ts.TypeChecker)
   );
 }
 
-function getSuperclassRef(
-  node: ts.ClassDeclaration,
-  checker: ts.TypeChecker,
-): ClassFragment["superclass"] {
+function getSuperclassRef(node: ts.ClassDeclaration): ClassFragment["superclass"] {
   const clause = node.heritageClauses?.find((c) => c.token === ts.SyntaxKind.ExtendsKeyword);
   const heritageType = clause?.types[0];
-  const expression = unwrapSuperclassExpression(heritageType?.expression);
-  const expr = expression?.getText();
-  if (!expression || !expr || expr === "HTMLElement") return undefined;
+  const expr = heritageType?.expression.getText();
+  if (!expr || expr === "HTMLElement") return undefined;
 
-  const className = extractSuperclassName(expression);
+  const className = extractSuperclassName(heritageType?.expression);
   if (!className) return { name: expr };
-
-  const identifier = ts.isIdentifier(expression)
-    ? expression
-    : ts.isPropertyAccessExpression(expression)
-      ? expression.name
-      : undefined;
-  const symbol = identifier && checker.getSymbolAtLocation(identifier);
-  const resolved =
-    symbol && symbol.flags & ts.SymbolFlags.Alias ? checker.getAliasedSymbol(symbol) : symbol;
-  const declaration = resolved?.declarations?.find(ts.isClassDeclaration);
-  if (declaration?.name) {
-    return { name: declaration.name.text, module: declaration.getSourceFile().fileName };
-  }
 
   const module = extractImportModuleForIdentifier(node.getSourceFile(), className);
   return { name: className, module };
-}
-
-function unwrapSuperclassExpression(
-  expression: ts.Expression | undefined,
-): ts.Expression | undefined {
-  if (expression && ts.isCallExpression(expression) && expression.arguments[0]) {
-    return unwrapSuperclassExpression(expression.arguments[0]);
-  }
-  return expression;
 }
 
 function extractSuperclassName(expression: ts.Expression | undefined): string | undefined {

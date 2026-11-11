@@ -114,6 +114,8 @@ export class GetterPropertiesElement extends LitElement {
 
 export class CrossModuleLitElement extends LitElement {}
 
+export class DynamicRegisteredLitElement extends LitElement {}
+
 class CollapsedField extends MixinA(LitElement) {
   static properties = {
     firstName: { type: String },

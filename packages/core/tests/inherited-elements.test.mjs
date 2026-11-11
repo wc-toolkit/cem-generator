@@ -17,22 +17,19 @@ const declarationsOf = (include = "abstract-base-element.ts", tsConfigPath = fix
 test("a subclass of a custom base class of HTMLElement is an element", () => {
   const names = declarationsOf().map(({ name }) => name);
 
-  assert.ok(names.includes("CardElement"));
-  assert.ok(names.includes("UnregisteredCard"));
-  assert.ok(!names.includes("CardBase"));
-  assert.ok(!names.includes("CardModel"));
+  assert.deepEqual(names, ["CardElement"]);
 });
 
-test("generic untagged bases are not custom elements but their leaf is", () => {
+test("unregistered HTMLElement subclasses are not custom elements", () => {
   const names = declarationsOf("generic-base-element.ts").map(({ name }) => name);
 
-  assert.deepEqual(names.sort(), ["ShortText"]);
+  assert.deepEqual(names, []);
 });
 
-test("a subclass of a mixin of an element's base is an element", () => {
+test("mixin subclasses without a tag are not custom elements", () => {
   const names = declarationsOf("mixin-base-element.ts").map(({ name }) => name);
 
-  assert.deepEqual(names.sort(), ["ThemedCard"]);
+  assert.deepEqual(names, []);
 });
 
 test("a tag registered by its constant is the element's tag", () => {
@@ -61,10 +58,10 @@ test("a class of the user's own named HTMLElement is not the DOM's", () => {
   assert.deepEqual(declarationsOf("shadowed-html-element.ts"), []);
 });
 
-test("without the DOM lib, a class that extends HTMLElement is an element by its name", () => {
+test("without the DOM lib, an unregistered HTMLElement subclass is not a custom element", () => {
   const names = declarationsOf("plain-element.ts", noDomTsConfig).map(({ name }) => name);
 
-  assert.deepEqual(names, ["PlainElement"]);
+  assert.deepEqual(names, []);
 });
 
 test("without the DOM lib, a class of the user's own named HTMLElement is not the DOM's", () => {

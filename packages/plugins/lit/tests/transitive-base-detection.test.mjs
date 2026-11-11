@@ -20,6 +20,16 @@ test("detects Lit components extending a custom base declared in another file", 
   assert.equal(declaration.superclass?.name, "CustomLitBase");
 });
 
+test("keeps registered Lit classes custom elements when their tag is dynamic", () => {
+  const manifest = generateCem({ tsConfigPath: fixturesTsConfig, plugins: [litPlugin()] });
+  const declaration = manifest.modules
+    .flatMap((module) => module.declarations)
+    .find((item) => item.name === "DynamicRegisteredLitElement");
+
+  assert.equal(declaration?.customElement, true);
+  assert.equal(declaration?.tagName, undefined);
+});
+
 test("ignores subclasses of base classes unrelated to Lit", () => {
   const manifest = generateCem({ tsConfigPath: fixturesTsConfig, plugins: [litPlugin()] });
   const declaration = manifest.modules
