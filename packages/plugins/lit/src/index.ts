@@ -35,7 +35,7 @@ export function litPlugin(): DetectorPlugin {
     shouldAnalyze(sourceText) {
       return (
         /from\s+['"]lit['"]/.test(sourceText) ||
-        /extends\s+LitElement/.test(sourceText) ||
+        /extends\s+[A-Za-z_$][\w$]*/.test(sourceText) ||
         /customElements\.define\s*\(/.test(sourceText)
       );
     },

@@ -10,7 +10,7 @@ Reference Lit detector plugin for developers and agents extending `cem-generator
 
 ## What this plugin detects
 
-- Classes extending `LitElement`
+- Classes extending `LitElement`, directly or through custom base classes
 - Custom-element tags from `@customElement(...)` or `customElements.define(...)`
 - Decorated members from `@property(...)` and `@state(...)`
 - Legacy `static properties` and `static get properties()` metadata
