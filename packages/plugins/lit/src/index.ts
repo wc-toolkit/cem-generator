@@ -18,6 +18,7 @@ import {
   resolveMeaningfulParsedTypeFromText,
   parseCemClassTags,
   parseCemMemberTags,
+  type ParsedJSDocMemberInfo,
   areTypeTextsEquivalent,
   getLiteralDefaultText,
 } from "@wc-toolkit/cem-generator-utils";
@@ -526,8 +527,7 @@ function getDecoratedProperties(
     ].includes(decoratorName ?? "");
     const options = getDecoratorOptions(propertyDecorator);
     const nameText = member.name.getText();
-    const jsdoc = getJSDocInfo(member);
-    const memberDoc = parseCemMemberTags(member);
+    const { description, doc: memberDoc } = getDecoratedPropertyDocumentation(member, node);
     if (memberDoc.internal) continue;
     const modifiers = ts.canHaveModifiers(member) ? ts.getModifiers(member) : undefined;
     const typeNode = getDecoratedPropertyTypeNode(member, node);
@@ -551,7 +551,7 @@ function getDecoratedProperties(
         })
           ? parsedTypeText
           : undefined,
-      description: jsdoc.description || undefined,
+      description,
       summary: memberDoc.summary,
       deprecated: memberDoc.deprecated,
       privacy: getPrivacy(modifiers),
@@ -589,49 +589,101 @@ function shouldParseDecoratedType(
   );
 }
 
+type DecoratedMemberDeclaration =
+  | ts.PropertyDeclaration
+  | ts.GetAccessorDeclaration
+  | ts.SetAccessorDeclaration;
+
+/** Finds the other half of a get/set pair declared in the same class. */
+function getAccessorPair(
+  member: DecoratedMemberDeclaration,
+  owner: ts.ClassLikeDeclaration,
+): { getter?: ts.GetAccessorDeclaration; setter?: ts.SetAccessorDeclaration } | undefined {
+  if (ts.isPropertyDeclaration(member)) return undefined;
+
+  const memberName = member.name.getText();
+  const isStatic = hasStaticModifier(member);
+  let getter: ts.GetAccessorDeclaration | undefined = ts.isGetAccessorDeclaration(member)
+    ? member
+    : undefined;
+  let setter: ts.SetAccessorDeclaration | undefined = ts.isSetAccessorDeclaration(member)
+    ? member
+    : undefined;
+
+  for (const candidate of owner.members) {
+    if (!ts.isGetAccessorDeclaration(candidate) && !ts.isSetAccessorDeclaration(candidate))
+      continue;
+    if (candidate.name.getText() !== memberName || hasStaticModifier(candidate) !== isStatic)
+      continue;
+    if (ts.isGetAccessorDeclaration(candidate)) getter ??= candidate;
+    else setter ??= candidate;
+  }
+
+  return { getter, setter };
+}
+
+function hasStaticModifier(node: ts.Node): boolean {
+  if (!ts.canHaveModifiers(node)) return false;
+  return (
+    ts.getModifiers(node)?.some((modifier) => modifier.kind === ts.SyntaxKind.StaticKeyword) ??
+    false
+  );
+}
+
 function getDecoratedPropertyTypeNode(
-  member: ts.PropertyDeclaration | ts.GetAccessorDeclaration | ts.SetAccessorDeclaration,
+  member: DecoratedMemberDeclaration,
   owner: ts.ClassLikeDeclaration,
 ): ts.Node {
   if (ts.isPropertyDeclaration(member)) return member;
 
-  const memberName = member.name.getText();
-  const getter = ts.isGetAccessorDeclaration(member)
-    ? member
-    : owner.members.find(
-        (candidate): candidate is ts.GetAccessorDeclaration =>
-          ts.isGetAccessorDeclaration(candidate) && candidate.name.getText() === memberName,
-      );
-  if (getter?.type) return getter.type;
+  const pair = getAccessorPair(member, owner);
+  if (pair?.getter?.type) return pair.getter.type;
 
-  const setter = ts.isSetAccessorDeclaration(member)
-    ? member
-    : owner.members.find(
-        (candidate): candidate is ts.SetAccessorDeclaration =>
-          ts.isSetAccessorDeclaration(candidate) && candidate.name.getText() === memberName,
-      );
-  const parameter = setter?.parameters[0];
+  const parameter = pair?.setter?.parameters[0];
   if (parameter?.type) return parameter.type;
 
-  return getter ?? parameter ?? member;
+  return pair?.getter ?? parameter ?? member;
 }
 
 function hasMatchingSetter(
   getter: ts.GetAccessorDeclaration,
   owner: ts.ClassLikeDeclaration,
 ): boolean {
-  const getterName = getter.name.getText();
-  const getterStatic = ts.canHaveModifiers(getter)
-    ? ts.getModifiers(getter)?.some((modifier) => modifier.kind === ts.SyntaxKind.StaticKeyword)
-    : false;
-  return owner.members.some((member) => {
-    if (!ts.isSetAccessorDeclaration(member) || member.name.getText() !== getterName) return false;
-    const modifiers = ts.canHaveModifiers(member) ? ts.getModifiers(member) : undefined;
-    return (
-      (modifiers?.some((modifier) => modifier.kind === ts.SyntaxKind.StaticKeyword) ?? false) ===
-      getterStatic
-    );
-  });
+  return !!getAccessorPair(getter, owner)?.setter;
+}
+
+/**
+ * Lit properties are often documented on the getter while the decorator sits
+ * on the setter (or the reverse). Merge both declarations so descriptions and
+ * `@attr` / `@default` tags survive regardless of which side carries them.
+ */
+function getDecoratedPropertyDocumentation(
+  member: DecoratedMemberDeclaration,
+  owner: ts.ClassLikeDeclaration,
+): { description?: string; doc: ParsedJSDocMemberInfo } {
+  const ownDoc = parseCemMemberTags(member);
+  const ownDescription = getJSDocInfo(member).description;
+  const pair = getAccessorPair(member, owner);
+  const counterpart = pair && (pair.getter === member ? pair.setter : pair.getter);
+  if (!counterpart) return { description: ownDescription || undefined, doc: ownDoc };
+
+  const counterpartDoc = parseCemMemberTags(counterpart);
+  return {
+    description: ownDescription || getJSDocInfo(counterpart).description || undefined,
+    doc: {
+      attribute: ownDoc.attribute ?? counterpartDoc.attribute,
+      attributeFromFieldName:
+        ownDoc.attributeFromFieldName ?? counterpartDoc.attributeFromFieldName,
+      reflects: ownDoc.reflects ?? counterpartDoc.reflects,
+      internal: ownDoc.internal || counterpartDoc.internal,
+      default: ownDoc.default ?? counterpartDoc.default,
+      summary: ownDoc.summary ?? counterpartDoc.summary,
+      deprecated: ownDoc.deprecated ?? counterpartDoc.deprecated,
+      customJsDocTags: ownDoc.customJsDocTags?.length
+        ? ownDoc.customJsDocTags
+        : counterpartDoc.customJsDocTags,
+    },
+  };
 }
 
 function mergeLitMembers(...sources: ClassFragment["members"][]): ClassFragment["members"] {

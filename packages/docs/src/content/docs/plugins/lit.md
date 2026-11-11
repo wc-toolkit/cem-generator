@@ -9,7 +9,7 @@ description: Reference detector plugin for Lit projects.
 
 - classes extending `LitElement`
 - shared class API members, including fields, methods, parameters, and return types
-- decorated fields from `@property(...)` and `@state(...)`, including decorator aliases
+- decorated fields and accessors from `@property(...)` and `@state(...)`, including decorator aliases
 - `static properties` declarations
 - `@customElement("tag-name")` registrations
 - direct callable mixins such as `InputMixin(LitElement)`
@@ -97,6 +97,9 @@ static properties = {
 ```
 
 The generated fields include their mapped attribute and reflection metadata.
+`@property(...)` and `@state(...)` also work on getters and setters; type,
+description, and attribute metadata are read from either half of the accessor
+pair, and a getter without a setter is marked readonly.
 
 ## Mixins
 

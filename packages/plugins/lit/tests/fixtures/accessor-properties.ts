@@ -30,3 +30,36 @@ export class LitAccessorPropertiesElement extends LitElement {
     return "internal";
   }
 }
+
+/**
+ * Documentation can live on either half of the accessor pair, independently
+ * of the declaration that carries the decorator.
+ */
+export class LitAccessorDocsElement extends LitElement {
+  private _note = "";
+  private _mode = "compact";
+
+  /** Documented on the getter. */
+  get note(): string {
+    return this._note;
+  }
+
+  @property({ attribute: "note-text" })
+  set note(value: string) {
+    this._note = value;
+  }
+
+  /**
+   * Documented on the setter.
+   * @summary Stored mode.
+   * @deprecated Use `note` instead.
+   */
+  set mode(value: string) {
+    this._mode = value;
+  }
+
+  @property()
+  get mode(): string {
+    return this._mode;
+  }
+}

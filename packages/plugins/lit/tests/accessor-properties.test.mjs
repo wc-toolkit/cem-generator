@@ -40,3 +40,27 @@ test("captures Lit property metadata from getter and setter accessors", () => {
     "attribute: false accessors should not produce attributes",
   );
 });
+
+test("keeps JSDoc from either half of a decorated accessor pair", () => {
+  const manifest = generateCem({ tsConfigPath: fixturesTsConfig, plugins: [litPlugin()] });
+  const declaration = manifest.modules
+    .flatMap((module) => module.declarations)
+    .find((item) => item.name === "LitAccessorDocsElement");
+
+  assert.ok(declaration, "Expected LitAccessorDocsElement declaration");
+
+  const note = declaration.members?.find((member) => member.name === "note");
+  assert.equal(note?.description, "Documented on the getter.");
+  assert.equal(note?.attribute, "note-text");
+  assert.equal(
+    declaration.attributes?.find((attribute) => attribute.name === "note-text")?.description,
+    "Documented on the getter.",
+    "attribute descriptions should use accessor-pair JSDoc",
+  );
+
+  const mode = declaration.members?.find((member) => member.name === "mode");
+  assert.equal(mode?.description, "Documented on the setter.");
+  assert.equal(mode?.summary, "Stored mode.");
+  assert.equal(mode?.deprecated, "Use `note` instead.");
+  assert.equal(mode?.readonly, undefined, "a get/set pair is not readonly");
+});
