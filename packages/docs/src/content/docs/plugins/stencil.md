@@ -15,7 +15,7 @@ generateCem({
 });
 ```
 
-The plugin supports `@Component({ tag })`, `@Prop()` and `@Event()` metadata, including custom prop attributes, reflected props, and event names. It also auto-detects slots, parts, CSS custom properties, CSS states, and static events in class template literals and methods.
+The plugin supports `@Component({ tag })`, `@Prop()` and `@Event()` metadata, including props declared as getters or setters, custom prop attributes, reflected props, property-only props (`attribute: null`), and event names. It also auto-detects slots, parts, CSS custom properties, CSS states, and static events in class template literals and methods.
 
 ## Documenting Web Component APIs
 
@@ -66,8 +66,10 @@ The example documents the following manifest APIs:
 | `@cssState`                        | `cssStates`                                 |
 
 Use `@Prop({ attribute: "...", reflect: true })` to document custom attribute
-names and reflection. Use `@default`, `@deprecated`, or `@internal` in JSDoc
-to refine the generated metadata. See
+names and reflection, and `@Prop({ attribute: null })` for props that have no
+attribute. Props can be declared as fields or as getters/setters; a getter
+without a setter is emitted as a readonly member. Use `@default`, `@deprecated`,
+or `@internal` in JSDoc to refine the generated metadata. See
 [Documenting Components](/guide/documenting/) for the complete tag reference.
 
 ## Automatic API Discovery

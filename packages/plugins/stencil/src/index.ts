@@ -53,8 +53,17 @@ export function stencilPlugin(): DetectorPlugin {
             .filter((member) => !STENCIL_LIFECYCLE.has(member.name) && !eventNames.has(member.name))
             .map((member) => {
               const prop = props.find((item) => item.fieldName === member.name);
-              return prop ? { ...member, attribute: prop.name, reflects: prop.reflects } : member;
+              return prop
+                ? { ...member, attribute: prop.attributeName, reflects: prop.reflects }
+                : member;
             });
+          const attributes = props
+            .filter((prop) => prop.attributeName)
+            .map(({ fieldName, attributeName, ...metadata }) => ({
+              name: attributeName as string,
+              fieldName,
+              ...metadata,
+            }));
 
           const classFragment: ClassFragment = {
             name: node.name.text,
@@ -65,7 +74,7 @@ export function stencilPlugin(): DetectorPlugin {
             deprecated: classDoc.deprecated,
             tagName: classDoc.tagName ?? getComponentTagName(node),
             members: filteredMembers.length ? filteredMembers : undefined,
-            attributes: props.length ? props : undefined,
+            attributes: attributes.length ? attributes : undefined,
             events: mergeNamed(
               discovered.events,
               events.map(({ fieldName: _fieldName, ...event }) => event),
@@ -99,9 +108,17 @@ function mergeNamed<T extends { name: string }>(
   return values.size ? [...values.values()] : undefined;
 }
 
-type StencilAttribute = NonNullable<ClassFragment["attributes"]>[number] & {
+type StencilProp = {
   fieldName: string;
+  /** Absent when `@Prop({ attribute: null })` disables the attribute. */
+  attributeName?: string;
   reflects?: boolean;
+  type?: string;
+  parsedType?: string;
+  description?: string;
+  summary?: string;
+  deprecated?: boolean | string;
+  default?: string;
 };
 
 type StencilEvent = NonNullable<ClassFragment["events"]>[number] & { fieldName: string };
@@ -110,22 +127,21 @@ function getProps(
   node: ts.ClassDeclaration,
   context: FileContext,
   members: NonNullable<ClassFragment["members"]>,
-): StencilAttribute[] {
+): StencilProp[] {
   const byName = new Map(members.map((member) => [member.name, member]));
-  const props: StencilAttribute[] = [];
+  const props: StencilProp[] = [];
 
   for (const member of node.members) {
-    if (!ts.isPropertyDeclaration(member)) continue;
+    if (!isPropertyOrAccessor(member)) continue;
     const decorator = getDecorator(member, "Prop");
     if (!decorator) continue;
 
     const fieldName = member.name.getText();
     const field = byName.get(fieldName);
     const options = getDecoratorOptions(decorator);
-    const attributeName = options.attribute ?? kebabCase(fieldName);
     props.push({
-      name: attributeName,
       fieldName,
+      attributeName: options.noAttribute ? undefined : (options.attribute ?? kebabCase(fieldName)),
       type: getNodeTypeText(member, context.checker),
       parsedType: getParsedTypeText(member, context.checker),
       description: field?.description,
@@ -137,6 +153,16 @@ function getProps(
   }
 
   return props;
+}
+
+function isPropertyOrAccessor(
+  member: ts.ClassElement,
+): member is ts.PropertyDeclaration | ts.GetAccessorDeclaration | ts.SetAccessorDeclaration {
+  return (
+    ts.isPropertyDeclaration(member) ||
+    ts.isGetAccessorDeclaration(member) ||
+    ts.isSetAccessorDeclaration(member)
+  );
 }
 
 function getEvents(node: ts.ClassDeclaration, context: FileContext): StencilEvent[] {
@@ -170,6 +196,7 @@ function getDecorator(node: ts.Node, name: string): ts.Decorator | undefined {
 
 function getDecoratorOptions(decorator: ts.Decorator): {
   attribute?: string;
+  noAttribute?: boolean;
   eventName?: string;
   reflects?: boolean;
 } {
@@ -181,8 +208,14 @@ function getDecoratorOptions(decorator: ts.Decorator): {
   for (const property of argument.properties) {
     if (!ts.isPropertyAssignment(property)) continue;
     const name = property.name.getText();
-    if (name === "attribute" && ts.isStringLiteralLike(property.initializer))
-      result.attribute = property.initializer.text;
+    if (name === "attribute") {
+      if (property.initializer.kind === ts.SyntaxKind.NullKeyword) {
+        result.noAttribute = true;
+        continue;
+      }
+      if (ts.isStringLiteralLike(property.initializer))
+        result.attribute = property.initializer.text;
+    }
     if (name === "eventName" && ts.isStringLiteralLike(property.initializer))
       result.eventName = property.initializer.text;
     if (

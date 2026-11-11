@@ -1,5 +1,8 @@
 declare function Component(options: { tag: string }): ClassDecorator;
-declare function Prop(options?: { attribute?: string; reflects?: boolean }): PropertyDecorator;
+declare function Prop(options?: {
+  attribute?: string | null;
+  reflects?: boolean;
+}): PropertyDecorator;
 declare function Event(options?: { eventName?: string }): PropertyDecorator;
 
 @Component({ tag: "todo-list" })
@@ -47,4 +50,38 @@ export class StencilDefaultValues {
   @Prop() computed = makeStencilDefault();
   @Prop() mutable = stencilMutableDefault;
   @Prop() missing = undefined;
+}
+
+@Component({ tag: "stencil-accessor-props" })
+export class StencilAccessorProps {
+  private safeValue = "this";
+
+  /** Version of the component. */
+  @Prop({ attribute: "component-version" })
+  get version() {
+    return "1.0";
+  }
+
+  /**
+   * Validated prop documented on the getter.
+   * @summary Current safe value.
+   */
+  @Prop()
+  get validatedProp() {
+    return this.safeValue;
+  }
+
+  set validatedProp(value: string) {
+    this.safeValue = value;
+  }
+
+  @Prop({ attribute: "reflected", reflects: true })
+  get reflected() {
+    return "yes";
+  }
+
+  @Prop({ attribute: null })
+  get internalOnly() {
+    return "internal";
+  }
 }

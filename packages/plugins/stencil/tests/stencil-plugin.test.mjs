@@ -78,3 +78,47 @@ test("records only literal Stencil field defaults", () => {
     "10",
   );
 });
+
+test("detects @Prop accessors and null attributes", () => {
+  const manifest = generateCem({ tsConfigPath: fixturesTsConfig, plugins: [stencilPlugin()] });
+  const declaration = manifest.modules
+    .flatMap((module) => module.declarations)
+    .find((item) => item.name === "StencilAccessorProps");
+
+  assert.ok(declaration, "Expected StencilAccessorProps declaration");
+  assert.equal(declaration.tagName, "stencil-accessor-props");
+  assert.deepEqual(
+    declaration.attributes
+      ?.map(({ name, fieldName }) => ({ name, fieldName }))
+      .sort((a, b) => a.name.localeCompare(b.name)),
+    [
+      { name: "component-version", fieldName: "version" },
+      { name: "reflected", fieldName: "reflected" },
+      { name: "validated-prop", fieldName: "validatedProp" },
+    ],
+  );
+
+  const version = declaration.members?.find((member) => member.name === "version");
+  assert.equal(version?.kind, "field");
+  assert.equal(version?.type?.text, "string");
+  assert.equal(version?.attribute, "component-version");
+  assert.equal(version?.readonly, true);
+  assert.equal(version?.description, "Version of the component.");
+
+  const validated = declaration.members?.find((member) => member.name === "validatedProp");
+  assert.equal(validated?.type?.text, "string");
+  assert.equal(validated?.summary, "Current safe value.");
+  assert.equal(validated?.readonly, undefined, "get/set pairs are not readonly");
+
+  const reflected = declaration.members?.find((member) => member.name === "reflected");
+  assert.equal(reflected?.attribute, "reflected");
+  assert.equal(reflected?.reflects, true);
+
+  const internalOnly = declaration.members?.find((member) => member.name === "internalOnly");
+  assert.ok(internalOnly, "attribute: null props remain as members");
+  assert.equal(internalOnly?.attribute, undefined);
+  assert.equal(
+    declaration.attributes?.some((attribute) => attribute.fieldName === "internalOnly"),
+    false,
+  );
+});

@@ -5,9 +5,9 @@ Stencil detector plugin for `@stencil/core` components.
 ## Detects
 
 - `@Component({ tag: "tag-name" })` classes
-- `@Prop()` fields as members and attributes
+- `@Prop()` fields and getters/setters as members and attributes
 - camelCase prop names converted to kebab-case attributes
-- `attribute` and `reflects` prop options
+- `attribute` and `reflects` prop options, including `attribute: null` for property-only props
 - `@Event()` fields as events, including `eventName`
 - standard members, JSDoc metadata, and types through the core generator
 - Stencil lifecycle methods excluded from public members
