@@ -1,5 +1,12 @@
 # @wc-toolkit/cem-generator-lit
 
+## 0.1.27
+
+### Patch Changes
+
+- Updated dependencies [db8ab36]
+  - @wc-toolkit/cem-generator@0.2.10
+
 ## 0.1.26
 
 ### Patch Changes

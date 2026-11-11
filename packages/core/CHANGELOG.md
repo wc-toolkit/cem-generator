@@ -1,5 +1,11 @@
 # @wc-toolkit/cem-generator
 
+## 0.2.10
+
+### Patch Changes
+
+- db8ab36: Infer custom-element status from a tag name or an explicit registration signal instead of class inheritance alone.
+
 ## 0.2.9
 
 ### Patch Changes
