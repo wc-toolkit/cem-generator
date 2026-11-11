@@ -12,7 +12,7 @@ Reference Lit detector plugin for developers and agents extending `cem-generator
 
 - Classes extending `LitElement`
 - Custom-element tags from `@customElement(...)` or `customElements.define(...)`
-- Decorated members from `@property(...)` and `@state(...)`
+- Decorated fields and accessors from `@property(...)` and `@state(...)`
 - Legacy `static properties` and `static get properties()` metadata
 - Internal Lit members from `@internalProperty` and query decorators
 - Reactive controller infrastructure is excluded from public members
