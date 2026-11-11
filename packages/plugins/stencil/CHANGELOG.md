@@ -1,5 +1,12 @@
 # @wc-toolkit/cem-generator-stencil
 
+## 0.1.20
+
+### Patch Changes
+
+- Updated dependencies [41ebd31]
+  - @wc-toolkit/cem-generator@0.2.7
+
 ## 0.1.19
 
 ### Patch Changes
