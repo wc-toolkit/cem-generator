@@ -19,3 +19,12 @@ test("detects Lit components extending a custom base declared in another file", 
   assert.equal(declaration.tagName, "transitive-lit-element");
   assert.equal(declaration.superclass?.name, "CustomLitBase");
 });
+
+test("ignores subclasses of base classes unrelated to Lit", () => {
+  const manifest = generateCem({ tsConfigPath: fixturesTsConfig, plugins: [litPlugin()] });
+  const declaration = manifest.modules
+    .flatMap((module) => module.declarations)
+    .find((item) => item.name === "UnrelatedElement");
+
+  assert.equal(declaration, undefined);
+});
