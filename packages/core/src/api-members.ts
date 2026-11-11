@@ -48,32 +48,38 @@ export function detectClassMembers(
       const parsedTypeText = shouldParseMember(privacy, isStatic(modifiers), context.typeParsing)
         ? getParsedTypeText(member, context.checker)
         : undefined;
+      // A get/set pair shares one manifest member, so keep metadata declared on
+      // either half instead of letting the second declaration erase it.
       byName.set(nameText, {
         name: nameText,
         kind: "field",
         description: jsdoc.description || existing?.description || undefined,
-        summary: memberDoc.summary,
-        deprecated: memberDoc.deprecated,
+        summary: memberDoc.summary ?? existing?.summary,
+        deprecated: memberDoc.deprecated ?? existing?.deprecated,
         privacy,
         static: isStatic(modifiers),
-        readonly: isReadonly(member, node),
-        type: typeText,
+        readonly: isReadonly(member, node) ?? existing?.readonly,
+        type: typeText ?? existing?.type,
         parsedType:
-          parsedTypeText &&
+          (parsedTypeText &&
           !areTypeTextsEquivalent(parsedTypeText, typeText, { ignoreUndefined: true })
             ? parsedTypeText
-            : undefined,
+            : undefined) ?? existing?.parsedType,
         attribute:
           memberDoc.attribute ??
-          (memberDoc.attributeFromFieldName ? normalizeAttributeName(nameText) : undefined),
-        reflects: memberDoc.reflects,
-        internal: memberDoc.internal,
+          (memberDoc.attributeFromFieldName ? normalizeAttributeName(nameText) : undefined) ??
+          existing?.attribute,
+        reflects: memberDoc.reflects ?? existing?.reflects,
+        internal: memberDoc.internal ?? existing?.internal,
         default:
           memberDoc.default ??
           (ts.isPropertyDeclaration(member)
             ? getLiteralDefaultText(member.initializer, context.checker)
-            : undefined),
-        customJsDocTags: memberDoc.customJsDocTags,
+            : undefined) ??
+          existing?.default,
+        customJsDocTags: memberDoc.customJsDocTags?.length
+          ? memberDoc.customJsDocTags
+          : existing?.customJsDocTags,
       });
     } else if (ts.isMethodDeclaration(member) && !existing) {
       byName.set(nameText, {

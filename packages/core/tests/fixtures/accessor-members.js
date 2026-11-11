@@ -74,6 +74,23 @@ export class AccessorBase extends HTMLElement {
     this._value = value;
   }
 
+  /**
+   * Documented accessor pair.
+   * @summary Pair summary.
+   * @attribute pair-value
+   * @default "pair"
+   * @reflect
+   * @returns {string}
+   */
+  get documentedPair() {
+    return this._value;
+  }
+
+  /** @param {string} value */
+  set documentedPair(value) {
+    this._value = value;
+  }
+
   _value = "";
 }
 

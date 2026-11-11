@@ -448,6 +448,24 @@ test("getter-only class members are readonly fields", () => {
   }
 });
 
+test("accessor pairs keep metadata declared on either half", () => {
+  const manifest = generateCem({
+    tsConfigPath: fixturesTsConfig,
+    include: ["accessor-members.js"],
+  });
+  const declaration = getClass(manifest, "accessor-members.js", "AccessorBase");
+  const member = declaration.members?.find(({ name }) => name === "documentedPair");
+
+  assert.equal(member?.kind, "field");
+  assert.equal(member?.type?.text, "string");
+  assert.equal(member?.description, "Documented accessor pair.");
+  assert.equal(member?.summary, "Pair summary.");
+  assert.equal(member?.attribute, "pair-value");
+  assert.equal(member?.default, '"pair"');
+  assert.equal(member?.reflects, true);
+  assert.equal(member?.readonly, undefined, "a get/set pair is not readonly");
+});
+
 test("declare-only class fields are excluded from members", () => {
   const manifest = generateCem({
     tsConfigPath: fixturesTsConfig,
