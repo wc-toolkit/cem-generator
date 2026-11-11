@@ -119,6 +119,42 @@ test("detectors without shouldAnalyze analyze files by default", () => {
   assert.equal(getClass(manifest, "inheritance-fixture.ts", "ElA")?.tagName, "x-a");
 });
 
+test("attribute types reflect linked member declarations", () => {
+  const detector = {
+    name: "declaration-links",
+    onFile() {
+      return {
+        PlainClass: {
+          name: "PlainClass",
+          members: [
+            { name: "variant", type: '"primary" | "secondary"', attribute: "variant" },
+            { name: "density", type: '"compact" | "comfortable"', attribute: "density-level" },
+          ],
+          attributes: [
+            { name: "variant", type: "string", fieldName: "variant" },
+            { name: "density-level", type: "string" },
+          ],
+        },
+      };
+    },
+  };
+
+  const manifest = generateCem({
+    tsConfigPath: fixturesTsConfig,
+    include: ["inheritance-fixture.ts"],
+    plugins: [detector],
+  });
+  const plainClass = getClass(manifest, "inheritance-fixture.ts", "PlainClass");
+
+  assert.deepEqual(
+    plainClass?.attributes?.map(({ name, type }) => [name, type?.text]),
+    [
+      ["density-level", '"compact" | "comfortable"'],
+      ["variant", '"primary" | "secondary"'],
+    ],
+  );
+});
+
 test("detector conflicts can throw when explicitly configured", () => {
   const first = {
     name: "first",
