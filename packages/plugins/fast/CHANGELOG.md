@@ -1,5 +1,12 @@
 # @wc-toolkit/cem-generator-fast
 
+## 0.1.21
+
+### Patch Changes
+
+- Updated dependencies [09892f8]
+  - @wc-toolkit/cem-generator@0.2.8
+
 ## 0.1.20
 
 ### Patch Changes
