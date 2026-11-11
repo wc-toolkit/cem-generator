@@ -1154,10 +1154,16 @@ function toCemPackage(
     deprecatedLast: false,
   },
 ): CemPackage {
+  const baseClassReferences = getBaseClassReferences(internal);
   let modules: JavaScriptModule[] = internal.modules.map((mod) => {
-    const declarations: CustomElementDeclaration[] = mod.declarations.map((decl) =>
-      toCustomElementDeclaration(decl, options.customJsDocTags),
-    );
+    const declarations: CustomElementDeclaration[] = mod.declarations.map((decl) => {
+      const modulePath = decl.module ?? mod.source ?? mod.path;
+      const isUntaggedBaseClass =
+        !asString(decl.tagName) &&
+        decl.kind !== "mixin" &&
+        baseClassReferences.has(classDeclarationRef(modulePath, decl.name));
+      return toCustomElementDeclaration(decl, options.customJsDocTags, isUntaggedBaseClass);
+    });
     const jsExports: JavaScriptExport[] = mod.declarations
       .filter((decl) => !!asString(decl.exportName))
       .map((decl) => ({
@@ -1229,6 +1235,51 @@ function toCemPackage(
   } as CemPackage;
 }
 
+function getBaseClassReferences(internal: InternalManifest): Set<string> {
+  const declarations = internal.modules.flatMap((mod) =>
+    mod.declarations.map((declaration) => ({
+      declaration,
+      modulePath: declaration.module ?? mod.source ?? mod.path,
+    })),
+  );
+  const declarationsByName = new Map<
+    string,
+    Array<{ declaration: ClassFragment; modulePath: string }>
+  >();
+
+  for (const entry of declarations) {
+    const candidates = declarationsByName.get(entry.declaration.name) ?? [];
+    candidates.push(entry);
+    declarationsByName.set(entry.declaration.name, candidates);
+  }
+
+  const baseClassReferences = new Set<string>();
+  for (const { declaration } of declarations) {
+    const superclass = declaration.superclass;
+    if (!superclass) continue;
+
+    const candidates = declarationsByName.get(superclass.name) ?? [];
+    const baseClass = superclass.module
+      ? candidates.find(
+          ({ modulePath }) => toPosixPath(modulePath) === toPosixPath(superclass.module!),
+        )
+      : candidates.length === 1
+        ? candidates[0]
+        : undefined;
+    if (baseClass) {
+      baseClassReferences.add(
+        classDeclarationRef(baseClass.modulePath, baseClass.declaration.name),
+      );
+    }
+  }
+
+  return baseClassReferences;
+}
+
+function classDeclarationRef(modulePath: string, name: string): string {
+  return `${toPosixPath(modulePath)}#${name}`;
+}
+
 function rewriteKnownModuleReferences(
   modules: JavaScriptModule[],
   internal: InternalManifest,
@@ -1264,12 +1315,18 @@ function rewriteModuleReferences(value: unknown, paths: Map<string, string>): vo
 function toCustomElementDeclaration(
   fragment: ClassFragment,
   customJsDocTagsConfig?: CustomTagOptions,
+  isUntaggedBaseClass = false,
 ): CustomElementDeclaration {
   const members = toMembers(fragment, customJsDocTagsConfig);
 
   const known = {
     kind: asString(fragment.kind) ?? "class",
-    customElement: typeof fragment.customElement === "boolean" ? fragment.customElement : true,
+    customElement:
+      typeof fragment.customElement === "boolean"
+        ? fragment.customElement
+        : isUntaggedBaseClass
+          ? false
+          : true,
     name: fragment.name,
     description: asString(fragment.description),
     summary: asString(fragment.summary),

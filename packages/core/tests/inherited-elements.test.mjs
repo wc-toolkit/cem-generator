@@ -19,19 +19,20 @@ test("a subclass of a custom base class of HTMLElement is an element", () => {
 
   assert.ok(names.includes("CardElement"));
   assert.ok(names.includes("UnregisteredCard"));
+  assert.ok(!names.includes("CardBase"));
   assert.ok(!names.includes("CardModel"));
 });
 
-test("a subclass of a base given type arguments is an element", () => {
+test("generic untagged bases are not custom elements but their leaf is", () => {
   const names = declarationsOf("generic-base-element.ts").map(({ name }) => name);
 
-  assert.deepEqual(names.sort(), ["ShortText", "TextValue", "ValueBase"]);
+  assert.deepEqual(names.sort(), ["ShortText"]);
 });
 
 test("a subclass of a mixin of an element's base is an element", () => {
   const names = declarationsOf("mixin-base-element.ts").map(({ name }) => name);
 
-  assert.deepEqual(names.sort(), ["CardBase", "ThemedCard"]);
+  assert.deepEqual(names.sort(), ["ThemedCard"]);
 });
 
 test("a tag registered by its constant is the element's tag", () => {

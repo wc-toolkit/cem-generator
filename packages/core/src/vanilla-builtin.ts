@@ -43,7 +43,7 @@ export function vanillaBuiltin(): DetectorPlugin {
             summary: classDoc.summary,
             deprecated: classDoc.deprecated,
             tagName: classDoc.tagName ?? tagNamesByClass.get(className),
-            superclass: getSuperclassRef(node),
+            superclass: getSuperclassRef(node, context.checker),
             attributes: mergeByName(
               getObservedAttributes(node).map((name) => ({ name })),
               classDoc.attributes,
@@ -125,17 +125,43 @@ function inheritsHTMLElement(node: ts.ClassDeclaration, checker: ts.TypeChecker)
   );
 }
 
-function getSuperclassRef(node: ts.ClassDeclaration): ClassFragment["superclass"] {
+function getSuperclassRef(
+  node: ts.ClassDeclaration,
+  checker: ts.TypeChecker,
+): ClassFragment["superclass"] {
   const clause = node.heritageClauses?.find((c) => c.token === ts.SyntaxKind.ExtendsKeyword);
   const heritageType = clause?.types[0];
-  const expr = heritageType?.expression.getText();
-  if (!expr || expr === "HTMLElement") return undefined;
+  const expression = unwrapSuperclassExpression(heritageType?.expression);
+  const expr = expression?.getText();
+  if (!expression || !expr || expr === "HTMLElement") return undefined;
 
-  const className = extractSuperclassName(heritageType?.expression);
+  const className = extractSuperclassName(expression);
   if (!className) return { name: expr };
+
+  const identifier = ts.isIdentifier(expression)
+    ? expression
+    : ts.isPropertyAccessExpression(expression)
+      ? expression.name
+      : undefined;
+  const symbol = identifier && checker.getSymbolAtLocation(identifier);
+  const resolved =
+    symbol && symbol.flags & ts.SymbolFlags.Alias ? checker.getAliasedSymbol(symbol) : symbol;
+  const declaration = resolved?.declarations?.find(ts.isClassDeclaration);
+  if (declaration?.name) {
+    return { name: declaration.name.text, module: declaration.getSourceFile().fileName };
+  }
 
   const module = extractImportModuleForIdentifier(node.getSourceFile(), className);
   return { name: className, module };
+}
+
+function unwrapSuperclassExpression(
+  expression: ts.Expression | undefined,
+): ts.Expression | undefined {
+  if (expression && ts.isCallExpression(expression) && expression.arguments[0]) {
+    return unwrapSuperclassExpression(expression.arguments[0]);
+  }
+  return expression;
 }
 
 function extractSuperclassName(expression: ts.Expression | undefined): string | undefined {

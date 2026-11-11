@@ -119,6 +119,62 @@ test("detectors without shouldAnalyze analyze files by default", () => {
   assert.equal(getClass(manifest, "inheritance-fixture.ts", "ElA")?.tagName, "x-a");
 });
 
+test("untagged base classes are not inferred to be custom elements", () => {
+  const detector = {
+    name: "base-class-markers",
+    onFile(context) {
+      if (context.filePath.endsWith("parsed-types-element.ts")) {
+        return { BaseClass: { name: "BaseClass", module: context.filePath } };
+      }
+      if (!context.filePath.endsWith("inheritance-fixture.ts")) return {};
+      return {
+        BaseClass: { name: "BaseClass", module: context.filePath },
+        UnregisteredLeaf: {
+          name: "UnregisteredLeaf",
+          module: context.filePath,
+          superclass: { name: "BaseClass", module: context.filePath },
+        },
+        RegisteredBase: {
+          name: "RegisteredBase",
+          module: context.filePath,
+          tagName: "x-registered-base",
+        },
+        RegisteredChild: {
+          name: "RegisteredChild",
+          module: context.filePath,
+          tagName: "x-registered-child",
+          superclass: { name: "RegisteredBase" },
+        },
+        ExplicitBase: {
+          name: "ExplicitBase",
+          module: context.filePath,
+          customElement: true,
+        },
+        ExplicitChild: {
+          name: "ExplicitChild",
+          module: context.filePath,
+          superclass: { name: "ExplicitBase" },
+        },
+      };
+    },
+  };
+
+  const manifest = generateCem({
+    tsConfigPath: fixturesTsConfig,
+    include: ["inheritance-fixture.ts", "parsed-types-element.ts"],
+    plugins: [detector],
+  });
+
+  assert.equal(getClass(manifest, "inheritance-fixture.ts", "BaseClass")?.customElement, false);
+  assert.equal(getClass(manifest, "parsed-types-element.ts", "BaseClass")?.customElement, true);
+  assert.equal(
+    getClass(manifest, "inheritance-fixture.ts", "UnregisteredLeaf")?.customElement,
+    true,
+  );
+  assert.equal(getClass(manifest, "inheritance-fixture.ts", "RegisteredBase")?.customElement, true);
+  assert.equal(getClass(manifest, "inheritance-fixture.ts", "ExplicitBase")?.customElement, true);
+});
+
 test("attribute types reflect linked member declarations", () => {
   const detector = {
     name: "declaration-links",
