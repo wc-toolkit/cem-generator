@@ -1,5 +1,13 @@
 # @wc-toolkit/cem-generator
 
+## 0.2.8
+
+### Patch Changes
+
+- 09892f8: Merge member metadata declared on either half of a getter/setter pair instead of
+  letting the second declaration discard JSDoc summaries, attributes, defaults,
+  and reflection flags.
+
 ## 0.2.7
 
 ### Patch Changes
