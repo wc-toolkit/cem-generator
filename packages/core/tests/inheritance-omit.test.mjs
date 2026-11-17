@@ -72,9 +72,11 @@ test("resolveInheritedCollection omits inherited names from class metadata + con
 
 test("parseCemClassTags exposes omitInherited from JSDoc tags", async () => {
   const { parseCemClassTags } = await import("@wc-toolkit/cem-generator-utils");
-  const { default: ts } = await import("typescript");
-
-  const source = ts.createSourceFile(
+  const { API } = await import("typescript/sync");
+  const ts = await import("typescript/ast");
+  const is = await import("typescript/ast/is");
+  const api = new API();
+  const source = api.createSourceFile(
     "fixture.ts",
     `/**
       * @omit oldProp
@@ -87,14 +89,13 @@ test("parseCemClassTags exposes omitInherited from JSDoc tags", async () => {
       * @omit-slot old-slot
       */
       export class Demo extends HTMLElement {}`,
-    ts.ScriptTarget.Latest,
-    true,
-    ts.ScriptKind.TS,
-  );
+    { scriptKind: ts.ScriptKind.TS },
+  ).sourceFile;
 
-  const cls = source.statements.find((s) => ts.isClassDeclaration(s));
+  const cls = source.statements.find((s) => is.isClassDeclaration(s));
   assert.ok(cls);
   const parsed = parseCemClassTags(cls);
+  api.close();
 
   assert.deepEqual(parsed.omitInherited?.members, ["oldProp", "oldMethod"]);
   assert.deepEqual(parsed.omitInherited?.attributes, ["oldProp", "old-attr"]);

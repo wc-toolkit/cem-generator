@@ -1,6 +1,18 @@
 import fs from "node:fs";
 import path from "node:path";
-import ts from "typescript";
+import * as ts from "typescript/ast";
+import {
+  symbolDeclarations,
+  getModifiers,
+  getDecorators,
+  getJSDocInfo,
+  inheritsFrom,
+  parseCemClassTags,
+  resolveMeaningfulParsedTypeFromText,
+} from "@wc-toolkit/cem-generator-utils";
+import { SymbolFlags } from "typescript/sync";
+import * as is from "typescript/ast/is";
+import type { Checker } from "typescript/sync";
 import {
   detectClassEvents,
   detectClassMembers,
@@ -10,12 +22,6 @@ import {
   type FileContext,
   type ManifestFragment,
 } from "@wc-toolkit/cem-generator";
-import {
-  getJSDocInfo,
-  inheritsFrom,
-  parseCemClassTags,
-  resolveMeaningfulParsedTypeFromText,
-} from "@wc-toolkit/cem-generator-utils";
 
 export interface LwcPluginOptions {
   /** Namespace prefix for bundle tag names. Defaults to `c`. */
@@ -42,9 +48,9 @@ export function lwcPlugin(options: LwcPluginOptions = {}): DetectorPlugin {
     onFile(context: FileContext): ManifestFragment {
       const fragment: ManifestFragment = {};
 
-      ts.forEachChild(context.sourceFile, function visit(node) {
+      context.sourceFile.forEachChild(function visit(node) {
         if (
-          ts.isClassDeclaration(node) &&
+          is.isClassDeclaration(node) &&
           node.name &&
           extendsLightningElement(node, context.checker)
         ) {
@@ -108,7 +114,7 @@ export function lwcPlugin(options: LwcPluginOptions = {}): DetectorPlugin {
           }
           fragment[className] = classFragment;
         }
-        ts.forEachChild(node, visit);
+        node.forEachChild(visit);
       });
 
       return fragment;
@@ -120,13 +126,14 @@ function getApiNames(node: ts.ClassDeclaration): ApiNames {
   const names: ApiNames = { properties: new Set(), methods: new Set() };
 
   for (const member of node.members) {
-    if (!member.name || !hasApiDecorator(member)) continue;
-    const name = member.name.getText();
-    if (ts.isMethodDeclaration(member)) names.methods.add(name);
+    const memberName = (member as { name?: ts.Node }).name;
+    if (!memberName || !hasApiDecorator(member)) continue;
+    const name = memberName.getText();
+    if (is.isMethodDeclaration(member)) names.methods.add(name);
     else if (
-      ts.isPropertyDeclaration(member) ||
-      ts.isGetAccessorDeclaration(member) ||
-      ts.isSetAccessorDeclaration(member)
+      is.isPropertyDeclaration(member) ||
+      is.isGetAccessorDeclaration(member) ||
+      is.isSetAccessorDeclaration(member)
     )
       names.properties.add(name);
   }
@@ -135,7 +142,7 @@ function getApiNames(node: ts.ClassDeclaration): ApiNames {
 }
 
 function hasApiDecorator(member: ts.ClassElement): boolean {
-  const decorators = ts.canHaveDecorators(member) ? ts.getDecorators(member) : undefined;
+  const decorators = getDecorators(member) !== undefined ? getDecorators(member) : undefined;
   return (decorators ?? []).some((decorator) => getDecoratorName(decorator) === "api");
 }
 
@@ -204,10 +211,10 @@ function getTrailingHtmlComment(value: string): string | undefined {
 
 function getLwcSuperclass(
   node: ts.ClassDeclaration,
-  checker: ts.TypeChecker,
+  checker: Checker,
 ): { name: string; module?: string } {
   const expression = getBaseExpression(node);
-  if (!expression || !ts.isIdentifier(expression) || expression.text === "LightningElement") {
+  if (!expression || !is.isIdentifier(expression) || expression.text === "LightningElement") {
     return { name: "LightningElement", module: "lwc" };
   }
 
@@ -217,11 +224,11 @@ function getLwcSuperclass(
   return { name: declaration.name.text, module: declaration.getSourceFile().fileName };
 }
 
-function extendsLightningElement(node: ts.ClassDeclaration, checker: ts.TypeChecker): boolean {
+function extendsLightningElement(node: ts.ClassDeclaration, checker: Checker): boolean {
   return inheritsFrom(
     node,
     checker,
-    ({ expression }) => ts.isIdentifier(expression) && expression.text === "LightningElement",
+    ({ expression }) => is.isIdentifier(expression) && expression.text === "LightningElement",
   );
 }
 
@@ -229,28 +236,28 @@ function getBaseExpression(node: ts.ClassDeclaration): ts.Expression | undefined
   const heritage = node.heritageClauses?.find(
     (clause) => clause.token === ts.SyntaxKind.ExtendsKeyword,
   );
-  return heritage?.types[0]?.expression;
+  return (heritage?.types[0] as ts.ExpressionWithTypeArguments)?.expression;
 }
 
 function resolveClassDeclaration(
   expression: ts.Identifier,
-  checker: ts.TypeChecker,
+  checker: Checker,
 ): ts.ClassDeclaration | undefined {
   const symbol = checker.getSymbolAtLocation(expression);
   const resolved =
-    symbol && symbol.flags & ts.SymbolFlags.Alias ? checker.getAliasedSymbol(symbol) : symbol;
-  return resolved?.declarations?.find(ts.isClassDeclaration);
+    symbol && symbol.flags & SymbolFlags.Alias ? checker.getAliasedSymbol(symbol) : symbol;
+  return symbolDeclarations(resolved, [ts.SyntaxKind.ClassDeclaration]).find(is.isClassDeclaration);
 }
 
 function getDecoratorName(decorator: ts.Decorator): string | undefined {
-  const expression = ts.isCallExpression(decorator.expression)
+  const expression = is.isCallExpression(decorator.expression)
     ? decorator.expression.expression
     : decorator.expression;
-  return ts.isIdentifier(expression) ? expression.text : undefined;
+  return is.isIdentifier(expression) ? expression.text : undefined;
 }
 
 function getExportName(node: ts.ClassDeclaration): string | undefined {
-  const modifiers = ts.canHaveModifiers(node) ? ts.getModifiers(node) : undefined;
+  const modifiers = getModifiers(node);
   if (!modifiers?.some((modifier) => modifier.kind === ts.SyntaxKind.ExportKeyword))
     return undefined;
   return modifiers.some((modifier) => modifier.kind === ts.SyntaxKind.DefaultKeyword)

@@ -1,4 +1,15 @@
-import ts from "typescript";
+import * as ts from "typescript/ast";
+import {
+  getModifiers,
+  primaryDeclaration,
+  getJSDocInfo,
+  getNodeTypeText,
+  getParsedTypeText,
+  parseCemClassTags,
+  getLiteralDefaultText,
+  typeAtLocation,
+} from "@wc-toolkit/cem-generator-utils";
+import * as is from "typescript/ast/is";
 import {
   type ClassFragment,
   type DetectorPlugin,
@@ -6,13 +17,6 @@ import {
   type ManifestFragment,
   discoverFrameworkApis,
 } from "@wc-toolkit/cem-generator";
-import {
-  getJSDocInfo,
-  getNodeTypeText,
-  getParsedTypeText,
-  parseCemClassTags,
-  getLiteralDefaultText,
-} from "@wc-toolkit/cem-generator-utils";
 
 /** Detects custom elements registered with Solid Element's `customElement`. */
 export function solidPlugin(): DetectorPlugin {
@@ -29,22 +33,22 @@ export function solidPlugin(): DetectorPlugin {
       const fragment: ManifestFragment = {};
       const customElementNames = getCustomElementNames(context.sourceFile);
 
-      ts.forEachChild(context.sourceFile, function visit(node) {
-        if (!ts.isCallExpression(node) || !isCustomElementCall(node, customElementNames)) {
-          ts.forEachChild(node, visit);
+      context.sourceFile.forEachChild(function visit(node) {
+        if (!is.isCallExpression(node) || !isCustomElementCall(node, customElementNames)) {
+          node.forEachChild(visit);
           return;
         }
 
         const tagName = getStringArgument(node.arguments[0]);
         if (!tagName) {
-          ts.forEachChild(node, visit);
+          node.forEachChild(visit);
           return;
         }
 
         const declaration = findContainingVariable(node);
         const anchor = declaration ?? node.parent;
         const name =
-          declaration?.name && ts.isIdentifier(declaration.name)
+          declaration?.name && is.isIdentifier(declaration.name)
             ? declaration.name.text
             : toDeclarationName(tagName);
         const classDoc = parseCemClassTags(anchor);
@@ -83,7 +87,7 @@ export function solidPlugin(): DetectorPlugin {
           customJsDocTags: classDoc.customJsDocTags,
         } satisfies ClassFragment;
 
-        ts.forEachChild(node, visit);
+        node.forEachChild(visit);
       });
 
       return fragment;
@@ -105,13 +109,13 @@ function getCustomElementNames(sourceFile: ts.SourceFile): Set<string> {
   const names = new Set<string>();
   for (const statement of sourceFile.statements) {
     if (
-      !ts.isImportDeclaration(statement) ||
-      !ts.isStringLiteral(statement.moduleSpecifier) ||
+      !is.isImportDeclaration(statement) ||
+      !is.isStringLiteral(statement.moduleSpecifier) ||
       statement.moduleSpecifier.text !== "solid-element"
     )
       continue;
     const bindings = statement.importClause?.namedBindings;
-    if (!bindings || !ts.isNamedImports(bindings)) continue;
+    if (!bindings || !is.isNamedImports(bindings)) continue;
     for (const element of bindings.elements) {
       if ((element.propertyName?.text ?? element.name.text) === "customElement")
         names.add(element.name.text);
@@ -121,13 +125,13 @@ function getCustomElementNames(sourceFile: ts.SourceFile): Set<string> {
 }
 
 function isCustomElementCall(node: ts.CallExpression, names: Set<string>): boolean {
-  return ts.isIdentifier(node.expression) && names.has(node.expression.text);
+  return is.isIdentifier(node.expression) && names.has(node.expression.text);
 }
 
 function findContainingVariable(node: ts.Node): ts.VariableDeclaration | undefined {
   let current: ts.Node | undefined = node.parent;
-  while (current && !ts.isSourceFile(current)) {
-    if (ts.isVariableDeclaration(current)) return current;
+  while (current && !is.isSourceFile(current)) {
+    if (is.isVariableDeclaration(current)) return current;
     current = current.parent;
   }
   return undefined;
@@ -139,9 +143,9 @@ function getMembers(
 ): NonNullable<ClassFragment["members"]> {
   const byName = new Map<string, NonNullable<ClassFragment["members"]>[number]>();
   const defaults = node.arguments[1];
-  if (defaults && ts.isObjectLiteralExpression(defaults)) {
+  if (defaults && is.isObjectLiteralExpression(defaults)) {
     for (const property of defaults.properties) {
-      if (!ts.isPropertyAssignment(property)) continue;
+      if (!is.isPropertyAssignment(property)) continue;
       const name = getPropertyName(property.name);
       if (!name) continue;
       const attribute = kebabCase(name);
@@ -159,13 +163,13 @@ function getMembers(
 
   const template = node.arguments[2];
   const parameter =
-    template && (ts.isArrowFunction(template) || ts.isFunctionExpression(template))
+    template && (is.isArrowFunction(template) || is.isFunctionExpression(template))
       ? template.parameters[0]
       : undefined;
   if (parameter) {
-    const type = context.checker.getTypeAtLocation(parameter);
+    const type = typeAtLocation(parameter, context.checker);
     for (const property of type.getProperties()) {
-      const declaration = property.valueDeclaration ?? property.declarations?.[0];
+      const declaration = primaryDeclaration(property);
       const existing = byName.get(property.name);
       const propertyType = context.checker.getTypeOfSymbolAtLocation(property, parameter);
       byName.set(property.name, {
@@ -188,21 +192,21 @@ function getMembers(
 }
 
 function getExpressionType(node: ts.Expression, context: FileContext): string | undefined {
-  if (ts.isStringLiteralLike(node)) return "string";
-  if (ts.isNumericLiteral(node)) return "number";
+  if (is.isStringLiteralLikeNode(node)) return "string";
+  if (is.isNumericLiteral(node)) return "number";
   if (node.kind === ts.SyntaxKind.TrueKeyword || node.kind === ts.SyntaxKind.FalseKeyword)
     return "boolean";
-  if (ts.isArrayLiteralExpression(node)) return "array";
-  if (ts.isObjectLiteralExpression(node)) return "object";
+  if (is.isArrayLiteralExpression(node)) return "array";
+  if (is.isObjectLiteralExpression(node)) return "object";
   return getNodeTypeText(node, context.checker);
 }
 
 function getStringArgument(argument: ts.Expression | undefined): string | undefined {
-  return argument && ts.isStringLiteralLike(argument) ? argument.text : undefined;
+  return argument && is.isStringLiteralLikeNode(argument) ? argument.text : undefined;
 }
 
 function getPropertyName(name: ts.PropertyName): string | undefined {
-  return ts.isIdentifier(name) || ts.isStringLiteralLike(name) ? name.text : undefined;
+  return is.isIdentifier(name) || is.isStringLiteralLikeNode(name) ? name.text : undefined;
 }
 
 function kebabCase(name: string): string {
@@ -219,8 +223,8 @@ function toDeclarationName(tagName: string): string {
 
 function getExportName(node: ts.VariableDeclaration | undefined): string | undefined {
   const declaration = node?.parent.parent;
-  if (!declaration || !ts.isVariableStatement(declaration)) return undefined;
-  const modifiers = ts.canHaveModifiers(declaration) ? ts.getModifiers(declaration) : undefined;
+  if (!declaration || !is.isVariableStatement(declaration)) return undefined;
+  const modifiers = getModifiers(declaration);
   if (!modifiers?.some((modifier) => modifier.kind === ts.SyntaxKind.ExportKeyword))
     return undefined;
   return modifiers.some((modifier) => modifier.kind === ts.SyntaxKind.DefaultKeyword)

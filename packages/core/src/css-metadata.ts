@@ -1,4 +1,4 @@
-import ts from "typescript";
+import * as is from "typescript/ast/is";
 import postcss, {
   type AtRule,
   type Comment,
@@ -6,7 +6,12 @@ import postcss, {
   type Node,
   type Rule,
 } from "postcss";
-import { getJSDocInfo, parseCemClassTags } from "@wc-toolkit/cem-generator-utils";
+import {
+  getJSDocInfo,
+  parseCemClassTags,
+  withSnippetParser,
+  type SnippetParser,
+} from "@wc-toolkit/cem-generator-utils";
 import type { ClassFragment, ManifestFragment } from "./types.js";
 
 /** Extracts CEM-relevant CSS metadata from a CSS string or tagged template. */
@@ -60,6 +65,10 @@ export function parseCssMetadata(source: string): ClassFragment["cssProperties"]
 const CSS_ONLY_SUPERCLASS = { name: "HTMLUnknownElement" } as const;
 
 export function parseCssElements(source: string): ManifestFragment {
+  return withSnippetParser((parseSnippet) => parseCssElementsWith(source, parseSnippet));
+}
+
+function parseCssElementsWith(source: string, parseSnippet: SnippetParser): ManifestFragment {
   const css = unwrapCssTemplate(source);
   let root: ReturnType<typeof postcss.parse>;
   try {
@@ -74,7 +83,7 @@ export function parseCssElements(source: string): ManifestFragment {
   root.walkRules((rule) => {
     const comment = getLeadingJsDocComment(rule);
     if (!comment) return;
-    const jsdoc = parseCssJsDoc(comment);
+    const jsdoc = parseCssJsDoc(comment, parseSnippet);
     const slots = mergeSlots(collectRuleSlots(rule), jsdoc.slots);
 
     for (const tagName of customElementSelectors(rule.selector)) {
@@ -97,7 +106,7 @@ export function parseCssElements(source: string): ManifestFragment {
   root.walkAtRules("scope", (atRule) => {
     const comment = getLeadingJsDocComment(atRule);
     if (!comment) return;
-    const jsdoc = parseCssJsDoc(comment);
+    const jsdoc = parseCssJsDoc(comment, parseSnippet);
     const rootSelector = scopeRootSelector(atRule.params);
 
     for (const tagName of customElementSelectors(rootSelector)) {
@@ -138,20 +147,17 @@ function addCssElement(fragment: ManifestFragment, tagName: string, incoming: Cl
   };
 }
 
-function parseCssJsDoc(comment: string): {
+function parseCssJsDoc(
+  comment: string,
+  parseSnippet: SnippetParser,
+): {
   description?: string;
   cssProperties?: ClassFragment["cssProperties"];
   attributes?: ClassFragment["attributes"];
   slots?: ClassFragment["slots"];
 } {
-  const sourceFile = ts.createSourceFile(
-    "css-only-element.ts",
-    `/**\n${comment}\n*/\nclass CssOnlyElement {}`,
-    ts.ScriptTarget.Latest,
-    true,
-    ts.ScriptKind.TS,
-  );
-  const declaration = sourceFile.statements.find(ts.isClassDeclaration);
+  const sourceFile = parseSnippet(`/**\n${comment}\n*/\nclass CssOnlyElement {}`);
+  const declaration = sourceFile.statements.find(is.isClassDeclaration);
   if (!declaration) return {};
   const info = getJSDocInfo(declaration);
   const tags = parseCemClassTags(declaration);

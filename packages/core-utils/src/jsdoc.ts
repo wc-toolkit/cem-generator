@@ -1,4 +1,5 @@
-import ts from "typescript";
+import * as ts from "typescript/ast";
+import * as is from "typescript/ast/is";
 
 export interface JSDocTagInfo {
   tagName: string;
@@ -60,7 +61,7 @@ export function getJSDocInfo(node: ts.Node): JSDocInfo {
       typeof tag.comment === "string" ? tag.comment : (ts.getTextOfJSDocComment(tag.comment) ?? ""),
   }));
 
-  const description = ts.getJSDocCommentsAndTags(node).find(ts.isJSDoc)?.comment;
+  const description = ts.getJSDocCommentsAndTags(node).find(is.isJSDoc)?.comment;
 
   return {
     description:

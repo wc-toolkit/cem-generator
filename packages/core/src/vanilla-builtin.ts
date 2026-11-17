@@ -1,11 +1,15 @@
-import ts from "typescript";
-import type { DetectorPlugin, FileContext, ManifestFragment, ClassFragment } from "./types.js";
+import * as ts from "typescript/ast";
+import { SymbolFlags } from "typescript/sync";
 import {
+  getModifiers,
   getJSDocInfo,
   inheritsFrom,
   resolveMeaningfulParsedTypeFromText,
   parseCemClassTags,
 } from "@wc-toolkit/cem-generator-utils";
+import * as is from "typescript/ast/is";
+import type { Checker } from "typescript/sync";
+import type { DetectorPlugin, FileContext, ManifestFragment, ClassFragment } from "./types.js";
 import { detectClassMembers } from "./api-members.js";
 import { detectClassEvents, mergeClassEvents } from "./api-events.js";
 import { detectCustomElementRegistrations } from "./registrations.js";
@@ -23,13 +27,13 @@ export function vanillaBuiltin(): DetectorPlugin {
       const fragment: ManifestFragment = {};
       const tagNamesByClass = detectCustomElementRegistrations(context.sourceFile, context.checker);
 
-      ts.forEachChild(context.sourceFile, function visit(node) {
-        if (ts.isClassDeclaration(node) && node.name) {
+      context.sourceFile.forEachChild(function visit(node) {
+        if (is.isClassDeclaration(node) && node.name) {
           const className = node.name.text;
           const shouldInclude =
             tagNamesByClass.has(className) || inheritsHTMLElement(node, context.checker);
           if (!shouldInclude) {
-            ts.forEachChild(node, visit);
+            node.forEachChild(visit);
             return;
           }
           const jsdoc = getJSDocInfo(node);
@@ -92,7 +96,7 @@ export function vanillaBuiltin(): DetectorPlugin {
 
           fragment[className] = classFragment;
         }
-        ts.forEachChild(node, visit);
+        node.forEachChild(visit);
       });
 
       return fragment;
@@ -101,7 +105,7 @@ export function vanillaBuiltin(): DetectorPlugin {
 }
 
 function getExportName(node: ts.ClassDeclaration): string | undefined {
-  const modifiers = ts.canHaveModifiers(node) ? ts.getModifiers(node) : undefined;
+  const modifiers = getModifiers(node);
   if (!modifiers?.some((m) => m.kind === ts.SyntaxKind.ExportKeyword)) return undefined;
   if (modifiers.some((m) => m.kind === ts.SyntaxKind.DefaultKeyword)) return "default";
   return node.name?.text;
@@ -112,12 +116,12 @@ function getExportName(node: ts.ClassDeclaration): string | undefined {
  * type checker: a subclass of a custom base class, as `class Card extends CardBase`, is an element
  * too, and a class of the user's own named `HTMLElement` is not.
  */
-function inheritsHTMLElement(node: ts.ClassDeclaration, checker: ts.TypeChecker): boolean {
+function inheritsHTMLElement(node: ts.ClassDeclaration, checker: Checker): boolean {
   if (!node.heritageClauses || !node.name) return false;
 
   // Without the DOM lib, `HTMLElement` resolves to nothing: the name in the extends clause is all
   // there is to go by, when it names no class of the user's own.
-  const htmlElement = checker.resolveName("HTMLElement", undefined, ts.SymbolFlags.Type, false);
+  const htmlElement = checker.resolveName("HTMLElement", SymbolFlags.Type, undefined, false);
   return inheritsFrom(node, checker, ({ expression, symbol }) =>
     htmlElement
       ? symbol === htmlElement
@@ -127,7 +131,7 @@ function inheritsHTMLElement(node: ts.ClassDeclaration, checker: ts.TypeChecker)
 
 function getSuperclassRef(node: ts.ClassDeclaration): ClassFragment["superclass"] {
   const clause = node.heritageClauses?.find((c) => c.token === ts.SyntaxKind.ExtendsKeyword);
-  const heritageType = clause?.types[0];
+  const heritageType = clause?.types[0] as ts.ExpressionWithTypeArguments | undefined;
   const expr = heritageType?.expression.getText();
   if (!expr || expr === "HTMLElement") return undefined;
 
@@ -140,8 +144,8 @@ function getSuperclassRef(node: ts.ClassDeclaration): ClassFragment["superclass"
 
 function extractSuperclassName(expression: ts.Expression | undefined): string | undefined {
   if (!expression) return undefined;
-  if (ts.isIdentifier(expression)) return expression.text;
-  if (ts.isPropertyAccessExpression(expression)) return expression.name.text;
+  if (is.isIdentifier(expression)) return expression.text;
+  if (is.isPropertyAccessExpression(expression)) return expression.name.text;
   return expression.getText();
 }
 
@@ -150,8 +154,8 @@ function extractImportModuleForIdentifier(
   identifier: string,
 ): string | undefined {
   for (const stmt of sourceFile.statements) {
-    if (!ts.isImportDeclaration(stmt)) continue;
-    const module = ts.isStringLiteral(stmt.moduleSpecifier) ? stmt.moduleSpecifier.text : undefined;
+    if (!is.isImportDeclaration(stmt)) continue;
+    const module = is.isStringLiteral(stmt.moduleSpecifier) ? stmt.moduleSpecifier.text : undefined;
     if (!module) continue;
 
     const clause = stmt.importClause;
@@ -162,7 +166,7 @@ function extractImportModuleForIdentifier(
     const named = clause.namedBindings;
     if (
       named &&
-      ts.isNamedImports(named) &&
+      is.isNamedImports(named) &&
       named.elements.some((el) => el.name.text === identifier)
     ) {
       return module;
@@ -173,28 +177,28 @@ function extractImportModuleForIdentifier(
 
 function getObservedAttributes(node: ts.ClassDeclaration): string[] {
   for (const member of node.members) {
-    const modifiers = ts.canHaveModifiers(member) ? ts.getModifiers(member) : undefined;
+    const modifiers = getModifiers(member);
     const isObservedAttrs =
-      (ts.isGetAccessorDeclaration(member) || ts.isPropertyDeclaration(member)) &&
+      (is.isGetAccessorDeclaration(member) || is.isPropertyDeclaration(member)) &&
       member.name.getText() === "observedAttributes" &&
       modifiers?.some((m) => m.kind === ts.SyntaxKind.StaticKeyword);
 
     if (!isObservedAttrs) continue;
 
     let arrayLiteral: ts.ArrayLiteralExpression | undefined;
-    if (ts.isGetAccessorDeclaration(member) && member.body) {
-      const returnStmt = member.body.statements.find(ts.isReturnStatement);
-      if (returnStmt?.expression && ts.isArrayLiteralExpression(returnStmt.expression)) {
+    if (is.isGetAccessorDeclaration(member) && member.body) {
+      const returnStmt = member.body.statements.find(is.isReturnStatement);
+      if (returnStmt?.expression && is.isArrayLiteralExpression(returnStmt.expression)) {
         arrayLiteral = returnStmt.expression;
       }
-    } else if (ts.isPropertyDeclaration(member) && member.initializer) {
-      if (ts.isArrayLiteralExpression(member.initializer)) {
+    } else if (is.isPropertyDeclaration(member) && member.initializer) {
+      if (is.isArrayLiteralExpression(member.initializer)) {
         arrayLiteral = member.initializer;
       }
     }
 
     if (arrayLiteral) {
-      return arrayLiteral.elements.filter(ts.isStringLiteralLike).map((el) => el.text);
+      return arrayLiteral.elements.filter(is.isStringLiteralLikeNode).map((el) => el.text);
     }
   }
   return [];
@@ -273,11 +277,11 @@ function discoverSlotsFromNode(
   const seenNames = new Set<string>();
 
   function visit(n: ts.Node) {
-    if (ts.isClassDeclaration(n) && ownerClass && n !== ownerClass) {
+    if (is.isClassDeclaration(n) && ownerClass && n !== ownerClass) {
       return;
     }
 
-    if (ts.isTemplateExpression(n) || ts.isNoSubstitutionTemplateLiteral(n)) {
+    if (is.isTemplateExpression(n) || is.isNoSubstitutionTemplateLiteral(n)) {
       const text = n.getText();
       const tokens = [
         ...text.matchAll(/<slot\b[^>]*>|<!--[\s\S]*?-->|<\/?[a-zA-Z][a-zA-Z0-9-]*[^>]*>/g),
@@ -313,10 +317,10 @@ function discoverSlotsFromNode(
       }
     }
 
-    ts.forEachChild(n, visit);
+    n.forEachChild(visit);
   }
 
-  ts.forEachChild(root, visit);
+  root.forEachChild(visit);
   return slots.length ? slots : undefined;
 }
 
@@ -352,20 +356,20 @@ function discoverCssPropertiesFromNode(
   const byName = new Map<string, NonNullable<ClassFragment["cssProperties"]>[number]>();
 
   function visit(n: ts.Node) {
-    if (ts.isClassDeclaration(n) && ownerClass && n !== ownerClass) {
+    if (is.isClassDeclaration(n) && ownerClass && n !== ownerClass) {
       return;
     }
 
-    if (ts.isTemplateExpression(n) || ts.isNoSubstitutionTemplateLiteral(n)) {
+    if (is.isTemplateExpression(n) || is.isNoSubstitutionTemplateLiteral(n)) {
       for (const property of parseCssMetadata(n.getText()) ?? []) {
         byName.set(property.name, { ...byName.get(property.name), ...property });
       }
     }
 
-    ts.forEachChild(n, visit);
+    n.forEachChild(visit);
   }
 
-  ts.forEachChild(root, visit);
+  root.forEachChild(visit);
   return byName.size ? [...byName.values()] : undefined;
 }
 
@@ -391,11 +395,11 @@ function discoverCssPartsFromNode(
   const byName = new Map<string, NonNullable<ClassFragment["cssParts"]>[number]>();
 
   function visit(n: ts.Node) {
-    if (ts.isClassDeclaration(n) && ownerClass && n !== ownerClass) {
+    if (is.isClassDeclaration(n) && ownerClass && n !== ownerClass) {
       return;
     }
 
-    if (ts.isTemplateExpression(n) || ts.isNoSubstitutionTemplateLiteral(n)) {
+    if (is.isTemplateExpression(n) || is.isNoSubstitutionTemplateLiteral(n)) {
       const text = n.getText();
 
       const attrMatches = [...text.matchAll(/\bpart\s*=\s*(["'])([^"']+)\1/g)];
@@ -426,10 +430,10 @@ function discoverCssPartsFromNode(
       }
     }
 
-    ts.forEachChild(n, visit);
+    n.forEachChild(visit);
   }
 
-  ts.forEachChild(root, visit);
+  root.forEachChild(visit);
   return byName.size ? [...byName.values()] : undefined;
 }
 
@@ -463,22 +467,22 @@ function discoverCssStatesFromClass(node: ts.ClassDeclaration): ClassFragment["c
 
   function visit(n: ts.Node) {
     if (
-      ts.isCallExpression(n) &&
-      ts.isPropertyAccessExpression(n.expression) &&
+      is.isCallExpression(n) &&
+      is.isPropertyAccessExpression(n.expression) &&
       n.expression.name.text === "add" &&
-      ts.isPropertyAccessExpression(n.expression.expression) &&
+      is.isPropertyAccessExpression(n.expression.expression) &&
       n.expression.expression.name.text === "states"
     ) {
       const arg = n.arguments[0];
-      if (arg && ts.isStringLiteralLike(arg) && !byName.has(arg.text)) {
+      if (arg && is.isStringLiteralLikeNode(arg) && !byName.has(arg.text)) {
         byName.set(arg.text, { name: arg.text });
       }
     }
 
-    ts.forEachChild(n, visit);
+    n.forEachChild(visit);
   }
 
-  ts.forEachChild(node, visit);
+  node.forEachChild(visit);
   return byName.size ? [...byName.values()] : undefined;
 }
 

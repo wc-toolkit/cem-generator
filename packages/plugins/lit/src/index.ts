@@ -1,4 +1,21 @@
-import ts from "typescript";
+import * as ts from "typescript/ast";
+import {
+  symbolDeclarations,
+  getModifiers,
+  getDecorators,
+  getJSDocInfo,
+  getNodeTypeText,
+  getParsedTypeText,
+  inheritsFrom,
+  resolveMeaningfulParsedTypeFromText,
+  parseCemClassTags,
+  parseCemMemberTags,
+  areTypeTextsEquivalent,
+  getLiteralDefaultText,
+} from "@wc-toolkit/cem-generator-utils";
+import { SymbolFlags } from "typescript/sync";
+import * as is from "typescript/ast/is";
+import type { Checker } from "typescript/sync";
 import {
   detectClassMembers,
   type DetectorPlugin,
@@ -11,17 +28,6 @@ import {
   discoverFrameworkApis,
   parseCssMetadata,
 } from "@wc-toolkit/cem-generator";
-import {
-  getJSDocInfo,
-  getNodeTypeText,
-  getParsedTypeText,
-  inheritsFrom,
-  resolveMeaningfulParsedTypeFromText,
-  parseCemClassTags,
-  parseCemMemberTags,
-  areTypeTextsEquivalent,
-  getLiteralDefaultText,
-} from "@wc-toolkit/cem-generator-utils";
 
 const decoratorNameCache = new WeakMap<ts.SourceFile, Map<string, string | undefined>>();
 
@@ -47,8 +53,8 @@ export function litPlugin(): DetectorPlugin {
       const registrations = detectCustomElementRegistrations(context.sourceFile);
       for (const [className, tagName] of registrations) registeredTags.set(className, tagName);
 
-      ts.forEachChild(context.sourceFile, function visit(node) {
-        if (ts.isClassDeclaration(node) && node.name && extendsLitElement(node, context.checker)) {
+      context.sourceFile.forEachChild(function visit(node) {
+        if (is.isClassDeclaration(node) && node.name && extendsLitElement(node, context.checker)) {
           const className = node.name.text;
           const jsdoc = getJSDocInfo(node);
           const classDoc = parseCemClassTags(node);
@@ -137,7 +143,7 @@ export function litPlugin(): DetectorPlugin {
 
           applyMemberToAttributeLinks(fragment[className], classDoc);
         }
-        ts.forEachChild(node, visit);
+        node.forEachChild(visit);
       });
 
       return fragment;
@@ -158,7 +164,7 @@ export function litPlugin(): DetectorPlugin {
 }
 
 function getExportName(node: ts.ClassDeclaration): string | undefined {
-  const modifiers = ts.canHaveModifiers(node) ? ts.getModifiers(node) : undefined;
+  const modifiers = getModifiers(node);
   if (!modifiers?.some((m) => m.kind === ts.SyntaxKind.ExportKeyword)) return undefined;
   if (modifiers.some((m) => m.kind === ts.SyntaxKind.DefaultKeyword)) return "default";
   return node.name?.text;
@@ -196,11 +202,12 @@ function resolveLitMixin(
   const identifier = findMixinIdentifier(anchor, name);
   const symbol = identifier ? context.checker.getSymbolAtLocation(identifier) : undefined;
   const resolvedSymbol =
-    symbol && symbol.flags & ts.SymbolFlags.Alias
-      ? context.checker.getAliasedSymbol(symbol)
-      : symbol;
-  const declaration = resolvedSymbol?.declarations?.find(
-    (candidate) => ts.isFunctionDeclaration(candidate) || ts.isVariableDeclaration(candidate),
+    symbol && symbol.flags & SymbolFlags.Alias ? context.checker.getAliasedSymbol(symbol) : symbol;
+  const declaration = symbolDeclarations(resolvedSymbol, [
+    ts.SyntaxKind.FunctionDeclaration,
+    ts.SyntaxKind.VariableDeclaration,
+  ]).find(
+    (candidate) => is.isFunctionDeclaration(candidate) || is.isVariableDeclaration(candidate),
   );
   if (declaration && mixinResults.has(declaration)) {
     const cached = mixinResults.get(declaration);
@@ -253,9 +260,8 @@ function resolveLitMixin(
     return undefined;
   }
 
-  const declarationModifiers = ts.canHaveModifiers(declaration)
-    ? ts.getModifiers(declaration)
-    : undefined;
+  const declarationModifiers =
+    getModifiers(declaration) !== undefined ? getModifiers(declaration) : undefined;
   const result: LitMixin = {
     members,
     exportName: declarationModifiers?.some(
@@ -280,17 +286,17 @@ function findMixinIdentifier(
   let result: ts.Identifier | undefined;
   function visit(expression: ts.Expression) {
     if (result) return;
-    if (ts.isCallExpression(expression)) {
-      if (ts.isIdentifier(expression.expression) && expression.expression.text === name) {
+    if (is.isCallExpression(expression)) {
+      if (is.isIdentifier(expression.expression) && expression.expression.text === name) {
         result = expression.expression;
         return;
       }
       for (const argument of expression.arguments) {
-        if (ts.isExpression(argument)) visit(argument);
+        if (is.isExpression(argument)) visit(argument);
       }
     }
   }
-  const expression = heritage?.types[0]?.expression;
+  const expression = (heritage?.types[0] as ts.ExpressionWithTypeArguments)?.expression;
   if (expression) visit(expression);
   return result;
 }
@@ -298,11 +304,11 @@ function findMixinIdentifier(
 function findMixinImplementation(
   declaration: ts.FunctionDeclaration | ts.VariableDeclaration,
 ): ts.ClassDeclaration | ts.ClassExpression | undefined {
-  const callable = ts.isFunctionDeclaration(declaration)
+  const callable = is.isFunctionDeclaration(declaration)
     ? declaration
     : declaration.initializer &&
-        (ts.isArrowFunction(declaration.initializer) ||
-          ts.isFunctionExpression(declaration.initializer))
+        (is.isArrowFunction(declaration.initializer) ||
+          is.isFunctionExpression(declaration.initializer))
       ? declaration.initializer
       : undefined;
   if (!callable || callable.parameters.length === 0) return undefined;
@@ -310,61 +316,66 @@ function findMixinImplementation(
   let implementation: ts.ClassDeclaration | ts.ClassExpression | undefined;
   function visit(node: ts.Node) {
     if (implementation) return;
-    if (ts.isClassDeclaration(node) || ts.isClassExpression(node)) {
+    if (is.isClassDeclaration(node) || is.isClassExpression(node)) {
       const heritage = node.heritageClauses?.find(
         (clause) => clause.token === ts.SyntaxKind.ExtendsKeyword,
       );
       if (
         heritage?.types[0] &&
-        expressionContainsIdentifier(heritage.types[0].expression, parameterName)
+        expressionContainsIdentifier(
+          (heritage.types[0] as ts.ExpressionWithTypeArguments).expression,
+          parameterName,
+        )
       ) {
         implementation = node;
         return;
       }
     }
-    ts.forEachChild(node, visit);
+    node.forEachChild(visit);
   }
-  if (callable.body) ts.forEachChild(callable.body, visit);
+  if (callable.body) callable.body.forEachChild(visit);
   return implementation;
 }
 
 function expressionContainsIdentifier(expression: ts.Expression, name: string): boolean {
-  if (ts.isIdentifier(expression)) return expression.text === name;
+  if (is.isIdentifier(expression)) return expression.text === name;
   let found = false;
-  ts.forEachChild(expression, (child) => {
-    if (!found && ts.isExpression(child)) found = expressionContainsIdentifier(child, name);
+  expression.forEachChild((child) => {
+    if (!found && is.isExpression(child)) found = expressionContainsIdentifier(child, name);
   });
   return found;
 }
 
-function getLitMixinNames(node: ts.ClassLikeDeclaration, checker?: ts.TypeChecker): string[] {
+function getLitMixinNames(node: ts.ClassLikeDeclaration, checker?: Checker): string[] {
   const names: string[] = [];
   const heritage = node.heritageClauses?.find(
     (clause) => clause.token === ts.SyntaxKind.ExtendsKeyword,
   );
   const visit = (expression: ts.Expression) => {
-    if (!ts.isCallExpression(expression)) return;
-    if (ts.isIdentifier(expression.expression) && expression.expression.text !== "LitElement") {
+    if (!is.isCallExpression(expression)) return;
+    if (is.isIdentifier(expression.expression) && expression.expression.text !== "LitElement") {
       names.push(expression.expression.text);
     }
     for (const argument of expression.arguments) {
-      if (ts.isCallExpression(argument)) {
+      if (is.isCallExpression(argument)) {
         visit(argument);
-      } else if (checker && ts.isIdentifier(argument) && argument.text !== "LitElement") {
+      } else if (checker && is.isIdentifier(argument) && argument.text !== "LitElement") {
         const symbol = checker.getSymbolAtLocation(argument);
         const resolved =
-          symbol && symbol.flags & ts.SymbolFlags.Alias ? checker.getAliasedSymbol(symbol) : symbol;
-        const declaration = resolved?.declarations?.find(ts.isClassDeclaration);
+          symbol && symbol.flags & SymbolFlags.Alias ? checker.getAliasedSymbol(symbol) : symbol;
+        const declaration = symbolDeclarations(resolved, [ts.SyntaxKind.ClassDeclaration]).find(
+          is.isClassDeclaration,
+        );
         if (declaration) {
           const base = declaration.heritageClauses?.find(
             (clause) => clause.token === ts.SyntaxKind.ExtendsKeyword,
           );
-          if (base?.types[0]) visit(base.types[0].expression);
+          if (base?.types[0]) visit((base.types[0] as ts.ExpressionWithTypeArguments).expression);
         }
       }
     }
   };
-  const expression = heritage?.types[0]?.expression;
+  const expression = (heritage?.types[0] as ts.ExpressionWithTypeArguments)?.expression;
   if (expression) visit(expression);
   return [...new Set(names)];
 }
@@ -384,17 +395,19 @@ function getLitBaseClassMembers(
   const baseMembers: ClassFragment["members"][] = [];
 
   function visit(expression: ts.Expression) {
-    if (ts.isCallExpression(expression)) {
+    if (is.isCallExpression(expression)) {
       for (const argument of expression.arguments) visit(argument);
       return;
     }
-    if (!ts.isIdentifier(expression) || expression.text === "LitElement") return;
+    if (!is.isIdentifier(expression) || expression.text === "LitElement") return;
     const symbol = context.checker.getSymbolAtLocation(expression);
     const resolved =
-      symbol && symbol.flags & ts.SymbolFlags.Alias
+      symbol && symbol.flags & SymbolFlags.Alias
         ? context.checker.getAliasedSymbol(symbol)
         : symbol;
-    const declaration = resolved?.declarations?.find(ts.isClassDeclaration);
+    const declaration = symbolDeclarations(resolved, [ts.SyntaxKind.ClassDeclaration]).find(
+      is.isClassDeclaration,
+    );
     if (!declaration) return;
 
     const nestedMembers = getLitMixinNames(declaration, context.checker).flatMap((name) => {
@@ -421,7 +434,7 @@ function getLitBaseClassMembers(
     }
   }
 
-  const expression = heritage?.types[0]?.expression;
+  const expression = (heritage?.types[0] as ts.ExpressionWithTypeArguments)?.expression;
   if (expression) visit(expression);
   const result = mergeLitMembers(...baseMembers);
   baseMemberResults.set(node, result);
@@ -430,25 +443,27 @@ function getLitBaseClassMembers(
 
 function getLitSuperclass(
   node: ts.ClassDeclaration,
-  checker: ts.TypeChecker,
+  checker: Checker,
 ): { name: string; module?: string } {
   const heritage = node.heritageClauses?.find(
     (clause) => clause.token === ts.SyntaxKind.ExtendsKeyword,
   );
-  const expression = heritage?.types[0]?.expression;
+  const expression = (heritage?.types[0] as ts.ExpressionWithTypeArguments)?.expression;
 
-  if (!expression || ts.isCallExpression(expression)) {
+  if (!expression || is.isCallExpression(expression)) {
     return { name: "LitElement", module: "lit" };
   }
 
   const name = expression.getText();
   if (name === "LitElement") return { name, module: "lit" };
-  if (!ts.isIdentifier(expression)) return { name, module: "lit" };
+  if (!is.isIdentifier(expression)) return { name, module: "lit" };
 
   const symbol = checker.getSymbolAtLocation(expression);
   const resolved =
-    symbol && symbol.flags & ts.SymbolFlags.Alias ? checker.getAliasedSymbol(symbol) : symbol;
-  const declaration = resolved?.declarations?.find(ts.isClassDeclaration);
+    symbol && symbol.flags & SymbolFlags.Alias ? checker.getAliasedSymbol(symbol) : symbol;
+  const declaration = symbolDeclarations(resolved, [ts.SyntaxKind.ClassDeclaration]).find(
+    is.isClassDeclaration,
+  );
   if (!declaration?.name) return { name, module: "lit" };
 
   return {
@@ -457,11 +472,11 @@ function getLitSuperclass(
   };
 }
 
-function extendsLitElement(node: ts.ClassDeclaration, checker: ts.TypeChecker): boolean {
+function extendsLitElement(node: ts.ClassDeclaration, checker: Checker): boolean {
   return inheritsFrom(
     node,
     checker,
-    ({ expression }) => ts.isIdentifier(expression) && expression.text === "LitElement",
+    ({ expression }) => is.isIdentifier(expression) && expression.text === "LitElement",
   );
 }
 
@@ -473,8 +488,8 @@ function getDecoratedProperties(
   const members: NonNullable<ClassFragment["members"]> = [];
 
   for (const member of node.members) {
-    if (!ts.isPropertyDeclaration(member)) continue;
-    const decorators = ts.getDecorators?.(member) ?? [];
+    if (!is.isPropertyDeclaration(member)) continue;
+    const decorators = getDecorators(member) ?? [];
 
     const propertyDecorator = decorators.find((d) => {
       const name = getDecoratorName(d, node.getSourceFile());
@@ -506,7 +521,7 @@ function getDecoratedProperties(
     const jsdoc = getJSDocInfo(member);
     const memberDoc = parseCemMemberTags(member);
     if (memberDoc.internal) continue;
-    const modifiers = ts.canHaveModifiers(member) ? ts.getModifiers(member) : undefined;
+    const modifiers = getModifiers(member);
     const typeText = getNodeTypeText(member, context.checker);
     const parsedTypeText = shouldParseDecoratedType(member, modifiers, context.typeParsing)
       ? getParsedTypeText(member, context.checker)
@@ -574,21 +589,21 @@ type LitPropertyOptions = {
 };
 
 function getDecoratorName(decorator: ts.Decorator, sourceFile: ts.SourceFile): string | undefined {
-  const expression = ts.isCallExpression(decorator.expression)
+  const expression = is.isCallExpression(decorator.expression)
     ? decorator.expression.expression
     : decorator.expression;
-  if (!ts.isIdentifier(expression)) return undefined;
+  if (!is.isIdentifier(expression)) return undefined;
 
   const names = decoratorNameCache.get(sourceFile) ?? new Map<string, string | undefined>();
   if (names.has(expression.text)) return names.get(expression.text);
 
   for (const statement of sourceFile.statements) {
-    if (!ts.isImportDeclaration(statement) || !ts.isStringLiteral(statement.moduleSpecifier))
+    if (!is.isImportDeclaration(statement) || !is.isStringLiteral(statement.moduleSpecifier))
       continue;
     const moduleName = statement.moduleSpecifier.text;
     if (moduleName !== "lit" && moduleName !== "lit/decorators.js") continue;
     const named = statement.importClause?.namedBindings;
-    if (!named || !ts.isNamedImports(named)) continue;
+    if (!named || !is.isNamedImports(named)) continue;
     const imported = named.elements.find((element) => element.name.text === expression.text);
     if (imported) {
       const name = imported.propertyName?.text ?? imported.name.text;
@@ -604,20 +619,20 @@ function getDecoratorName(decorator: ts.Decorator, sourceFile: ts.SourceFile): s
 }
 
 function getDecoratorOptions(decorator: ts.Decorator): LitPropertyOptions {
-  if (!ts.isCallExpression(decorator.expression)) return {};
+  if (!is.isCallExpression(decorator.expression)) return {};
   const options = decorator.expression.arguments[0];
-  if (!options || !ts.isObjectLiteralExpression(options)) return {};
+  if (!options || !is.isObjectLiteralExpression(options)) return {};
 
   const result: LitPropertyOptions = {};
   for (const property of options.properties) {
-    if (!ts.isPropertyAssignment(property) || !ts.isIdentifier(property.name)) continue;
+    if (!is.isPropertyAssignment(property) || !is.isIdentifier(property.name)) continue;
     const name = property.name.text;
     if (name === "attribute") {
       if (property.initializer.kind === ts.SyntaxKind.FalseKeyword) {
         result.noAttribute = true;
         continue;
       }
-      if (ts.isStringLiteralLike(property.initializer))
+      if (is.isStringLiteralLikeNode(property.initializer))
         result.attribute = property.initializer.text;
     } else if (name === "reflect" && property.initializer.kind === ts.SyntaxKind.TrueKeyword) {
       result.reflect = true;
@@ -631,24 +646,22 @@ function getDecoratorOptions(decorator: ts.Decorator): LitPropertyOptions {
 function getStaticPropertyMetadata(node: ts.ClassLikeDeclaration): ClassFragment["members"] {
   const properties = node.members.find(
     (member): member is ts.PropertyDeclaration | ts.GetAccessorDeclaration =>
-      (ts.isPropertyDeclaration(member) || ts.isGetAccessorDeclaration(member)) &&
+      (is.isPropertyDeclaration(member) || is.isGetAccessorDeclaration(member)) &&
       member.name.getText() === "properties" &&
-      !!(ts.canHaveModifiers(member) ? ts.getModifiers(member) : undefined)?.some(
-        (modifier) => modifier.kind === ts.SyntaxKind.StaticKeyword,
-      ),
+      !!getModifiers(member)?.some((modifier) => modifier.kind === ts.SyntaxKind.StaticKeyword),
   );
   if (!properties) return undefined;
-  const initializer = ts.isPropertyDeclaration(properties)
+  const initializer = is.isPropertyDeclaration(properties)
     ? properties.initializer
-    : properties?.body?.statements.find(ts.isReturnStatement)?.expression;
-  if (!initializer || !ts.isObjectLiteralExpression(initializer)) return undefined;
+    : properties?.body?.statements.find(is.isReturnStatement)?.expression;
+  if (!initializer || !is.isObjectLiteralExpression(initializer)) return undefined;
   const constructorDefaults = getConstructorPropertyDefaults(node);
 
   const members: NonNullable<ClassFragment["members"]> = [];
   for (const property of initializer.properties) {
-    if (!ts.isPropertyAssignment(property) || !property.name) continue;
+    if (!is.isPropertyAssignment(property) || !property.name) continue;
     const name = property.name.getText().replace(/^['"]|['"]$/g, "");
-    if (!ts.isObjectLiteralExpression(property.initializer)) continue;
+    if (!is.isObjectLiteralExpression(property.initializer)) continue;
 
     const options = getObjectOptions(property.initializer);
     members.push({
@@ -665,14 +678,14 @@ function getStaticPropertyMetadata(node: ts.ClassLikeDeclaration): ClassFragment
 
 function getConstructorPropertyDefaults(node: ts.ClassLikeDeclaration): Map<string, string> {
   const defaults = new Map<string, string>();
-  const constructor = node.members.find(ts.isConstructorDeclaration);
+  const constructor = node.members.find(is.isConstructorDeclaration);
   for (const statement of constructor?.body?.statements ?? []) {
-    if (!ts.isExpressionStatement(statement) || !ts.isBinaryExpression(statement.expression))
+    if (!is.isExpressionStatement(statement) || !is.isBinaryExpression(statement.expression))
       continue;
     const assignment = statement.expression;
     if (assignment.operatorToken.kind !== ts.SyntaxKind.EqualsToken) continue;
     if (
-      !ts.isPropertyAccessExpression(assignment.left) ||
+      !is.isPropertyAccessExpression(assignment.left) ||
       assignment.left.expression.kind !== ts.SyntaxKind.ThisKeyword
     )
       continue;
@@ -686,14 +699,14 @@ function getObjectOptions(
 ): LitPropertyOptions & { default?: string } {
   const result: LitPropertyOptions & { default?: string } = {};
   for (const property of object.properties) {
-    if (!ts.isPropertyAssignment(property) || !ts.isIdentifier(property.name)) continue;
+    if (!is.isPropertyAssignment(property) || !is.isIdentifier(property.name)) continue;
     const name = property.name.text;
     if (name === "attribute") {
       if (property.initializer.kind === ts.SyntaxKind.FalseKeyword) {
         result.noAttribute = true;
         continue;
       }
-      if (ts.isStringLiteralLike(property.initializer))
+      if (is.isStringLiteralLikeNode(property.initializer))
         result.attribute = property.initializer.text;
     } else if (name === "reflect" && property.initializer.kind === ts.SyntaxKind.TrueKeyword) {
       result.reflect = true;
@@ -720,14 +733,14 @@ function getLitTypeText(node: ts.Expression): string | undefined {
 }
 
 function getCustomElementTagName(node: ts.ClassDeclaration): string | undefined {
-  for (const decorator of ts.getDecorators?.(node) ?? []) {
+  for (const decorator of getDecorators(node) ?? []) {
     if (
       getDecoratorName(decorator, node.getSourceFile()) !== "customElement" ||
-      !ts.isCallExpression(decorator.expression)
+      !is.isCallExpression(decorator.expression)
     )
       continue;
     const tag = decorator.expression.arguments[0];
-    if (tag && ts.isStringLiteralLike(tag)) return tag.text;
+    if (tag && is.isStringLiteralLikeNode(tag)) return tag.text;
   }
   return undefined;
 }
@@ -850,11 +863,11 @@ function mergeSlots(
 
 function extractCssCustomProps(
   node: ts.ClassDeclaration,
-  checker: ts.TypeChecker,
+  checker: Checker,
 ): ClassFragment["cssProperties"] {
   const stylesMember = node.members.find((m): m is ts.PropertyDeclaration => {
-    if (!ts.isPropertyDeclaration(m) || m.name.getText() !== "styles") return false;
-    const modifiers = ts.canHaveModifiers(m) ? ts.getModifiers(m) : undefined;
+    if (!is.isPropertyDeclaration(m) || m.name.getText() !== "styles") return false;
+    const modifiers = getModifiers(m);
     return modifiers?.some((mod) => mod.kind === ts.SyntaxKind.StaticKeyword) ?? false;
   });
   if (!stylesMember) return undefined;
@@ -863,14 +876,16 @@ function extractCssCustomProps(
   const initializer = stylesMember.initializer;
   if (!initializer) return properties.length ? properties : undefined;
 
-  const symbol = ts.isIdentifier(initializer)
+  const symbol = is.isIdentifier(initializer)
     ? checker.getSymbolAtLocation(initializer)
     : undefined;
   const resolvedSymbol =
-    symbol && symbol.flags & ts.SymbolFlags.Alias ? checker.getAliasedSymbol(symbol) : symbol;
+    symbol && symbol.flags & SymbolFlags.Alias ? checker.getAliasedSymbol(symbol) : symbol;
 
-  for (const declaration of resolvedSymbol?.declarations ?? []) {
-    if (!ts.isVariableDeclaration(declaration) || !declaration.initializer) continue;
+  for (const declaration of symbolDeclarations(resolvedSymbol, [
+    ts.SyntaxKind.VariableDeclaration,
+  ])) {
+    if (!is.isVariableDeclaration(declaration) || !declaration.initializer) continue;
     properties.push(...(parseCssMetadata(declaration.initializer.getText()) ?? []));
   }
 

@@ -1,6 +1,9 @@
-import ts from "typescript";
+import * as ts from "typescript/ast";
+import { SymbolFlags } from "typescript/sync";
+import * as is from "typescript/ast/is";
+import type { Checker } from "typescript/sync";
 import type { ClassFragment, FileContext } from "./types.js";
-import { getNodeTypeText } from "@wc-toolkit/cem-generator-utils";
+import { getNodeTypeText, symbolDeclarations } from "@wc-toolkit/cem-generator-utils";
 
 /** Detects statically named platform events dispatched by a component. */
 export function detectClassEvents(
@@ -10,15 +13,15 @@ export function detectClassEvents(
   const byName = new Map<string, NonNullable<ClassFragment["events"]>[number]>();
 
   function visit(current: ts.Node) {
-    if (ts.isClassDeclaration(current)) return;
+    if (is.isClassDeclaration(current)) return;
 
     if (
-      ts.isCallExpression(current) &&
-      ts.isPropertyAccessExpression(current.expression) &&
+      is.isCallExpression(current) &&
+      is.isPropertyAccessExpression(current.expression) &&
       current.expression.name.text === "dispatchEvent"
     ) {
       const event = current.arguments[0];
-      if (event && ts.isNewExpression(event) && ts.isIdentifier(event.expression)) {
+      if (event && is.isNewExpression(event) && is.isIdentifier(event.expression)) {
         const eventName = resolveStaticString(
           event.arguments?.[0],
           node.getSourceFile(),
@@ -36,10 +39,10 @@ export function detectClassEvents(
         }
       }
     }
-    ts.forEachChild(current, visit);
+    current.forEachChild(visit);
   }
 
-  ts.forEachChild(node, visit);
+  node.forEachChild(visit);
   return byName.size ? [...byName.values()] : undefined;
 }
 
@@ -50,9 +53,9 @@ function resolveEventConstructor(
   if (expression.text === "Event" || expression.text === "CustomEvent") return expression.text;
 
   for (const statement of sourceFile.statements) {
-    if (!ts.isImportDeclaration(statement)) continue;
+    if (!is.isImportDeclaration(statement)) continue;
     const named = statement.importClause?.namedBindings;
-    if (!named || !ts.isNamedImports(named)) continue;
+    if (!named || !is.isNamedImports(named)) continue;
     const imported = named.elements.find((element) => element.name.text === expression.text);
     const original = imported?.propertyName?.text ?? imported?.name.text;
     if (original === "Event" || original === "CustomEvent") return original;
@@ -79,10 +82,10 @@ export function mergeClassEvents(
 
 function getCustomEventDetail(event: ts.NewExpression, context: FileContext): string | undefined {
   const init = event.arguments?.[1];
-  if (!init || !ts.isObjectLiteralExpression(init)) return undefined;
+  if (!init || !is.isObjectLiteralExpression(init)) return undefined;
   const detail = init.properties.find(
     (property): property is ts.PropertyAssignment =>
-      ts.isPropertyAssignment(property) && property.name.getText() === "detail",
+      is.isPropertyAssignment(property) && property.name.getText() === "detail",
   );
   return detail ? getNodeTypeText(detail.initializer, context.checker) : undefined;
 }
@@ -90,12 +93,12 @@ function getCustomEventDetail(event: ts.NewExpression, context: FileContext): st
 function resolveStaticString(
   expression: ts.Expression | undefined,
   sourceFile: ts.SourceFile,
-  checker: ts.TypeChecker,
+  checker: Checker,
   resolving = new Set<string>(),
 ): string | undefined {
   if (!expression) return undefined;
-  if (ts.isStringLiteralLike(expression)) return expression.text;
-  if (!ts.isIdentifier(expression)) return undefined;
+  if (is.isStringLiteralLikeNode(expression)) return expression.text;
+  if (!is.isIdentifier(expression)) return undefined;
   const identifierName = expression.text;
   const resolutionKey = `${sourceFile.fileName}#${identifierName}`;
   if (resolving.has(resolutionKey)) return undefined;
@@ -104,19 +107,21 @@ function resolveStaticString(
   let initializer: ts.Expression | undefined;
   function findDeclaration(node: ts.Node) {
     if (initializer) return;
-    if (ts.isVariableDeclaration(node) && node.name.getText() === identifierName) {
+    if (is.isVariableDeclaration(node) && node.name.getText() === identifierName) {
       initializer = node.initializer;
       return;
     }
-    ts.forEachChild(node, findDeclaration);
+    node.forEachChild(findDeclaration);
   }
   findDeclaration(sourceFile);
   if (initializer) return resolveStaticString(initializer, sourceFile, checker, resolving);
 
   const symbol = checker.getSymbolAtLocation(expression);
   const resolvedSymbol =
-    symbol && symbol.flags & ts.SymbolFlags.Alias ? checker.getAliasedSymbol(symbol) : symbol;
-  const declaration = resolvedSymbol?.declarations?.find(ts.isVariableDeclaration);
+    symbol && symbol.flags & SymbolFlags.Alias ? checker.getAliasedSymbol(symbol) : symbol;
+  const declaration = symbolDeclarations(resolvedSymbol, [ts.SyntaxKind.VariableDeclaration]).find(
+    is.isVariableDeclaration,
+  );
   if (declaration?.initializer) {
     return resolveStaticString(
       declaration.initializer,

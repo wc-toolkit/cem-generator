@@ -420,7 +420,7 @@ test("emits parsed types for fields, attributes, events, method params, and retu
   const sharedModeAttr = decl.attributes?.find((a) => a.name === "shared-mode");
   assert.ok(sharedModeAttr, "Expected shared-mode attribute");
   assert.equal(sharedModeAttr.type?.text, "SharedMode");
-  assert.equal(sharedModeAttr.parsedType?.text, "'inline' | 'block' | undefined");
+  assert.equal(sharedModeAttr.parsedType?.text, "'block' | 'inline' | undefined");
 
   const event = decl.events?.find((e) => e.name === "payload-change");
   assert.ok(event, "Expected payload-change event");
@@ -442,7 +442,7 @@ test("emits parsed types for fields, attributes, events, method params, and retu
   const sharedModeParam = sharedMethod.parameters?.find((p) => p.name === "mode");
   assert.ok(sharedModeParam, "Expected shared mode parameter");
   assert.equal(sharedModeParam.type?.text, "SharedMode");
-  assert.equal(sharedModeParam.parsedType?.text, "'inline' | 'block' | undefined");
+  assert.equal(sharedModeParam.parsedType?.text, "'block' | 'inline' | undefined");
 
   const sharedPayloadParam = sharedMethod.parameters?.find((p) => p.name === "payload");
   assert.ok(sharedPayloadParam, "Expected shared payload parameter");

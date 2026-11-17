@@ -1,4 +1,5 @@
-import ts from "typescript";
+import * as ts from "typescript/ast";
+import type { Checker } from "typescript/sync";
 import type { Package as CemPackage } from "custom-elements-manifest/schema";
 
 export type TypeParsingMode = "none" | "public" | "all";
@@ -17,7 +18,7 @@ export interface FileContext {
   filePath: string;
   sourceText: string;
   sourceFile: ts.SourceFile;
-  checker: ts.TypeChecker;
+  checker: Checker;
   typeParsing: TypeParsingMode;
 }
 

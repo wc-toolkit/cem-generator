@@ -1,12 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import {
-  generateCemWithProgram,
-  loadConfig,
-  mergeConfig,
-  type ProgramResult,
-  type RunOptions,
-} from "@wc-toolkit/cem-generator";
+import { generateCem, loadConfig, mergeConfig, type RunOptions } from "@wc-toolkit/cem-generator";
 
 const SOURCE_EXTENSIONS = new Set([".js", ".mjs", ".cjs", ".ts", ".mts", ".cts", ".jsx", ".tsx"]);
 
@@ -51,7 +45,6 @@ export class GeneratorRunner {
   #queuedRun = false;
   #timer: ReturnType<typeof setTimeout> | undefined;
   #resolvedOptions: RunOptions | undefined;
-  #program: ProgramResult["program"] | undefined;
 
   constructor(root: string, options: CemGeneratorBuildOptions, hooks: GeneratorRunnerHooks = {}) {
     this.#root = root;
@@ -89,9 +82,7 @@ export class GeneratorRunner {
           this.#resolvedOptions = mergeConfig(directOptions, config.options);
         }
 
-        const result = generateCemWithProgram(this.#resolvedOptions, this.#program);
-        this.#program = result.programResult.program;
-        const manifest = result.manifest;
+        const manifest = generateCem(this.#resolvedOptions);
         fs.mkdirSync(path.dirname(this.#outputPath), { recursive: true });
         fs.writeFileSync(this.#outputPath, `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
       } while (this.#queuedRun);

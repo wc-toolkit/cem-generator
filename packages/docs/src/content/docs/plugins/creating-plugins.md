@@ -91,8 +91,8 @@ export const myFrameworkPlugin = (): DetectorPlugin => ({
     const fragments: ManifestFragment = {};
 
     // Visit all class declarations in the file
-    ts.forEachChild(sourceFile, (node) => {
-      if (!ts.isClassDeclaration(node) || !node.name) return;
+    sourceFile.forEachChild((node) => {
+      if (!is.isClassDeclaration(node) || !node.name) return;
 
       // Check if class matches your framework (extends base, has decorator, etc.)
       if (!isMyFrameworkComponent(node, checker)) return;
@@ -108,12 +108,15 @@ export const myFrameworkPlugin = (): DetectorPlugin => ({
 
 ## TypeScript AST Analysis
 
-Use TypeScript's compiler API to analyze classes:
+Analyze classes with the TypeScript 7.1 client API. AST node types and enums come from `typescript/ast`, type guards from `typescript/ast/is`, and checker types from `typescript/sync`. Use the `checker` from `FileContext` rather than creating your own program:
 
 ```ts
-import ts from "typescript";
+import * as ts from "typescript/ast";
+import * as is from "typescript/ast/is";
+import type { Checker } from "typescript/sync";
+import { getDecorators } from "@wc-toolkit/cem-generator-utils";
 
-function isMyFrameworkComponent(node: ts.ClassDeclaration, checker: ts.TypeChecker): boolean {
+function isMyFrameworkComponent(node: ts.ClassDeclaration, checker: Checker): boolean {
   // Check for base class
   const heritage = node.heritageClauses?.[0]?.types;
   if (heritage) {
@@ -125,7 +128,7 @@ function isMyFrameworkComponent(node: ts.ClassDeclaration, checker: ts.TypeCheck
   }
 
   // Check for decorator
-  const decorators = ts.getDecorators?.(node);
+  const decorators = getDecorators(node);
   if (decorators?.some((d) => d.expression.getText().includes("MyDecorator"))) return true;
 
   return false;
@@ -133,7 +136,7 @@ function isMyFrameworkComponent(node: ts.ClassDeclaration, checker: ts.TypeCheck
 
 function extractClassFragment(
   node: ts.ClassDeclaration,
-  checker: ts.TypeChecker,
+  checker: Checker,
   sourceFile: ts.SourceFile,
   filePath: string,
 ): ClassFragment {
@@ -180,7 +183,10 @@ function extractAttributes(node: ts.ClassDeclaration): ClassFragment["attributes
 
 ```ts
 // my-plugin.ts
-import ts from "typescript";
+import * as ts from "typescript/ast";
+import * as is from "typescript/ast/is";
+import type { Checker } from "typescript/sync";
+import { getDecorators } from "@wc-toolkit/cem-generator-utils";
 import type {
   DetectorPlugin,
   FileContext,
@@ -199,11 +205,9 @@ export const mySimplePlugin = (): DetectorPlugin => ({
     const { sourceFile, checker, filePath } = context;
     const fragments: ManifestFragment = {};
 
-    ts.forEachChild(sourceFile, (node) => {
-      if (!ts.isClassDeclaration(node) || !node.name) return;
-      if (
-        !ts.getDecorators?.(node)?.some((d) => d.expression.getText().includes("SimpleComponent"))
-      )
+    sourceFile.forEachChild((node) => {
+      if (!is.isClassDeclaration(node) || !node.name) return;
+      if (!getDecorators(node)?.some((d) => d.expression.getText().includes("SimpleComponent")))
         return;
 
       const className = node.name.text;
@@ -219,15 +223,12 @@ export const mySimplePlugin = (): DetectorPlugin => ({
   },
 });
 
-function extractMembers(
-  node: ts.ClassDeclaration,
-  checker: ts.TypeChecker,
-): ClassFragment["members"] {
+function extractMembers(node: ts.ClassDeclaration, checker: Checker): ClassFragment["members"] {
   const members: ClassFragment["members"] = [];
 
   for (const member of node.members) {
-    if (!ts.isPropertyDeclaration(member) || !member.name) continue;
-    if (!ts.isIdentifier(member.name)) continue;
+    if (!is.isPropertyDeclaration(member) || !member.name) continue;
+    if (!is.isIdentifier(member.name)) continue;
 
     const propName = member.name.text;
     const type = member.type

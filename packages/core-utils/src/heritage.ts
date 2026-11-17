@@ -1,14 +1,18 @@
-import ts from "typescript";
+import * as ts from "typescript/ast";
+import { symbolDeclarations } from "./node-utils.js";
+import { SymbolFlags } from "typescript/sync";
+import * as is from "typescript/ast/is";
+import type { Checker, Symbol as TsSymbol } from "typescript/sync";
 
 /** What an `extends` clause expression resolves to, for a matcher to inspect. */
 export interface HeritageMatch {
   /** The expression in the `extends` clause, as written. */
   expression: ts.Expression;
   /** The expression's symbol, resolved through an import alias when it is one. */
-  symbol: ts.Symbol | undefined;
+  symbol: TsSymbol | undefined;
   /** The class the symbol declares, when it declares one. */
   declaration: ts.ClassDeclaration | ts.ClassExpression | undefined;
-  checker: ts.TypeChecker;
+  checker: Checker;
 }
 
 export type HeritageMatcher = (match: HeritageMatch) => boolean;
@@ -25,7 +29,7 @@ export type HeritageMatcher = (match: HeritageMatch) => boolean;
  */
 export function inheritsFrom(
   node: ts.ClassLikeDeclaration,
-  checker: ts.TypeChecker,
+  checker: Checker,
   matches: HeritageMatcher,
 ): boolean {
   const heritage = node.heritageClauses?.find(
@@ -38,15 +42,18 @@ export function inheritsFrom(
     if (seen.has(expression)) return false;
     seen.add(expression);
 
-    if (ts.isCallExpression(expression)) return expression.arguments.some(visit);
-    if (!ts.isIdentifier(expression) && !ts.isPropertyAccessExpression(expression)) return false;
+    if (is.isCallExpression(expression)) return expression.arguments.some(visit);
+    if (!is.isIdentifier(expression) && !is.isPropertyAccessExpression(expression)) return false;
 
     const symbol = checker.getSymbolAtLocation(expression);
     const resolved =
-      symbol && symbol.flags & ts.SymbolFlags.Alias ? checker.getAliasedSymbol(symbol) : symbol;
-    const declaration = resolved?.declarations?.find(
+      symbol && symbol.flags & SymbolFlags.Alias ? checker.getAliasedSymbol(symbol) : symbol;
+    const declaration = symbolDeclarations(resolved, [
+      ts.SyntaxKind.ClassDeclaration,
+      ts.SyntaxKind.ClassExpression,
+    ]).find(
       (item): item is ts.ClassDeclaration | ts.ClassExpression =>
-        ts.isClassDeclaration(item) || ts.isClassExpression(item),
+        is.isClassDeclaration(item) || is.isClassExpression(item),
     );
 
     if (matches({ expression, symbol: resolved, declaration, checker })) return true;
@@ -54,8 +61,8 @@ export function inheritsFrom(
     const base = declaration?.heritageClauses?.find(
       (clause) => clause.token === ts.SyntaxKind.ExtendsKeyword,
     );
-    return !!base?.types[0] && visit(base.types[0].expression);
+    return !!base?.types[0] && visit((base.types[0] as ts.ExpressionWithTypeArguments).expression);
   };
 
-  return heritage.types.some((type) => visit(type.expression));
+  return heritage.types.some((type) => visit((type as ts.ExpressionWithTypeArguments).expression));
 }

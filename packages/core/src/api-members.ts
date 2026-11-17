@@ -1,6 +1,6 @@
-import ts from "typescript";
-import type { FileContext, ClassFragment } from "./types.js";
+import * as ts from "typescript/ast";
 import {
+  getModifiers,
   getJSDocInfo,
   getNodeTypeText,
   getParsedTypeText,
@@ -8,11 +8,15 @@ import {
   areTypeTextsEquivalent,
   parseCemMemberTags,
   getLiteralDefaultText,
+  typeToText,
 } from "@wc-toolkit/cem-generator-utils";
+import * as is from "typescript/ast/is";
+import type { Checker, Type as TsType } from "typescript/sync";
+import type { FileContext, ClassFragment } from "./types.js";
 
 const memberCache = new WeakMap<
   ts.ClassLikeDeclaration,
-  WeakMap<ts.TypeChecker, ClassFragment["members"]>
+  WeakMap<Checker, ClassFragment["members"]>
 >();
 
 /** Detects public class fields and methods for framework-specific detectors. */
@@ -28,9 +32,9 @@ export function detectClassMembers(
   const byName = new Map<string, NonNullable<ClassFragment["members"]>[number]>();
 
   for (const member of node.members) {
-    const modifiers = ts.canHaveModifiers(member) ? ts.getModifiers(member) : undefined;
-    if (ts.isPropertyDeclaration(member) && isDeclare(modifiers)) continue;
-    const nameText = member.name?.getText();
+    const modifiers = getModifiers(member);
+    if (is.isPropertyDeclaration(member) && isDeclare(modifiers)) continue;
+    const nameText = (member as { name?: ts.Node }).name?.getText();
     if (!nameText || nameText === "observedAttributes") continue;
     const privacy = nameText.startsWith("#") ? "private" : getPrivacy(modifiers);
 
@@ -40,9 +44,9 @@ export function detectClassMembers(
     if (memberDoc.internal) continue;
 
     if (
-      ts.isPropertyDeclaration(member) ||
-      ts.isGetAccessorDeclaration(member) ||
-      ts.isSetAccessorDeclaration(member)
+      is.isPropertyDeclaration(member) ||
+      is.isGetAccessorDeclaration(member) ||
+      is.isSetAccessorDeclaration(member)
     ) {
       const typeText = getNodeTypeText(member, context.checker);
       const parsedTypeText = shouldParseMember(privacy, isStatic(modifiers), context.typeParsing)
@@ -70,12 +74,12 @@ export function detectClassMembers(
         internal: memberDoc.internal,
         default:
           memberDoc.default ??
-          (ts.isPropertyDeclaration(member)
+          (is.isPropertyDeclaration(member)
             ? getLiteralDefaultText(member.initializer, context.checker)
             : undefined),
         customJsDocTags: memberDoc.customJsDocTags,
       });
-    } else if (ts.isMethodDeclaration(member) && !existing) {
+    } else if (is.isMethodDeclaration(member) && !existing) {
       byName.set(nameText, {
         name: nameText,
         kind: "method",
@@ -100,7 +104,7 @@ export function detectClassMembers(
   }
 
   const members = [...byName.values()];
-  const checkerCache = cachedByChecker ?? new WeakMap<ts.TypeChecker, ClassFragment["members"]>();
+  const checkerCache = cachedByChecker ?? new WeakMap<Checker, ClassFragment["members"]>();
   checkerCache.set(context.checker, members);
   memberCache.set(node, checkerCache);
   return cloneMembers(members);
@@ -176,7 +180,7 @@ function getMethodReturn(
       const expanded = parseTypes
         ? getParsedTypeTextFromType(returnType, context.checker)
         : undefined;
-      const returnTypeText = context.checker.typeToString(returnType).trim();
+      const returnTypeText = typeToText(returnType, context.checker).trim();
       parsedType =
         expanded && !areTypeTextsEquivalent(expanded, returnTypeText, { ignoreUndefined: true })
           ? expanded
@@ -188,21 +192,41 @@ function getMethodReturn(
   return { type, parsedType };
 }
 
+const methodReturnTypeCache = new WeakMap<
+  ts.MethodDeclaration,
+  WeakMap<Checker, TsType | undefined>
+>();
+
+/** Stores a method return type that was already fetched elsewhere (for example in a batch). */
+export function primeMethodReturnType(
+  method: ts.MethodDeclaration,
+  checker: Checker,
+  type: TsType | undefined,
+): void {
+  const byChecker = methodReturnTypeCache.get(method) ?? new WeakMap<Checker, TsType | undefined>();
+  byChecker.set(checker, type);
+  methodReturnTypeCache.set(method, byChecker);
+}
+
 function getSignatureReturnType(
   method: ts.MethodDeclaration,
-  checker: ts.TypeChecker,
-): ts.Type | undefined {
+  checker: Checker,
+): TsType | undefined {
+  const cached = methodReturnTypeCache.get(method);
+  if (cached?.has(checker)) return cached.get(checker);
   try {
     const signature = checker.getSignatureFromDeclaration(method);
-    return signature ? checker.getReturnTypeOfSignature(signature) : undefined;
+    const type = signature ? checker.getReturnTypeOfSignature(signature) : undefined;
+    primeMethodReturnType(method, checker, type);
+    return type;
   } catch {
     return undefined;
   }
 }
 
-function getReturnTypeText(type: ts.Type | undefined, checker: ts.TypeChecker): string | undefined {
+function getReturnTypeText(type: TsType | undefined, checker: Checker): string | undefined {
   if (!type) return undefined;
-  const text = checker.typeToString(type).trim();
+  const text = typeToText(type, checker).trim();
   return !text || text === "any" || text === "unknown" ? undefined : text;
 }
 
@@ -225,11 +249,11 @@ function getPrivacy(
 }
 
 function isReadonly(member: ts.ClassElement, owner: ts.ClassLikeDeclaration): boolean | undefined {
-  if (ts.isGetAccessorDeclaration(member)) {
+  if (is.isGetAccessorDeclaration(member)) {
     return hasMatchingSetter(member, owner) ? undefined : true;
   }
-  if (!ts.isPropertyDeclaration(member)) return undefined;
-  const modifiers = ts.canHaveModifiers(member) ? ts.getModifiers(member) : undefined;
+  if (!is.isPropertyDeclaration(member)) return undefined;
+  const modifiers = getModifiers(member);
   return modifiers?.some((m) => m.kind === ts.SyntaxKind.ReadonlyKeyword) ? true : undefined;
 }
 
@@ -238,10 +262,10 @@ function hasMatchingSetter(
   owner: ts.ClassLikeDeclaration,
 ): boolean {
   const getterName = getter.name.getText();
-  const getterStatic = isStatic(ts.canHaveModifiers(getter) ? ts.getModifiers(getter) : undefined);
+  const getterStatic = isStatic(getModifiers(getter));
   return owner.members.some((member) => {
-    if (!ts.isSetAccessorDeclaration(member)) return false;
-    const modifiers = ts.canHaveModifiers(member) ? ts.getModifiers(member) : undefined;
+    if (!is.isSetAccessorDeclaration(member)) return false;
+    const modifiers = getModifiers(member);
     return member.name.getText() === getterName && isStatic(modifiers) === getterStatic;
   });
 }

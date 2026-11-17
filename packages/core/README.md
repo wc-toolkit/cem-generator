@@ -58,6 +58,26 @@ const manifest = generateCem({
 
 - See `examples/plugins/define-registration-plugin.ts` for a minimal `afterAllFiles` pattern that collects `customElements.define()` calls and writes `tagName` via `byDeclaration` patch keys.
 
+## Benchmarking
+
+- `pnpm bench` generates fixed synthetic projects in a temp directory and reports cold and
+  warm timings with a manifest hash for each size.
+- `pnpm bench:compare` measures this build against another build (for example a worktree on an
+  older TypeScript version) in fresh processes, alternating their order between rounds. It
+  prints medians and verifies that both builds produce identical manifests.
+
+```sh
+BENCH_BASELINE=/path/to/other/packages/core/dist/index.js \
+BENCH_BASELINE_LABEL="TypeScript 6.0.3" \
+BENCH_CURRENT_LABEL="TypeScript 7.1" \
+pnpm bench:compare
+```
+
+Optional: `BENCH_FIXTURES` (comma-separated fixture names), `BENCH_ITERATIONS`, `BENCH_ROUNDS`,
+`BENCH_FIXTURE_ROOT` (reused between runs), and `BENCH_OUT_DIR` (writes a JSON report). Fixtures
+cover simple components, mixed component/model projects, template-heavy elements, ordinary CSS,
+and alias-heavy types. Add fixtures in `bench/fixtures.mjs`; they are generated, never committed.
+
 ## Demo
 
 - Run `pnpm --filter @wc-toolkit/cem-generator demo`

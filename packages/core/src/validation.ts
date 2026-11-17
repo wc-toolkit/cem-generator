@@ -1,4 +1,7 @@
-import ts from "typescript";
+import * as ts from "typescript/ast";
+import { symbolDeclarationPaths, symbolDeclarations } from "@wc-toolkit/cem-generator-utils";
+import { SymbolFlags } from "typescript/sync";
+import type { Checker, Symbol as TsSymbol } from "typescript/sync";
 import type { Package as CemPackage } from "custom-elements-manifest/schema";
 import type { ClassFragment, InternalManifest } from "./types.js";
 
@@ -34,7 +37,7 @@ export class ManifestValidationError extends Error {
 export function validateGeneratedManifest(
   manifest: CemPackage,
   internal: InternalManifest,
-  checker: ts.TypeChecker,
+  checker: Checker,
   sourceFiles: ts.SourceFile[],
   options: ManifestValidationOptions = {},
 ): ValidationFailure[] {
@@ -123,12 +126,14 @@ function checkInvariants(
 
 function checkExportedTypes(
   internal: InternalManifest,
-  checker: ts.TypeChecker,
+  checker: Checker,
   sourceFiles: ts.SourceFile[],
   severity: Exclude<ValidationSeverity, "off">,
   failures: ValidationFailure[],
 ) {
-  const sourceByPath = new Map(sourceFiles.map((sourceFile) => [sourceFile.fileName, sourceFile]));
+  const sourceByPath = new Map<string, ts.SourceFile>(
+    sourceFiles.map((sourceFile) => [sourceFile.fileName, sourceFile]),
+  );
 
   for (const module of internal.modules) {
     const sourceFile = sourceByPath.get(module.source ?? "");
@@ -137,7 +142,7 @@ function checkExportedTypes(
     for (const declaration of module.declarations) {
       const typeNames = collectReferencedTypeNames(declaration);
       for (const typeName of typeNames) {
-        const symbol = checker.resolveName(typeName, sourceFile, ts.SymbolFlags.Type, false);
+        const symbol = checker.resolveName(typeName, SymbolFlags.Type, sourceFile, false);
         if (!symbol || isExportedFromSource(symbol, sourceFile, checker)) continue;
         addFailure(
           failures,
@@ -174,14 +179,13 @@ function collectReferencedTypeNames(declaration: ClassFragment): string[] {
 }
 
 function isExportedFromSource(
-  symbol: ts.Symbol,
+  symbol: TsSymbol,
   sourceFile: ts.SourceFile,
-  checker: ts.TypeChecker,
+  checker: Checker,
 ): boolean {
-  const resolved = symbol.flags & ts.SymbolFlags.Alias ? checker.getAliasedSymbol(symbol) : symbol;
-  if (resolved.declarations?.some((declaration) => isStandardLibraryDeclaration(declaration)))
-    return true;
-  const moduleSymbol = (sourceFile as ts.SourceFile & { symbol?: ts.Symbol }).symbol;
+  const resolved = symbol.flags & SymbolFlags.Alias ? checker.getAliasedSymbol(symbol) : symbol;
+  if (symbolDeclarationPaths(resolved).some((path) => isStandardLibraryPath(path))) return true;
+  const moduleSymbol = (sourceFile as ts.SourceFile & { symbol?: TsSymbol }).symbol;
   if (
     moduleSymbol &&
     checker
@@ -191,15 +195,14 @@ function isExportedFromSource(
     return true;
   }
   return (
-    resolved.declarations?.some((declaration) => {
+    symbolDeclarations(resolved).some((declaration) => {
       return (ts.getCombinedModifierFlags(declaration) & ts.ModifierFlags.Export) !== 0;
     }) ?? false
   );
 }
 
-function isStandardLibraryDeclaration(declaration: ts.Declaration): boolean {
-  const fileName = declaration.getSourceFile().fileName.replace(/\\/g, "/");
-  return fileName.includes("/typescript/lib/") || fileName.includes("/typescript/lib.");
+function isStandardLibraryPath(filePath: string): boolean {
+  return /[^/]*typescript[^/]*\/lib\/lib\.[^/]+\.d\.ts$/i.test(filePath.replace(/\\/g, "/"));
 }
 
 const NON_EXPORTABLE_TYPES = new Set([

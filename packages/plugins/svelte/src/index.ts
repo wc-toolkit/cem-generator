@@ -1,5 +1,5 @@
 import path from "node:path";
-import ts from "typescript";
+import * as is from "typescript/ast/is";
 import {
   parseCssMetadata,
   type ClassFragment,
@@ -7,7 +7,7 @@ import {
   type FileContext,
   type ManifestFragment,
 } from "@wc-toolkit/cem-generator";
-import { parseCemClassTags } from "@wc-toolkit/cem-generator-utils";
+import { withSnippetParser, parseCemClassTags } from "@wc-toolkit/cem-generator-utils";
 
 /** Detects Svelte components compiled as custom elements. */
 export function sveltePlugin(): DetectorPlugin {
@@ -167,14 +167,11 @@ function getComponentMetadata(source: string, tagName: string): SvelteMetadata {
 /** Reuses the shared JSDoc parser by wrapping a Svelte comment body as a JSDoc block. */
 function parseCustomJsDocTags(comment: string | undefined): ClassFragment["customJsDocTags"] {
   if (!comment) return undefined;
-  const sourceFile = ts.createSourceFile(
-    "comment.ts",
-    `/**${comment}*/\nclass Doc {}`,
-    ts.ScriptTarget.Latest,
-    true,
-  );
-  const node = sourceFile.statements.find(ts.isClassDeclaration);
-  return node ? parseCemClassTags(node).customJsDocTags : undefined;
+  return withSnippetParser((parseSnippet) => {
+    const sourceFile = parseSnippet(`/**${comment}*/\nclass Doc {}`);
+    const node = sourceFile.statements.find(is.isClassDeclaration);
+    return node ? parseCemClassTags(node).customJsDocTags : undefined;
+  });
 }
 
 function discoverSlots(source: string): ClassFragment["slots"] {

@@ -1,4 +1,13 @@
-import ts from "typescript";
+import * as ts from "typescript/ast";
+import {
+  getModifiers,
+  getDecorators,
+  getJSDocInfo,
+  getNodeTypeText,
+  getParsedTypeText,
+  parseCemClassTags,
+} from "@wc-toolkit/cem-generator-utils";
+import * as is from "typescript/ast/is";
 import {
   detectClassMembers,
   type ClassFragment,
@@ -7,12 +16,6 @@ import {
   type ManifestFragment,
   discoverFrameworkApis,
 } from "@wc-toolkit/cem-generator";
-import {
-  getJSDocInfo,
-  getNodeTypeText,
-  getParsedTypeText,
-  parseCemClassTags,
-} from "@wc-toolkit/cem-generator-utils";
 
 const STENCIL_LIFECYCLE = new Set([
   "render",
@@ -41,8 +44,8 @@ export function stencilPlugin(): DetectorPlugin {
     onFile(context: FileContext): ManifestFragment {
       const fragment: ManifestFragment = {};
 
-      ts.forEachChild(context.sourceFile, function visit(node) {
-        if (ts.isClassDeclaration(node) && node.name && getDecorator(node, "Component")) {
+      context.sourceFile.forEachChild(function visit(node) {
+        if (is.isClassDeclaration(node) && node.name && getDecorator(node, "Component")) {
           const classDoc = parseCemClassTags(node);
           const members = detectClassMembers(node, context) ?? [];
           const props = getProps(node, context, members);
@@ -81,7 +84,7 @@ export function stencilPlugin(): DetectorPlugin {
 
           fragment[node.name.text] = classFragment;
         }
-        ts.forEachChild(node, visit);
+        node.forEachChild(visit);
       });
 
       return fragment;
@@ -115,7 +118,7 @@ function getProps(
   const props: StencilAttribute[] = [];
 
   for (const member of node.members) {
-    if (!ts.isPropertyDeclaration(member)) continue;
+    if (!is.isPropertyDeclaration(member)) continue;
     const decorator = getDecorator(member, "Prop");
     if (!decorator) continue;
 
@@ -142,7 +145,7 @@ function getProps(
 function getEvents(node: ts.ClassDeclaration, context: FileContext): StencilEvent[] {
   const events: StencilEvent[] = [];
   for (const member of node.members) {
-    if (!ts.isPropertyDeclaration(member)) continue;
+    if (!is.isPropertyDeclaration(member)) continue;
     const decorator = getDecorator(member, "Event");
     if (!decorator) continue;
 
@@ -159,12 +162,12 @@ function getEvents(node: ts.ClassDeclaration, context: FileContext): StencilEven
 }
 
 function getDecorator(node: ts.Node, name: string): ts.Decorator | undefined {
-  if (!ts.canHaveDecorators(node)) return undefined;
-  return (ts.getDecorators(node) ?? []).find((decorator) => {
-    const expression = ts.isCallExpression(decorator.expression)
+  if (!(getDecorators(node) !== undefined)) return undefined;
+  return (getDecorators(node) ?? []).find((decorator) => {
+    const expression = is.isCallExpression(decorator.expression)
       ? decorator.expression.expression
       : decorator.expression;
-    return ts.isIdentifier(expression) && expression.text === name;
+    return is.isIdentifier(expression) && expression.text === name;
   });
 }
 
@@ -173,17 +176,17 @@ function getDecoratorOptions(decorator: ts.Decorator): {
   eventName?: string;
   reflects?: boolean;
 } {
-  if (!ts.isCallExpression(decorator.expression)) return {};
+  if (!is.isCallExpression(decorator.expression)) return {};
   const argument = decorator.expression.arguments[0];
-  if (!argument || !ts.isObjectLiteralExpression(argument)) return {};
+  if (!argument || !is.isObjectLiteralExpression(argument)) return {};
 
   const result: ReturnType<typeof getDecoratorOptions> = {};
   for (const property of argument.properties) {
-    if (!ts.isPropertyAssignment(property)) continue;
+    if (!is.isPropertyAssignment(property)) continue;
     const name = property.name.getText();
-    if (name === "attribute" && ts.isStringLiteralLike(property.initializer))
+    if (name === "attribute" && is.isStringLiteralLikeNode(property.initializer))
       result.attribute = property.initializer.text;
-    if (name === "eventName" && ts.isStringLiteralLike(property.initializer))
+    if (name === "eventName" && is.isStringLiteralLikeNode(property.initializer))
       result.eventName = property.initializer.text;
     if (
       (name === "reflect" || name === "reflects") &&
@@ -197,18 +200,18 @@ function getDecoratorOptions(decorator: ts.Decorator): {
 
 function getComponentTagName(node: ts.ClassDeclaration): string | undefined {
   const decorator = getDecorator(node, "Component");
-  if (!decorator || !ts.isCallExpression(decorator.expression)) return undefined;
+  if (!decorator || !is.isCallExpression(decorator.expression)) return undefined;
   const argument = decorator.expression.arguments[0];
-  if (!argument || !ts.isObjectLiteralExpression(argument)) return undefined;
+  if (!argument || !is.isObjectLiteralExpression(argument)) return undefined;
   const tag = argument.properties.find(
     (property): property is ts.PropertyAssignment =>
-      ts.isPropertyAssignment(property) && property.name.getText() === "tag",
+      is.isPropertyAssignment(property) && property.name.getText() === "tag",
   )?.initializer;
-  return tag && ts.isStringLiteralLike(tag) ? tag.text : undefined;
+  return tag && is.isStringLiteralLikeNode(tag) ? tag.text : undefined;
 }
 
 function getExportName(node: ts.ClassDeclaration): string | undefined {
-  const modifiers = ts.canHaveModifiers(node) ? ts.getModifiers(node) : undefined;
+  const modifiers = getModifiers(node);
   if (!modifiers?.some((modifier) => modifier.kind === ts.SyntaxKind.ExportKeyword))
     return undefined;
   return modifiers.some((modifier) => modifier.kind === ts.SyntaxKind.DefaultKeyword)

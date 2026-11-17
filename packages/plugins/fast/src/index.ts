@@ -1,4 +1,18 @@
-import ts from "typescript";
+import * as ts from "typescript/ast";
+import {
+  symbolDeclarations,
+  getModifiers,
+  getDecorators,
+  getJSDocInfo,
+  getNodeTypeText,
+  getParsedTypeText,
+  inheritsFrom,
+  parseCemClassTags,
+  resolveMeaningfulParsedTypeFromText,
+} from "@wc-toolkit/cem-generator-utils";
+import { SymbolFlags } from "typescript/sync";
+import * as is from "typescript/ast/is";
+import type { Checker } from "typescript/sync";
 import {
   detectClassMembers,
   detectClassEvents,
@@ -9,14 +23,6 @@ import {
   type FileContext,
   type ManifestFragment,
 } from "@wc-toolkit/cem-generator";
-import {
-  getJSDocInfo,
-  getNodeTypeText,
-  getParsedTypeText,
-  inheritsFrom,
-  parseCemClassTags,
-  resolveMeaningfulParsedTypeFromText,
-} from "@wc-toolkit/cem-generator-utils";
 
 export function fastPlugin(): DetectorPlugin {
   return {
@@ -33,8 +39,8 @@ export function fastPlugin(): DetectorPlugin {
     onFile(context: FileContext): ManifestFragment {
       const fragment: ManifestFragment = {};
 
-      ts.forEachChild(context.sourceFile, function visit(node) {
-        if (ts.isClassDeclaration(node) && node.name && extendsFastElement(node, context.checker)) {
+      context.sourceFile.forEachChild(function visit(node) {
+        if (is.isClassDeclaration(node) && node.name && extendsFastElement(node, context.checker)) {
           const className = node.name.text;
           const classDoc = parseCemClassTags(node);
           const tagName = getCustomElementTagName(node);
@@ -89,7 +95,7 @@ export function fastPlugin(): DetectorPlugin {
           }
           fragment[className] = classFragment;
         }
-        ts.forEachChild(node, visit);
+        node.forEachChild(visit);
       });
 
       return fragment;
@@ -99,13 +105,13 @@ export function fastPlugin(): DetectorPlugin {
 
 function getFastSuperclass(
   node: ts.ClassDeclaration,
-  checker: ts.TypeChecker,
+  checker: Checker,
 ): { name: string; module?: string } {
   const heritage = node.heritageClauses?.find(
     (clause) => clause.token === ts.SyntaxKind.ExtendsKeyword,
   );
-  const expression = heritage?.types[0]?.expression;
-  if (!expression || !ts.isIdentifier(expression)) {
+  const expression = (heritage?.types[0] as ts.ExpressionWithTypeArguments)?.expression;
+  if (!expression || !is.isIdentifier(expression)) {
     return { name: "FASTElement", module: "@microsoft/fast-element" };
   }
 
@@ -116,19 +122,21 @@ function getFastSuperclass(
 
   const symbol = checker.getSymbolAtLocation(expression);
   const resolved =
-    symbol && symbol.flags & ts.SymbolFlags.Alias ? checker.getAliasedSymbol(symbol) : symbol;
-  const declaration = resolved?.declarations?.find(ts.isClassDeclaration);
+    symbol && symbol.flags & SymbolFlags.Alias ? checker.getAliasedSymbol(symbol) : symbol;
+  const declaration = symbolDeclarations(resolved, [ts.SyntaxKind.ClassDeclaration]).find(
+    is.isClassDeclaration,
+  );
   if (!declaration?.name) return { name, module: "@microsoft/fast-element" };
 
   return { name: declaration.name.text, module: declaration.getSourceFile().fileName };
 }
 
-function extendsFastElement(node: ts.ClassDeclaration, checker: ts.TypeChecker): boolean {
+function extendsFastElement(node: ts.ClassDeclaration, checker: Checker): boolean {
   return inheritsFrom(
     node,
     checker,
     ({ expression }) =>
-      ts.isIdentifier(expression) &&
+      is.isIdentifier(expression) &&
       (expression.text === "FASTElement" || expression.text === "FastElement"),
   );
 }
@@ -142,8 +150,8 @@ function getAttrMetadata(
   const attributes: NonNullable<ClassFragment["attributes"]> = [];
 
   for (const member of node.members) {
-    if (!ts.isPropertyDeclaration(member)) continue;
-    const attrDecorator = (ts.getDecorators?.(member) ?? []).find(
+    if (!is.isPropertyDeclaration(member)) continue;
+    const attrDecorator = (getDecorators(member) ?? []).find(
       (decorator) => getDecoratorName(decorator) === "attr",
     );
     if (!attrDecorator) continue;
@@ -170,36 +178,36 @@ function getAttrMetadata(
 }
 
 function getCustomElementTagName(node: ts.ClassDeclaration): string | undefined {
-  const decorator = (ts.getDecorators?.(node) ?? []).find(
+  const decorator = (getDecorators(node) ?? []).find(
     (item) => getDecoratorName(item) === "customElement",
   );
-  if (!decorator || !ts.isCallExpression(decorator.expression)) return undefined;
+  if (!decorator || !is.isCallExpression(decorator.expression)) return undefined;
   const argument = decorator.expression.arguments[0];
-  if (argument && ts.isStringLiteralLike(argument)) return argument.text;
-  if (!argument || !ts.isObjectLiteralExpression(argument)) return undefined;
+  if (argument && is.isStringLiteralLikeNode(argument)) return argument.text;
+  if (!argument || !is.isObjectLiteralExpression(argument)) return undefined;
   const name = argument.properties.find(
     (property): property is ts.PropertyAssignment =>
-      ts.isPropertyAssignment(property) && property.name.getText() === "name",
+      is.isPropertyAssignment(property) && property.name.getText() === "name",
   )?.initializer;
-  return name && ts.isStringLiteralLike(name) ? name.text : undefined;
+  return name && is.isStringLiteralLikeNode(name) ? name.text : undefined;
 }
 
 function getDecoratorName(decorator: ts.Decorator): string | undefined {
-  const expression = ts.isCallExpression(decorator.expression)
+  const expression = is.isCallExpression(decorator.expression)
     ? decorator.expression.expression
     : decorator.expression;
-  return ts.isIdentifier(expression) ? expression.text : undefined;
+  return is.isIdentifier(expression) ? expression.text : undefined;
 }
 
 function getAttrOptions(decorator: ts.Decorator): { attribute?: string } {
-  if (!ts.isCallExpression(decorator.expression)) return {};
+  if (!is.isCallExpression(decorator.expression)) return {};
   const argument = decorator.expression.arguments[0];
-  if (!argument || !ts.isObjectLiteralExpression(argument)) return {};
+  if (!argument || !is.isObjectLiteralExpression(argument)) return {};
   const attribute = argument.properties.find(
     (property): property is ts.PropertyAssignment =>
-      ts.isPropertyAssignment(property) && property.name.getText() === "attribute",
+      is.isPropertyAssignment(property) && property.name.getText() === "attribute",
   )?.initializer;
-  return attribute && ts.isStringLiteralLike(attribute) ? { attribute: attribute.text } : {};
+  return attribute && is.isStringLiteralLikeNode(attribute) ? { attribute: attribute.text } : {};
 }
 
 function filterFastMembers(members: ClassFragment["members"]): ClassFragment["members"] {
@@ -222,14 +230,14 @@ function mergeFastEvents(
   const byName = new Map((events ?? []).map((event) => [event.name, event]));
 
   function visit(current: ts.Node) {
-    if (ts.isClassDeclaration(current)) return;
+    if (is.isClassDeclaration(current)) return;
     if (
-      ts.isCallExpression(current) &&
-      ts.isPropertyAccessExpression(current.expression) &&
+      is.isCallExpression(current) &&
+      is.isPropertyAccessExpression(current.expression) &&
       current.expression.name.text === "$emit"
     ) {
       const name = current.arguments[0];
-      if (name && ts.isStringLiteralLike(name)) {
+      if (name && is.isStringLiteralLikeNode(name)) {
         const detail = current.arguments[1];
         byName.set(name.text, {
           name: name.text,
@@ -238,15 +246,15 @@ function mergeFastEvents(
         });
       }
     }
-    ts.forEachChild(current, visit);
+    current.forEachChild(visit);
   }
 
-  ts.forEachChild(node, visit);
+  node.forEachChild(visit);
   return byName.size ? [...byName.values()] : undefined;
 }
 
 function getExportName(node: ts.ClassDeclaration): string | undefined {
-  const modifiers = ts.canHaveModifiers(node) ? ts.getModifiers(node) : undefined;
+  const modifiers = getModifiers(node);
   if (!modifiers?.some((modifier) => modifier.kind === ts.SyntaxKind.ExportKeyword))
     return undefined;
   return modifiers.some((modifier) => modifier.kind === ts.SyntaxKind.DefaultKeyword)

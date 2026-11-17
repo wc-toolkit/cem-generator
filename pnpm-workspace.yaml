@@ -4,7 +4,7 @@ packages:
   - "packages/docs"
 
 catalog:
-  typescript: 6.0.3
+  typescript: 7.1.0-beta
 
 allowBuilds:
   esbuild: true

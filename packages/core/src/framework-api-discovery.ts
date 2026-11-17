@@ -1,4 +1,8 @@
-import ts from "typescript";
+import * as ts from "typescript/ast";
+import { symbolDeclarations } from "@wc-toolkit/cem-generator-utils";
+import { SymbolFlags } from "typescript/sync";
+import * as is from "typescript/ast/is";
+import type { Checker, Symbol as TsSymbol } from "typescript/sync";
 import type { ClassFragment } from "./types.js";
 import { parseCssMetadata } from "./css-metadata.js";
 
@@ -11,7 +15,7 @@ export type DiscoveredFrameworkApis = Pick<
 export function discoverFrameworkApis(
   root: ts.Node,
   sourceFile: ts.SourceFile,
-  checker?: ts.TypeChecker,
+  checker?: Checker,
 ): DiscoveredFrameworkApis {
   const events: NonNullable<ClassFragment["events"]> = [];
   const slots: NonNullable<ClassFragment["slots"]> = [];
@@ -20,8 +24,8 @@ export function discoverFrameworkApis(
   const cssStates: NonNullable<ClassFragment["cssStates"]> = [];
 
   function visit(node: ts.Node) {
-    if (ts.isJsxElement(node) || ts.isJsxSelfClosingElement(node)) {
-      const opening = ts.isJsxElement(node) ? node.openingElement : node;
+    if (is.isJsxElement(node) || is.isJsxSelfClosingElement(node)) {
+      const opening = is.isJsxElement(node) ? node.openingElement : node;
       const elementName = opening.tagName.getText(sourceFile);
       if (elementName === "slot") {
         addNamed(slots, {
@@ -37,33 +41,33 @@ export function discoverFrameworkApis(
       }
     }
 
-    if (ts.isTemplateExpression(node) || ts.isNoSubstitutionTemplateLiteral(node)) {
+    if (is.isTemplateExpression(node) || is.isNoSubstitutionTemplateLiteral(node)) {
       scanText(node.getText(sourceFile));
     }
     if (
-      ts.isStringLiteral(node) &&
+      is.isStringLiteral(node) &&
       /<slot\b|\bpart\s*=|:host\b|--[\w-]+|\.states\.add/.test(node.text)
     ) {
       scanText(node.text);
     }
 
-    if (ts.isCallExpression(node)) {
+    if (is.isCallExpression(node)) {
       if (
-        ts.isPropertyAccessExpression(node.expression) &&
+        is.isPropertyAccessExpression(node.expression) &&
         node.expression.name.text === "dispatchEvent"
       ) {
         const event = node.arguments[0];
         if (
           event &&
-          ts.isNewExpression(event) &&
-          ts.isIdentifier(event.expression) &&
+          is.isNewExpression(event) &&
+          is.isIdentifier(event.expression) &&
           (event.expression.text === "Event" || event.expression.text === "CustomEvent")
         ) {
           const name = getStringArgument(event.arguments?.[0]);
           if (name) addNamed(events, { name, type: event.expression.text });
         }
       }
-      if (ts.isPropertyAccessExpression(node.expression) && node.expression.name.text === "$emit") {
+      if (is.isPropertyAccessExpression(node.expression) && node.expression.name.text === "$emit") {
         const name = getStringArgument(node.arguments[0]);
         if (name)
           addNamed(events, {
@@ -74,7 +78,7 @@ export function discoverFrameworkApis(
       }
     }
 
-    ts.forEachChild(node, visit);
+    node.forEachChild(visit);
   }
 
   function scanText(text: string) {
@@ -112,49 +116,51 @@ export function discoverFrameworkApis(
     cssStates: cssStates.length ? cssStates : undefined,
   };
 
-  function scanReferencedStyles(styleRoot: ts.Node, typeChecker: ts.TypeChecker): void {
-    function scanExpression(expression: ts.Expression, seen: Set<ts.Symbol>): void {
-      if (ts.isIdentifier(expression)) {
+  function scanReferencedStyles(styleRoot: ts.Node, typeChecker: Checker): void {
+    function scanExpression(expression: ts.Expression, seen: Set<TsSymbol>): void {
+      if (is.isIdentifier(expression)) {
         const symbol = typeChecker.getSymbolAtLocation(expression);
         const resolved =
-          symbol && symbol.flags & ts.SymbolFlags.Alias
+          symbol && symbol.flags & SymbolFlags.Alias
             ? typeChecker.getAliasedSymbol(symbol)
             : symbol;
         if (!resolved || seen.has(resolved)) return;
         seen.add(resolved);
-        for (const declaration of resolved.declarations ?? []) {
-          if (ts.isVariableDeclaration(declaration) && declaration.initializer) {
+        for (const declaration of symbolDeclarations(resolved, [
+          ts.SyntaxKind.VariableDeclaration,
+        ])) {
+          if (is.isVariableDeclaration(declaration) && declaration.initializer) {
             scanExpression(declaration.initializer, seen);
           }
         }
         return;
       }
 
-      if (ts.isArrayLiteralExpression(expression)) {
+      if (is.isArrayLiteralExpression(expression)) {
         for (const element of expression.elements) {
-          if (ts.isExpression(element)) scanExpression(element, seen);
+          if (is.isExpression(element)) scanExpression(element, seen);
         }
         return;
       }
 
-      if (ts.isParenthesizedExpression(expression)) {
+      if (is.isParenthesizedExpression(expression)) {
         scanExpression(expression.expression, seen);
         return;
       }
 
-      if (ts.isTemplateExpression(expression) || ts.isNoSubstitutionTemplateLiteral(expression)) {
+      if (is.isTemplateExpression(expression) || is.isNoSubstitutionTemplateLiteral(expression)) {
         scanText(expression.getText(sourceFile));
       }
     }
 
     function visitStyles(node: ts.Node): void {
       const isStylesProperty =
-        (ts.isPropertyDeclaration(node) || ts.isPropertyAssignment(node)) &&
+        (is.isPropertyDeclaration(node) || is.isPropertyAssignment(node)) &&
         node.name.getText(sourceFile) === "styles";
       if (isStylesProperty && node.initializer) {
         scanExpression(node.initializer, new Set());
       }
-      ts.forEachChild(node, visitStyles);
+      node.forEachChild(visitStyles);
     }
 
     visitStyles(styleRoot);
@@ -164,10 +170,10 @@ export function discoverFrameworkApis(
 function getJsxAttributeValue(element: ts.JsxOpeningLikeElement, name: string): string | undefined {
   const attribute = element.attributes.properties.find(
     (property): property is ts.JsxAttribute =>
-      ts.isJsxAttribute(property) && ts.isIdentifier(property.name) && property.name.text === name,
+      is.isJsxAttribute(property) && is.isIdentifier(property.name) && property.name.text === name,
   );
   const initializer = attribute?.initializer;
-  return initializer && ts.isStringLiteral(initializer)
+  return initializer && is.isStringLiteral(initializer)
     ? initializer.text
     : attribute
       ? ""
@@ -175,7 +181,7 @@ function getJsxAttributeValue(element: ts.JsxOpeningLikeElement, name: string): 
 }
 
 function getStringArgument(argument: ts.Expression | undefined): string | undefined {
-  return argument && ts.isStringLiteralLike(argument) ? argument.text : undefined;
+  return argument && is.isStringLiteralLikeNode(argument) ? argument.text : undefined;
 }
 
 function getJsxLeadingComment(node: ts.Node, sourceFile: ts.SourceFile): string | undefined {

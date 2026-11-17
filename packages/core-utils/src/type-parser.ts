@@ -1,13 +1,92 @@
-import ts from "typescript";
+import * as ts from "typescript/ast";
+import {
+  hasDeclarationOfKind,
+  hasLibraryDeclaration,
+  primaryDeclaration,
+  symbolDeclarations,
+} from "./node-utils.js";
+import {
+  isIntersectionType,
+  isUnionType,
+  LiteralType,
+  ObjectFlags,
+  type ObjectType,
+  SymbolFlags,
+  TypeFlags,
+  TypeFormatFlags,
+  TypeReference,
+} from "typescript/sync";
+import * as is from "typescript/ast/is";
+import type { Checker, Type as TsType } from "typescript/sync";
 
-const typeLookupCache = new WeakMap<ts.SourceFile, Map<string, ts.Node>>();
-const nodeTypeTextCache = new WeakMap<ts.Node, WeakMap<ts.TypeChecker, string | undefined>>();
-const parsedTypeTextCache = new WeakMap<ts.Node, WeakMap<ts.TypeChecker, string | undefined>>();
+const typeLookupCache = new WeakMap<ts.SourceFile, TypeLookup>();
+const nodeTypeTextCache = new WeakMap<ts.Node, WeakMap<Checker, string | undefined>>();
+const parsedTypeTextCache = new WeakMap<ts.Node, WeakMap<Checker, string | undefined>>();
+const typeAtLocationCache = new WeakMap<ts.Node, WeakMap<Checker, TsType>>();
+
+/** The type at a node. Each checker query is a round trip, so repeated lookups are shared. */
+export function typeAtLocation(node: ts.Node, checker: Checker): TsType {
+  const byChecker = typeAtLocationCache.get(node);
+  const cached = byChecker?.get(checker);
+  if (cached) return cached;
+  const type = checker.getTypeAtLocation(node);
+  const next = byChecker ?? new WeakMap<Checker, TsType>();
+  next.set(checker, type);
+  if (!byChecker) typeAtLocationCache.set(node, next);
+  return type;
+}
+
+/** Stores a type that was already fetched elsewhere (for example in a batched request). */
+export function primeTypeAtLocation(node: ts.Node, checker: Checker, type: TsType): void {
+  const byChecker = typeAtLocationCache.get(node) ?? new WeakMap<Checker, TsType>();
+  byChecker.set(checker, type);
+  typeAtLocationCache.set(node, byChecker);
+}
+
+const INTRINSIC_TEXT_FLAGS =
+  TypeFlags.String |
+  TypeFlags.Number |
+  TypeFlags.BigInt |
+  TypeFlags.ESSymbol |
+  TypeFlags.Void |
+  TypeFlags.Undefined |
+  TypeFlags.Null |
+  TypeFlags.Never |
+  TypeFlags.Unknown |
+  TypeFlags.Any;
+
+const typeTextCache = new WeakMap<TsType, string>();
+const fullTypeTextCache = new WeakMap<TsType, string>();
+
+/** The type's own name when it is a plain intrinsic, which the type object carries locally. */
+function intrinsicTypeText(type: TsType): string | undefined {
+  if (!(type.flags & INTRINSIC_TEXT_FLAGS)) return undefined;
+  const name = (type as { intrinsicName?: string }).intrinsicName;
+  return name && name !== "error" ? name : undefined;
+}
+
+/**
+ * Text of a type as the checker prints it. Every call to the checker is a round trip to the
+ * compiler process, so intrinsic names are read locally and results are kept per type object.
+ */
+export function typeToText(type: TsType, checker: Checker, noTruncation = false): string {
+  const cache = noTruncation ? fullTypeTextCache : typeTextCache;
+  const cached = cache.get(type);
+  if (cached !== undefined) return cached;
+  const text =
+    intrinsicTypeText(type) ??
+    (noTruncation
+      ? checker.typeToString(type, undefined, TypeFormatFlags.NoTruncation)
+      : checker.typeToString(type));
+  cache.set(type, text);
+  return text;
+}
+
 const MAX_EXPANDED_TYPE_LENGTH = 100_000;
 const MAX_EXPANDED_TYPE_PROPERTIES = 500;
 
 type FormatState = {
-  visited: Set<ts.Type>;
+  visited: Set<TsType>;
   remaining: number;
 };
 
@@ -18,7 +97,7 @@ type FormatState = {
  * 1) Explicit type annotation text
  * 2) TypeChecker inference at node location
  */
-export function getNodeTypeText(node: ts.Node, checker: ts.TypeChecker): string | undefined {
+export function getNodeTypeText(node: ts.Node, checker: Checker): string | undefined {
   const maybeTyped = node as { type?: ts.TypeNode };
   if (maybeTyped.type) {
     const text = normalizeTypeText(maybeTyped.type.getText());
@@ -28,11 +107,10 @@ export function getNodeTypeText(node: ts.Node, checker: ts.TypeChecker): string 
   try {
     const cachedByChecker = nodeTypeTextCache.get(node);
     if (cachedByChecker?.has(checker)) return cachedByChecker.get(checker);
-    const type = checker.getTypeAtLocation(node);
-    const text = checker.typeToString(type).trim();
+    const type = typeAtLocation(node, checker);
+    const text = typeToText(type, checker).trim();
     const result = !text || text === "any" || text === "unknown" ? undefined : text;
-    const byChecker =
-      nodeTypeTextCache.get(node) ?? new WeakMap<ts.TypeChecker, string | undefined>();
+    const byChecker = nodeTypeTextCache.get(node) ?? new WeakMap<Checker, string | undefined>();
     byChecker.set(checker, result);
     nodeTypeTextCache.set(node, byChecker);
     return result;
@@ -53,17 +131,16 @@ export function normalizeTypeText(text: string): string {
  *
  * Example: `Target | undefined` -> `'a' | 'b' | undefined`
  */
-export function getParsedTypeText(node: ts.Node, checker: ts.TypeChecker): string | undefined {
+export function getParsedTypeText(node: ts.Node, checker: Checker): string | undefined {
   try {
     const annotation = (node as { type?: ts.TypeNode }).type;
     if (annotation && isOpaqueTypeReference(annotation, checker)) return undefined;
     const cachedByChecker = parsedTypeTextCache.get(node);
     if (cachedByChecker?.has(checker)) return cachedByChecker.get(checker);
-    const type = checker.getTypeAtLocation(node);
+    const type = typeAtLocation(node, checker);
     const expanded = getParsedTypeTextFromType(type, checker);
     const result = expanded || undefined;
-    const byChecker =
-      parsedTypeTextCache.get(node) ?? new WeakMap<ts.TypeChecker, string | undefined>();
+    const byChecker = parsedTypeTextCache.get(node) ?? new WeakMap<Checker, string | undefined>();
     byChecker.set(checker, result);
     parsedTypeTextCache.set(node, byChecker);
     return result;
@@ -72,21 +149,13 @@ export function getParsedTypeText(node: ts.Node, checker: ts.TypeChecker): strin
   }
 }
 
-function isOpaqueTypeReference(node: ts.TypeNode, checker: ts.TypeChecker): boolean {
-  if (!ts.isTypeReferenceNode(node)) return false;
+function isOpaqueTypeReference(node: ts.TypeNode, checker: Checker): boolean {
+  if (!is.isTypeReferenceNode(node)) return false;
   const symbol = checker.getSymbolAtLocation(node.typeName);
-  return (
-    symbol?.declarations?.some((declaration) => {
-      const fileName = declaration.getSourceFile().fileName;
-      return (
-        declaration.getSourceFile().isDeclarationFile &&
-        /[\\/]node_modules[\\/]|[\\/]lib\.[^/\\]+\.d\.ts$/.test(fileName)
-      );
-    }) ?? false
-  );
+  return hasLibraryDeclaration(symbol);
 }
 
-export function getParsedTypeTextFromType(type: ts.Type, checker: ts.TypeChecker): string {
+export function getParsedTypeTextFromType(type: TsType, checker: Checker): string {
   const state: FormatState = { visited: new Set(), remaining: MAX_EXPANDED_TYPE_LENGTH };
   return normalizeUnionText(formatType(type, checker, state, 0));
 }
@@ -181,7 +250,7 @@ function splitTopLevelOperator(text: string, operator: "|" | "&"): string[] {
 export function resolveParsedTypeFromText(
   typeText: string | undefined,
   sourceFile: ts.SourceFile,
-  checker: ts.TypeChecker,
+  checker: Checker,
 ): string | undefined {
   if (!typeText) return undefined;
   const parts = splitUnion(typeText)
@@ -194,9 +263,9 @@ export function resolveParsedTypeFromText(
     const node = findTypeNodeWithImports(sourceFile, part, checker);
     if (!node) return part;
     try {
-      const type = ts.isTypeAliasDeclaration(node)
+      const type = is.isTypeAliasDeclaration(node)
         ? checker.getTypeFromTypeNode(node.type)
-        : checker.getTypeAtLocation((node as { name?: ts.Node }).name ?? node);
+        : typeAtLocation((node as { name?: ts.Node }).name ?? node, checker);
       return getParsedTypeTextFromType(type, checker);
     } catch {
       return part;
@@ -209,7 +278,7 @@ export function resolveParsedTypeFromText(
 export function resolveMeaningfulParsedTypeFromText(
   typeText: string | undefined,
   sourceFile: ts.SourceFile,
-  checker: ts.TypeChecker,
+  checker: Checker,
 ): string | undefined {
   const resolved = resolveParsedTypeFromText(typeText, sourceFile, checker);
   return resolved && !areTypeTextsEquivalent(resolved, typeText, { ignoreUndefined: true })
@@ -217,73 +286,80 @@ export function resolveMeaningfulParsedTypeFromText(
     : undefined;
 }
 
-function formatType(
-  type: ts.Type,
-  checker: ts.TypeChecker,
-  state: FormatState,
-  depth: number,
-): string {
+function formatType(type: TsType, checker: Checker, state: FormatState, depth: number): string {
   if (state.remaining <= 0) return "unknown";
   if (depth > 8 || state.visited.has(type)) {
     return safeTypeToString(type, checker);
   }
   state.visited.add(type);
 
-  if (type.isUnion()) {
-    const parts = type.types.map((t) => formatType(t, checker, state, depth + 1));
+  if (isUnionType(type)) {
+    const parts = type.getTypes().map((t) => formatType(t, checker, state, depth + 1));
     return normalizeUnionParts(parts).join(" | ");
   }
 
-  if (type.isIntersection()) {
-    return type.types.map((t) => formatType(t, checker, state, depth + 1)).join(" & ");
+  if (isIntersectionType(type)) {
+    return type
+      .getTypes()
+      .map((t) => formatType(t, checker, state, depth + 1))
+      .join(" & ");
   }
 
-  if (type.flags & ts.TypeFlags.StringLiteral) {
-    const value = (type as ts.LiteralType).value as string;
+  if (type.flags & TypeFlags.StringLiteral) {
+    const value = (type as LiteralType).value as string;
     return `'${value}'`;
   }
 
-  if (type.flags & ts.TypeFlags.NumberLiteral || type.flags & ts.TypeFlags.BigIntLiteral) {
-    return String((type as ts.LiteralType).value);
+  if (type.flags & TypeFlags.NumberLiteral || type.flags & TypeFlags.BigIntLiteral) {
+    return String((type as LiteralType).value);
   }
 
-  if (type.flags & ts.TypeFlags.BooleanLiteral) {
+  if (type.flags & TypeFlags.BooleanLiteral) {
     const intrinsic = (type as { intrinsicName?: string }).intrinsicName;
     return intrinsic === "true" || intrinsic === "false" ? intrinsic : "boolean";
   }
 
   // Keep framework/library types opaque, including imported aliases, so
   // declarations from Lit, FAST, Preact, and similar packages are not expanded.
-  if ((type.symbol || type.aliasSymbol) && (isOpaqueLibraryType(type) || isClassType(type))) {
+  if (
+    (type.getSymbol() || type.getAliasSymbol()) &&
+    (isOpaqueLibraryType(type) || isClassType(type))
+  ) {
     return safeTypeToString(type, checker);
   }
 
-  if (type.aliasSymbol) {
-    const aliasDeclared = checker.getDeclaredTypeOfSymbol(type.aliasSymbol);
+  const aliasSymbol = type.getAliasSymbol();
+  if (aliasSymbol) {
+    const aliasDeclared = checker.getDeclaredTypeOfSymbol(aliasSymbol);
     if (aliasDeclared && aliasDeclared !== type) {
       return formatType(aliasDeclared, checker, state, depth + 1);
     }
   }
 
-  if (checker.isArrayType?.(type)) {
-    const [element] = checker.getTypeArguments(type as ts.TypeReference);
+  // Arrays and tuples are object type references; skip the checker round trips for anything else.
+  const isTypeReference =
+    !!(type.flags & TypeFlags.Object) &&
+    !!((type as ObjectType).objectFlags & ObjectFlags.Reference);
+
+  if (isTypeReference && checker.isArrayType?.(type)) {
+    const [element] = checker.getTypeArguments(type as TypeReference);
     if (!element) return "unknown[]";
     return `${formatType(element, checker, state, depth + 1)}[]`;
   }
 
-  if (checker.isTupleType?.(type)) {
-    const args = checker.getTypeArguments(type as ts.TypeReference);
+  if (isTypeReference && checker.isTupleType?.(type)) {
+    const args = checker.getTypeArguments(type as TypeReference);
     return `[${args.map((t) => formatType(t, checker, state, depth + 1)).join(", ")}]`;
   }
 
-  if (type.flags & ts.TypeFlags.Object) {
+  if (type.flags & TypeFlags.Object) {
     const props = checker.getPropertiesOfType(type);
     if (props.length > 0) {
       const members = props.slice(0, MAX_EXPANDED_TYPE_PROPERTIES).map((prop) => {
-        const decl = prop.valueDeclaration ?? prop.getDeclarations()?.[0];
+        const decl = primaryDeclaration(prop);
         if (!decl) return `${prop.name}: unknown`;
         const propType = checker.getTypeOfSymbolAtLocation(prop, decl);
-        const optional = (prop.flags & ts.SymbolFlags.Optional) !== 0 ? "?" : "";
+        const optional = (prop.flags & SymbolFlags.Optional) !== 0 ? "?" : "";
         state.remaining -= prop.name.length + 8;
         return `${prop.name}${optional}: ${formatType(propType, checker, state, depth + 1)}`;
       });
@@ -295,37 +371,24 @@ function formatType(
   return safeTypeToString(type, checker);
 }
 
-function safeTypeToString(type: ts.Type, checker: ts.TypeChecker): string {
+function safeTypeToString(type: TsType, checker: Checker): string {
   try {
-    const text = checker.typeToString(type, undefined, ts.TypeFormatFlags.NoTruncation);
+    const text = typeToText(type, checker, true);
     return text.length <= MAX_EXPANDED_TYPE_LENGTH ? text : "unknown";
   } catch {
     return "unknown";
   }
 }
 
-function isOpaqueLibraryType(type: ts.Type): boolean {
-  const declarations = [
-    ...(type.symbol?.declarations ?? []),
-    ...(type.aliasSymbol?.declarations ?? []),
-  ];
-  return (
-    declarations.some((declaration) => {
-      const fileName = declaration.getSourceFile().fileName;
-      return (
-        declaration.getSourceFile().isDeclarationFile &&
-        (/[\\/]lib\.[^/\\]+\.d\.ts$/.test(fileName) || /[\\/]node_modules[\\/]/.test(fileName))
-      );
-    }) ?? false
-  );
+function isOpaqueLibraryType(type: TsType): boolean {
+  return hasLibraryDeclaration(type.getSymbol()) || hasLibraryDeclaration(type.getAliasSymbol());
 }
 
-function isClassType(type: ts.Type): boolean {
-  return (
-    type.symbol?.declarations?.some(
-      (declaration) => ts.isClassDeclaration(declaration) || ts.isClassExpression(declaration),
-    ) ?? false
-  );
+function isClassType(type: TsType): boolean {
+  return hasDeclarationOfKind(type.getSymbol(), [
+    ts.SyntaxKind.ClassDeclaration,
+    ts.SyntaxKind.ClassExpression,
+  ]);
 }
 
 function normalizeUnionText(text: string): string {
@@ -375,72 +438,87 @@ function splitUnion(text: string): string[] {
 function findTypeNodeWithImports(
   sourceFile: ts.SourceFile,
   name: string,
-  checker: ts.TypeChecker,
+  checker: Checker,
 ): ts.Node | undefined {
   let lookup = typeLookupCache.get(sourceFile);
   if (!lookup) {
-    lookup = buildTypeLookup(sourceFile, checker);
+    lookup = buildTypeLookup(sourceFile);
     typeLookupCache.set(sourceFile, lookup);
   }
 
-  return lookup.get(name);
+  return lookupType(lookup, name, checker);
 }
 
-function buildTypeLookup(sourceFile: ts.SourceFile, checker: ts.TypeChecker): Map<string, ts.Node> {
-  const lookup = new Map<string, ts.Node>();
+type TypeLookup = {
+  declared: Map<string, ts.Node>;
+  imported: Map<string, ts.Identifier>;
+  resolvedImports: Map<string, ts.Node | undefined>;
+};
 
-  const add = (name: string, node: ts.Node) => {
-    if (!lookup.has(name)) lookup.set(name, node);
-  };
+function lookupType(lookup: TypeLookup, name: string, checker: Checker): ts.Node | undefined {
+  const declared = lookup.declared.get(name);
+  if (declared) return declared;
+  const importName = lookup.imported.get(name);
+  if (!importName) return undefined;
+  if (!lookup.resolvedImports.has(name)) {
+    lookup.resolvedImports.set(name, resolveImportSpecifierSymbol(importName, checker));
+  }
+  return lookup.resolvedImports.get(name);
+}
+
+/** Imports are only resolved (a checker round trip each) when a name is actually looked up. */
+function buildTypeLookup(sourceFile: ts.SourceFile): TypeLookup {
+  const declared = new Map<string, ts.Node>();
+  const imported = new Map<string, ts.Identifier>();
 
   const visit = (node: ts.Node) => {
     if (
-      (ts.isTypeAliasDeclaration(node) ||
-        ts.isInterfaceDeclaration(node) ||
-        ts.isEnumDeclaration(node) ||
-        ts.isClassDeclaration(node)) &&
+      (is.isTypeAliasDeclaration(node) ||
+        is.isInterfaceDeclaration(node) ||
+        is.isEnumDeclaration(node) ||
+        is.isClassDeclaration(node)) &&
       node.name
     ) {
-      add(node.name.text, node);
+      if (!declared.has(node.name.text)) declared.set(node.name.text, node);
     }
-    ts.forEachChild(node, visit);
+    node.forEachChild(visit);
   };
-  ts.forEachChild(sourceFile, visit);
+  sourceFile.forEachChild(visit);
 
   for (const stmt of sourceFile.statements) {
-    if (!ts.isImportDeclaration(stmt) || !stmt.importClause) continue;
+    if (!is.isImportDeclaration(stmt) || !stmt.importClause) continue;
 
-    if (stmt.importClause.name) {
-      const resolved = resolveImportSpecifierSymbol(stmt.importClause.name, checker);
-      if (resolved) add(stmt.importClause.name.text, resolved);
+    if (stmt.importClause.name && !imported.has(stmt.importClause.name.text)) {
+      imported.set(stmt.importClause.name.text, stmt.importClause.name);
     }
 
     const bindings = stmt.importClause.namedBindings;
-    if (!bindings || !ts.isNamedImports(bindings)) continue;
+    if (!bindings || !is.isNamedImports(bindings)) continue;
     for (const spec of bindings.elements) {
-      const resolved = resolveImportSpecifierSymbol(spec.name, checker);
-      if (resolved) add(spec.name.text, resolved);
+      if (!imported.has(spec.name.text)) imported.set(spec.name.text, spec.name);
     }
   }
 
-  return lookup;
+  return { declared, imported, resolvedImports: new Map() };
 }
 
-function resolveImportSpecifierSymbol(
-  node: ts.Identifier,
-  checker: ts.TypeChecker,
-): ts.Node | undefined {
+function resolveImportSpecifierSymbol(node: ts.Identifier, checker: Checker): ts.Node | undefined {
   const sym = checker.getSymbolAtLocation(node);
   if (!sym) return undefined;
 
-  const resolved = (sym.flags & ts.SymbolFlags.Alias) !== 0 ? checker.getAliasedSymbol(sym) : sym;
-  const declarations = resolved.getDeclarations() ?? [];
+  const resolved = (sym.flags & SymbolFlags.Alias) !== 0 ? checker.getAliasedSymbol(sym) : sym;
+  const declarations = symbolDeclarations(resolved, [
+    ts.SyntaxKind.TypeAliasDeclaration,
+    ts.SyntaxKind.InterfaceDeclaration,
+    ts.SyntaxKind.EnumDeclaration,
+    ts.SyntaxKind.ClassDeclaration,
+  ]);
   return declarations.find(
     (decl) =>
-      ts.isTypeAliasDeclaration(decl) ||
-      ts.isInterfaceDeclaration(decl) ||
-      ts.isEnumDeclaration(decl) ||
-      ts.isClassDeclaration(decl),
+      is.isTypeAliasDeclaration(decl) ||
+      is.isInterfaceDeclaration(decl) ||
+      is.isEnumDeclaration(decl) ||
+      is.isClassDeclaration(decl),
   );
 }
 

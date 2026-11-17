@@ -3,9 +3,10 @@ import assert from "node:assert/strict";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { generateCem, generateCemWithProgram } from "../dist/pipeline.js";
+import { generateCem } from "../dist/pipeline.js";
 import { validateGeneratedManifest } from "../dist/validation.js";
-import ts from "typescript";
+import { API } from "typescript/sync";
+import * as is from "typescript/ast/is";
 import { getParsedTypeText } from "../../core-utils/dist/index.js";
 import { createProgramFromTsConfig } from "../dist/program.js";
 import { detectClassMembers } from "../dist/api-members.js";
@@ -23,13 +24,10 @@ test("uses project-relative module paths when no package exports are configured"
   assert.equal(path.isAbsolute(manifest.modules[0].path), false);
 });
 
-test("reuses a previous program without changing output", () => {
-  const first = generateCemWithProgram({ tsConfigPath: fixturesTsConfig });
-  const second = generateCemWithProgram(
-    { tsConfigPath: fixturesTsConfig },
-    first.programResult.program,
-  );
-  assert.deepEqual(second.manifest, first.manifest);
+test("repeated generation produces the same manifest", () => {
+  const first = generateCem({ tsConfigPath: fixturesTsConfig });
+  const second = generateCem({ tsConfigPath: fixturesTsConfig });
+  assert.deepEqual(second, first);
 });
 
 function getClass(manifest, moduleSuffix, className) {
@@ -313,20 +311,25 @@ test("exported-type validation can be disabled", () => {
 
 test("parsed type expansion remains bounded for recursive types", () => {
   const fixturePath = path.resolve(__dirname, "fixtures/large-type.ts");
-  const program = ts.createProgram([fixturePath], { strict: true, skipLibCheck: true });
-  const sourceFile = program.getSourceFile(fixturePath);
-  const checker = program.getTypeChecker();
-  const declaration = sourceFile.statements.find(
-    (statement) =>
-      ts.isVariableStatement(statement) &&
-      statement.declarationList.declarations[0]?.name.getText() === "largeValue",
-  );
-  const variable = declaration.declarationList.declarations[0];
+  const api = new API();
+  try {
+    const program = api.createProgram([fixturePath], { strict: true, skipLibCheck: true });
+    const sourceFile = program.getSourceFile(fixturePath);
+    const checker = program.getProject().checker;
+    const declaration = sourceFile.statements.find(
+      (statement) =>
+        is.isVariableStatement(statement) &&
+        statement.declarationList.declarations[0]?.name.getText() === "largeValue",
+    );
+    const variable = declaration.declarationList.declarations[0];
 
-  const parsed = getParsedTypeText(variable, checker);
+    const parsed = getParsedTypeText(variable, checker);
 
-  assert.ok(parsed);
-  assert.ok(parsed.length < 100_000);
+    assert.ok(parsed);
+    assert.ok(parsed.length < 100_000);
+  } finally {
+    api.close();
+  }
 });
 
 test("typeParsing none disables parsed type expansion", () => {
@@ -433,7 +436,7 @@ test("reuses class member analysis for the same declaration and checker", () => 
     file.fileName.endsWith("inheritance-fixture.ts"),
   );
   const declaration = sourceFile.statements.find(
-    (statement) => ts.isClassDeclaration(statement) && statement.name?.text === "BaseElement",
+    (statement) => is.isClassDeclaration(statement) && statement.name?.text === "BaseElement",
   );
   let typeLookups = 0;
   const checker = new Proxy(result.checker, {
@@ -461,6 +464,7 @@ test("reuses class member analysis for the same declaration and checker", () => 
 
   assert.ok(firstLookupCount > 0);
   assert.equal(typeLookups, firstLookupCount);
+  result.dispose();
 });
 
 test("manifest invariant validation rejects broken export references", () => {

@@ -7,12 +7,7 @@ import readline from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
 import { spawnSync } from "node:child_process";
 import inquirer from "inquirer";
-import {
-  generateCemWithProgram,
-  type RunOptions,
-  loadConfig,
-  mergeConfig,
-} from "@wc-toolkit/cem-generator";
+import { generateCem, type RunOptions, loadConfig, mergeConfig } from "@wc-toolkit/cem-generator";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -172,15 +167,13 @@ program
       const outputPath = path.resolve(
         options.output ?? mergedOptions.filePath ?? "./custom-elements.json",
       );
-      let previousProgram: Parameters<typeof generateCemWithProgram>[1];
       const generate = () => {
-        const result = generateCemWithProgram(mergedOptions, previousProgram);
-        previousProgram = result.programResult.program;
+        const manifest = generateCem(mergedOptions);
         const outputDir = path.dirname(outputPath);
         if (!fs.existsSync(outputDir)) {
           fs.mkdirSync(outputDir, { recursive: true });
         }
-        fs.writeFileSync(outputPath, JSON.stringify(result.manifest, null, 2) + "\n", "utf-8");
+        fs.writeFileSync(outputPath, JSON.stringify(manifest, null, 2) + "\n", "utf-8");
         console.log(`Generated manifest at ${outputPath}`);
       };
 

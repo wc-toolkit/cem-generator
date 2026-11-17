@@ -1,6 +1,8 @@
+import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
-import ts from "typescript";
+import * as is from "typescript/ast/is";
+import { API } from "typescript/sync";
 import { parseCemClassTags, parseCemMemberTags, getNodeTypeText } from "../src/index.ts";
 
 const source = `
@@ -19,59 +21,53 @@ class DemoEl extends HTMLElement {
 }
 `;
 
-const fileName = path.join(path.dirname(fileURLToPath(import.meta.url)), "demo-input.ts");
-const sourceFile = ts.createSourceFile(
-  fileName,
-  source,
-  ts.ScriptTarget.ES2022,
-  true,
-  ts.ScriptKind.TS,
-);
+const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "cem-core-utils-demo-"));
+const fileName = path.join(tempDir, "demo-input.ts");
+fs.writeFileSync(fileName, source);
 
-const program = ts.createProgram({
-  rootNames: [fileName],
-  options: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ES2022 },
-  host: {
-    ...ts.createCompilerHost({}, true),
-    getSourceFile: (name) => (name === fileName ? sourceFile : undefined),
-    readFile: () => undefined,
-    fileExists: (name) => name === fileName,
-    writeFile: () => undefined,
-  },
-});
-
-const checker = program.getTypeChecker();
-
-let classNode;
-for (const stmt of sourceFile.statements) {
-  if (ts.isClassDeclaration(stmt)) {
-    classNode = stmt;
-    break;
+const api = new API();
+try {
+  const program = api.createProgram([fileName], { target: 9, module: 7, lib: ["lib.es2022.d.ts"] });
+  const checker = program.getProject().checker;
+  const sourceFile = program.getSourceFile(fileName);
+  if (!sourceFile) {
+    throw new Error("Demo input was not added to the program");
   }
+
+  let classNode;
+  for (const stmt of sourceFile.statements) {
+    if (is.isClassDeclaration(stmt)) {
+      classNode = stmt;
+      break;
+    }
+  }
+
+  if (!classNode) {
+    throw new Error("No class found in demo input");
+  }
+
+  const classTags = parseCemClassTags(classNode);
+  const modeMember = classNode.members.find((m) => is.isPropertyDeclaration(m));
+  const runMember = classNode.members.find((m) => is.isMethodDeclaration(m));
+
+  const output = {
+    classTags,
+    mode: modeMember
+      ? {
+          tags: parseCemMemberTags(modeMember),
+          type: getNodeTypeText(modeMember, checker),
+        }
+      : undefined,
+    run: runMember
+      ? {
+          tags: parseCemMemberTags(runMember),
+          type: getNodeTypeText(runMember, checker),
+        }
+      : undefined,
+  };
+
+  console.log(JSON.stringify(output, null, 2));
+} finally {
+  api.close();
+  fs.rmSync(tempDir, { recursive: true, force: true });
 }
-
-if (!classNode) {
-  throw new Error("No class found in demo input");
-}
-
-const classTags = parseCemClassTags(classNode);
-const modeMember = classNode.members.find((m) => ts.isPropertyDeclaration(m));
-const runMember = classNode.members.find((m) => ts.isMethodDeclaration(m));
-
-const output = {
-  classTags,
-  mode: modeMember
-    ? {
-        tags: parseCemMemberTags(modeMember),
-        type: getNodeTypeText(modeMember, checker),
-      }
-    : undefined,
-  run: runMember
-    ? {
-        tags: parseCemMemberTags(runMember),
-        type: getNodeTypeText(runMember, checker),
-      }
-    : undefined,
-};
-
-console.log(JSON.stringify(output, null, 2));

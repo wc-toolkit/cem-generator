@@ -1,4 +1,5 @@
-import ts from "typescript";
+import * as ts from "typescript/ast";
+import { API, type Checker, type CompilerOptions } from "typescript/sync";
 import path from "node:path";
 import fs from "node:fs";
 import { parseCustomTagValue } from "@wc-toolkit/cem-generator-utils";
@@ -12,7 +13,13 @@ import {
   isDetectorPlugin,
   isAnnotatorPlugin,
 } from "./types.js";
-import type { ProgramResult } from "./program.js";
+import {
+  buildCompilerOptions,
+  readParsedConfig,
+  wrapProgram,
+  type ProgramResult,
+} from "./program.js";
+import { prefetchMemberTypes, type PrefetchTarget } from "./prefetch.js";
 import { vanillaBuiltin } from "./vanilla-builtin.js";
 import { cssBuiltin } from "./css-builtin.js";
 import type {
@@ -130,20 +137,16 @@ export interface RunOptions {
   typeParsing?: "none" | "public" | "all";
 }
 
-export interface GenerationResult {
-  manifest: CemPackage;
-  programResult: ProgramResult;
-}
-
 export function generateCem(options: RunOptions = {}): CemPackage {
-  return generateCemWithProgram(options).manifest;
+  const api = new API();
+  try {
+    return generateCemWithApi(api, options);
+  } finally {
+    api.close();
+  }
 }
 
-/** Generates a manifest while optionally reusing a previous TypeScript program. */
-export function generateCemWithProgram(
-  options: RunOptions = {},
-  previousProgram?: ts.Program,
-): GenerationResult {
+function generateCemWithApi(api: API, options: RunOptions): CemPackage {
   const {
     plugins = [],
     conflictPolicy = "last-wins",
@@ -176,29 +179,87 @@ export function generateCemWithProgram(
   const configFilePath = tsConfigPath ?? DEFAULT_TS_CONFIG_PATH;
   const resolvedPath = path.resolve(configFilePath);
   const programResult = createProgramResult(
+    api,
     resolvedPath,
     include,
     exclude,
     path.dirname(resolvedPath),
-    previousProgram,
   );
-  const { program, checker, sourceFiles } = programResult;
+  try {
+    return analyzeProgram(api, programResult, {
+      resolvedPath,
+      include,
+      exclude,
+      sort,
+      deprecatedLast,
+      customJsDocTagsConfig,
+      modulePathSkip,
+      modulePathTemplate,
+      definitionPathTemplate,
+      typeDefinitionPathTemplate,
+      modulePathExclude,
+      inheritance,
+      conflictPolicy,
+      typeParsing,
+      validation,
+      plugins,
+    });
+  } finally {
+    programResult.dispose();
+  }
+}
+
+interface AnalysisOptions {
+  resolvedPath: string;
+  include?: string[];
+  exclude?: string[];
+  sort: boolean;
+  deprecatedLast: boolean;
+  customJsDocTagsConfig: CustomTagOptions | undefined;
+  modulePathSkip: boolean;
+  modulePathTemplate: ModulePathResolverOptions["modulePathTemplate"];
+  definitionPathTemplate: ModulePathResolverOptions["definitionPathTemplate"];
+  typeDefinitionPathTemplate: ModulePathResolverOptions["typeDefinitionPathTemplate"];
+  modulePathExclude: string[];
+  inheritance: false | InheritancePluginOptions;
+  conflictPolicy: "throw" | "last-wins";
+  typeParsing: "none" | "public" | "all";
+  validation: ManifestValidationOptions | undefined;
+  plugins: Plugin[];
+}
+
+function analyzeProgram(
+  api: API,
+  programResult: ProgramResult,
+  options: AnalysisOptions,
+): CemPackage {
+  const {
+    resolvedPath,
+    include,
+    exclude,
+    sort,
+    deprecatedLast,
+    customJsDocTagsConfig,
+    modulePathSkip,
+    modulePathTemplate,
+    definitionPathTemplate,
+    typeDefinitionPathTemplate,
+    modulePathExclude,
+    inheritance,
+    conflictPolicy,
+    typeParsing,
+    validation,
+    plugins,
+  } = options;
+  const { checker, sourceFiles } = programResult;
   const projectDir = path.dirname(resolvedPath);
   const runtimeResolver = modulePathSkip
     ? (sourceFile: string) => sourceFile
-    : createRuntimeResolver(projectDir, readCompilerOptions(resolvedPath));
-  const allPlugins: Plugin[] = [vanillaBuiltin(), cssBuiltin(), ...plugins];
-  const additionalFiles = getAdditionalPluginFiles(
-    projectDir,
-    allPlugins,
-    sourceFiles,
-    program.getCompilerOptions(),
-  );
-  const cssFiles = getCssFiles(
-    projectDir,
-    [...sourceFiles, ...additionalFiles],
-    program.getCompilerOptions(),
-  );
+    : createRuntimeResolver(projectDir, readCompilerOptions(api, resolvedPath));
+  const vanilla = vanillaBuiltin();
+  const allPlugins: Plugin[] = [vanilla, cssBuiltin(), ...plugins];
+  const additionalFiles = getAdditionalPluginFiles(api, projectDir, allPlugins, sourceFiles);
+  const cssFiles = getCssFiles(api, projectDir, [...sourceFiles, ...additionalFiles]);
   const filteredFiles = filterSourceFiles(
     [...sourceFiles, ...additionalFiles, ...cssFiles],
     include,
@@ -210,11 +271,34 @@ export function generateCemWithProgram(
 
   const manifest: InternalManifest = { schemaVersion: TARGET_CEM_SCHEMA_VERSION, modules: [] };
 
+  const claimsByFile = new Map<ts.SourceFile, Map<DetectorPlugin, boolean>>();
+  for (const sourceFile of filteredFiles) {
+    claimsByFile.set(sourceFile, claimFile(sourceFile, detectors));
+  }
+  const programFiles = new Set(sourceFiles);
+  const prefetchTargets: PrefetchTarget[] = [];
+  for (const sourceFile of filteredFiles) {
+    if (!programFiles.has(sourceFile)) continue;
+    const claimedTargets = detectors.filter((detector) =>
+      claimsByFile.get(sourceFile)!.get(detector),
+    );
+    if (claimedTargets.length === 0) continue;
+    // The vanilla detector's output is limited to classes it can recognise syntactically, so only
+    // those need prefetching. Any other claimed detector may emit from syntax we cannot predict
+    // cheaply (decorators, factory calls), so its files are prefetched in full.
+    prefetchTargets.push({
+      sourceFile,
+      allClasses: claimedTargets.some((detector) => detector !== vanilla),
+    });
+  }
+  prefetchMemberTypes(api, checker, prefetchTargets);
+
   for (const sourceFile of filteredFiles) {
     const moduleDeclarations = analyzeFile(
       sourceFile,
       checker,
       detectors,
+      claimsByFile.get(sourceFile)!,
       conflictPolicy,
       typeParsing,
     );
@@ -271,13 +355,13 @@ export function generateCemWithProgram(
   for (const plugin of allPlugins) {
     plugin.afterGenerate?.(cem);
   }
-  return { manifest: cem, programResult };
+  return cem;
 }
 
 function getCssFiles(
+  api: API,
   projectDir: string,
   existingFiles: ts.SourceFile[],
-  compilerOptions: ts.CompilerOptions,
 ): ts.SourceFile[] {
   const existing = new Set(existingFiles.map((file) => path.resolve(file.fileName)));
   const result: ts.SourceFile[] = [];
@@ -294,13 +378,9 @@ function getCssFiles(
         !existing.has(path.resolve(filePath))
       ) {
         result.push(
-          ts.createSourceFile(
-            filePath,
-            fs.readFileSync(filePath, "utf-8"),
-            compilerOptions.target ?? ts.ScriptTarget.Latest,
-            true,
-            ts.ScriptKind.Unknown,
-          ),
+          api.createSourceFile(filePath, fs.readFileSync(filePath, "utf-8"), {
+            scriptKind: ts.ScriptKind.Unknown,
+          }).sourceFile,
         );
       }
     }
@@ -321,10 +401,10 @@ function normalizeSourcePaths(cem: CemPackage, projectDir: string): void {
 }
 
 function getAdditionalPluginFiles(
+  api: API,
   projectDir: string,
   plugins: Plugin[],
   existingFiles: ts.SourceFile[],
-  compilerOptions: ts.CompilerOptions,
 ): ts.SourceFile[] {
   if (!plugins.some((plugin) => isDetectorPlugin(plugin) && plugin.name === "svelte")) return [];
   const existing = new Set(existingFiles.map((file) => path.resolve(file.fileName)));
@@ -349,13 +429,7 @@ function getAdditionalPluginFiles(
       ) {
         const sourceText = fs.readFileSync(filePath, "utf-8");
         result.push(
-          ts.createSourceFile(
-            filePath,
-            sourceText,
-            compilerOptions.target ?? ts.ScriptTarget.Latest,
-            true,
-            ts.ScriptKind.TSX,
-          ),
+          api.createSourceFile(filePath, sourceText, { scriptKind: ts.ScriptKind.TSX }).sourceFile,
         );
       }
     }
@@ -367,16 +441,13 @@ function getAdditionalPluginFiles(
 
 type ExportTarget = { key: string; types?: string; runtime?: string };
 
-function readCompilerOptions(configFilePath: string): ts.CompilerOptions {
-  const configFile = ts.readConfigFile(configFilePath, ts.sys.readFile);
-  if (configFile.error) return {};
-  return ts.parseJsonConfigFileContent(configFile.config, ts.sys, path.dirname(configFilePath))
-    .options;
+function readCompilerOptions(api: API, configFilePath: string): CompilerOptions {
+  return readParsedConfig(api, configFilePath)?.options ?? {};
 }
 
 function createRuntimeResolver(
   projectDir: string,
-  compilerOptions: ts.CompilerOptions,
+  compilerOptions: CompilerOptions,
 ): (sourceFile: string) => string {
   const relativeSourcePath = (sourceFile: string) =>
     toPosixPath(path.relative(projectDir, sourceFile));
@@ -534,7 +605,7 @@ function outputCandidates(
   relativeSource: string,
   projectDir: string,
   packageRoot: string,
-  compilerOptions: ts.CompilerOptions,
+  compilerOptions: CompilerOptions,
 ): string[] {
   const sourceRoot = compilerOptions.rootDir
     ? path.resolve(projectDir, compilerOptions.rootDir)
@@ -571,62 +642,35 @@ function matchExportTarget(
 }
 
 function createProgramResult(
+  api: API,
   configFilePath: string,
   include?: string[],
   exclude?: string[],
   projectDir = path.dirname(configFilePath),
-  oldProgram?: ts.Program,
 ): ProgramResult {
-  const configFile = ts.readConfigFile(configFilePath, ts.sys.readFile);
-  if (configFile.error) {
-    const fallback = createDefaultProgram(path.dirname(configFilePath));
-    return fallback;
+  const parsed = readParsedConfig(api, configFilePath);
+  if (!parsed) {
+    return createDefaultProgram(api, path.dirname(configFilePath));
   }
 
-  const parsed = ts.parseJsonConfigFileContent(
-    configFile.config,
-    ts.sys,
-    path.dirname(configFilePath),
-  );
   const rootNames = filterRootFileNames(parsed.fileNames, include, exclude, projectDir);
-  const options: ts.CompilerOptions = {
-    ...parsed.options,
-    allowJs: true,
-    checkJs: parsed.options.checkJs ?? false,
-  };
-  const program = ts.createProgram({ rootNames, options, oldProgram });
-  const checker = program.getTypeChecker();
-  const sourceFiles = program
-    .getSourceFiles()
-    .filter((sf) => !sf.isDeclarationFile && !sf.fileName.includes("node_modules"));
-  return { program, checker, sourceFiles };
+  const program = api.createProgram(rootNames, buildCompilerOptions(parsed.options));
+  return wrapProgram(program);
 }
 
-function createDefaultProgram(projectDir: string): ProgramResult {
+function createDefaultProgram(api: API, projectDir: string): ProgramResult {
   const configPath = path.join(projectDir, "tsconfig.json");
-  const configFile = ts.readConfigFile(configPath, ts.sys.readFile);
-  if (!configFile.error) {
-    const parsed = ts.parseJsonConfigFileContent(configFile.config, ts.sys, projectDir);
-    const options: ts.CompilerOptions = {
-      ...parsed.options,
-      allowJs: true,
-      checkJs: parsed.options.checkJs ?? false,
-    };
-    const program = ts.createProgram({ rootNames: parsed.fileNames, options });
-    const checker = program.getTypeChecker();
-    const sourceFiles = program
-      .getSourceFiles()
-      .filter((sf) => !sf.isDeclarationFile && !sf.fileName.includes("node_modules"));
-    return { program, checker, sourceFiles };
+  const parsed = readParsedConfig(api, configPath);
+  if (parsed) {
+    const program = api.createProgram(parsed.fileNames, buildCompilerOptions(parsed.options));
+    return wrapProgram(program);
   }
 
-  const options: ts.CompilerOptions = { allowJs: true, checkJs: false };
-  const program = ts.createProgram({ rootNames: discoverSourceFiles(projectDir), options });
-  const checker = program.getTypeChecker();
-  const sourceFiles = program
-    .getSourceFiles()
-    .filter((sf) => !sf.isDeclarationFile && !sf.fileName.includes("node_modules"));
-  return { program, checker, sourceFiles };
+  const program = api.createProgram(discoverSourceFiles(projectDir), {
+    allowJs: true,
+    checkJs: false,
+  });
+  return wrapProgram(program);
 }
 
 function discoverSourceFiles(projectDir: string): string[] {
@@ -829,10 +873,24 @@ function mergeExternalModulesIntoManifest(
   }
 }
 
+/** Asks each detector once whether it wants this file; this is a cheap, text-only check. */
+function claimFile(
+  sourceFile: ts.SourceFile,
+  detectors: DetectorPlugin[],
+): Map<DetectorPlugin, boolean> {
+  const sourceText = sourceFile.getFullText();
+  const claims = new Map<DetectorPlugin, boolean>();
+  for (const plugin of detectors) {
+    claims.set(plugin, plugin.shouldAnalyze?.(sourceText, sourceFile.fileName) ?? true);
+  }
+  return claims;
+}
+
 function analyzeFile(
   sourceFile: ts.SourceFile,
-  checker: ts.TypeChecker,
+  checker: Checker,
   detectors: DetectorPlugin[],
+  claims: Map<DetectorPlugin, boolean>,
   conflictPolicy: "throw" | "last-wins",
   typeParsing: "none" | "public" | "all",
 ): ClassFragment[] {
@@ -844,14 +902,6 @@ function analyzeFile(
     checker,
     typeParsing,
   };
-  const claimedByPlugin = new Map<DetectorPlugin, boolean>();
-
-  function claimed(plugin: DetectorPlugin): boolean {
-    if (claimedByPlugin.has(plugin)) return claimedByPlugin.get(plugin)!;
-    const value = plugin.shouldAnalyze?.(sourceText, sourceFile.fileName) ?? true;
-    claimedByPlugin.set(plugin, value);
-    return value;
-  }
 
   // merged[className] accumulates fragments from every plugin that analyzes
   // this file.
@@ -859,7 +909,7 @@ function analyzeFile(
   const fieldOwners: Record<string, Record<string, string>> = {};
 
   for (const plugin of detectors) {
-    if (!claimed(plugin)) continue;
+    if (!claims.get(plugin)) continue;
     if (!plugin.onFile) continue;
 
     const fragment = plugin.onFile(context);

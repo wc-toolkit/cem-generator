@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import type { Package as CemPackage } from "custom-elements-manifest/schema";
-import { generateCemWithProgram } from "./pipeline.js";
+import { generateCem } from "./pipeline.js";
 import type { RunOptions } from "./pipeline.js";
 
 const SOURCE_EXTENSIONS = new Set([
@@ -44,16 +44,13 @@ export interface GeneratorSession {
 }
 
 export function createGeneratorSession(options: RunOptions = {}): GeneratorSession {
-  let previousProgram: Parameters<typeof generateCemWithProgram>[1];
   let watcher: fs.FSWatcher | undefined;
   let timer: ReturnType<typeof setTimeout> | undefined;
   let running = false;
   let lastGeneratedAt = Date.now();
 
   const generate = (): CemPackage => {
-    const result = generateCemWithProgram(options, previousProgram);
-    previousProgram = result.programResult.program;
-    return result.manifest;
+    return generateCem(options);
   };
 
   const close = () => {
