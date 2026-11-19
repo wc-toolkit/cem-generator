@@ -102,20 +102,48 @@ const manifest = generateCem({
 
 ### Option Reference
 
-| Option           | Type                                | Default                                       | Description                                                                                  |
-| ---------------- | ----------------------------------- | --------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| `tsConfigPath`   | `string`                            | `"./tsconfig.json"`                           | Path to TypeScript config. Program created from this config.                                 |
-| `plugins`        | `Plugin[]`                          | `[]`                                          | Additional detector/annotator plugins. Vanilla detector always runs.                         |
-| `conflictPolicy` | `"throw" \| "last-wins"`            | `"last-wins"`                                 | How to resolve when multiple detectors produce different values for same class field.        |
-| `inheritance`    | `false \| InheritancePluginOptions` | `{}`                                          | Built-in inheritance materialization. Set `false` to disable.                                |
-| `include`        | `string[]`                          | `undefined`                                   | Glob patterns limiting analyzed files. Omit for all non-declaration, non-node_modules files. |
-| `exclude`        | `string[]`                          | `undefined`                                   | Glob patterns removing files from analysis. Exclude wins over include.                       |
-| `typeParsing`    | `"none" \| "public" \| "all"`       | `"public"`                                    | Whether to expand parsed types for no APIs, public instance APIs, or all APIs.               |
-| `validation`     | `ManifestValidationOptions`         | `{ invariants: "error", exportTypes: "off" }` | Validate generated manifest invariants and public type exports.                              |
+| Option           | Type                                | Default                                              | Description                                                                                  |
+| ---------------- | ----------------------------------- | ---------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `tsConfigPath`   | `string`                            | `"./tsconfig.json"`                                  | Path to TypeScript config. Program created from this config.                                 |
+| `plugins`        | `Plugin[]`                          | `[]`                                                 | Additional detector/annotator plugins. Vanilla detector always runs.                         |
+| `conflictPolicy` | `"throw" \| "last-wins"`            | `"last-wins"`                                        | How to resolve when multiple detectors produce different values for same class field.        |
+| `inheritance`    | `false \| InheritancePluginOptions` | `{}`                                                 | Built-in inheritance materialization. Set `false` to disable.                                |
+| `include`        | `string[]`                          | `undefined`                                          | Glob patterns limiting analyzed files. Omit for all non-declaration, non-node_modules files. |
+| `exclude`        | `string[]`                          | `undefined`                                          | Glob patterns removing files from analysis. Exclude wins over include.                       |
+| `typeParsing`    | `"none" \| "public" \| "all"`       | `"public"`                                           | Whether to expand parsed types for no APIs, public instance APIs, or all APIs.               |
+| `validation`     | `ManifestValidationOptions`         | `{ invariants: "error", exportTypes: "off" }`        | Validate generated manifest invariants and public type exports.                              |
+| `compilerPath`   | `string`                            | `tsrs` (falls back to the TypeScript bundled server) | Compiler server executable override. See below.                                              |
 
 `filePath` is a CLI config option and is not passed to `generateCem()`. It
 controls where `cem generate` writes the returned manifest. Use `--output` to
 override it for one invocation.
+
+## Choosing a compiler
+
+The generator talks to a TypeScript 7.1 compiler server over its `--api` protocol. By default it
+starts the [`tsrs`](https://github.com/oxc-project/tsrs) Rust port of the compiler. If `tsrs` is not
+installed or unsupported on the current platform, it falls back to the server bundled with the
+`typescript` package.
+
+You can override the default with the `compilerPath` option, the `--compiler` CLI flag, or the
+`CEM_GENERATOR_COMPILER` environment variable. Precedence is: option, then environment variable,
+then `withCompilerPath` scope, then the default `tsrs` binary, then the bundled server. The path is
+resolved from the working directory (the bundler plugin resolves it from the project root), and
+generation fails with a clear error if the file does not exist.
+
+```ts
+generateCem({ compilerPath: "node_modules/@tsrs/darwin-arm64/tsrs" });
+```
+
+```bash
+cem generate --compiler node_modules/@tsrs/darwin-arm64/tsrs
+CEM_GENERATOR_COMPILER=node_modules/@tsrs/darwin-arm64/tsrs cem generate
+```
+
+Every compiler client in a run uses the chosen executable, including the one used to parse
+documentation snippets. To use the bundled TypeScript server instead of `tsrs`, point the override
+at the server binary in your `typescript` platform package, for example
+`node_modules/@typescript/darwin-arm64/tsc`.
 
 ## Inheritance Options
 
@@ -181,18 +209,19 @@ exclude: ["**/*.test.ts", "**/*.stories.ts"];
 
 ## CLI Flags
 
-| Flag                                   | Description                                               | Default                  |
-| -------------------------------------- | --------------------------------------------------------- | ------------------------ |
-| `--tsconfig <path>`                    | tsconfig.json path                                        | `./tsconfig.json`        |
-| `-c, --config <path>`                  | cem-generator config file path (auto-detected if omitted) | —                        |
-| `-o, --output <path>`                  | Output file; overrides config `filePath`                  | `./custom-elements.json` |
-| `--include <patterns...>`              | Include globs                                             | —                        |
-| `--exclude <patterns...>`              | Exclude globs                                             | —                        |
-| `--no-inheritance`                     | Disable inheritance                                       | —                        |
-| `--plugin <paths...>`                  | Custom plugin paths                                       | —                        |
-| `--conflict-policy <policy>`           | `throw` \| `last-wins`                                    | `last-wins`              |
-| `--validate-exported-types <severity>` | `off` \| `warning` \| `error`                             | —                        |
-| `--validation-invariants <severity>`   | `off` \| `warning` \| `error`                             | `error`                  |
+| Flag                                   | Description                                                                  | Default                  |
+| -------------------------------------- | ---------------------------------------------------------------------------- | ------------------------ |
+| `--tsconfig <path>`                    | tsconfig.json path                                                           | `./tsconfig.json`        |
+| `-c, --config <path>`                  | cem-generator config file path (auto-detected if omitted)                    | —                        |
+| `-o, --output <path>`                  | Output file; overrides config `filePath`                                     | `./custom-elements.json` |
+| `--include <patterns...>`              | Include globs                                                                | —                        |
+| `--exclude <patterns...>`              | Exclude globs                                                                | —                        |
+| `--no-inheritance`                     | Disable inheritance                                                          | —                        |
+| `--plugin <paths...>`                  | Custom plugin paths                                                          | —                        |
+| `--conflict-policy <policy>`           | `throw` \| `last-wins`                                                       | `last-wins`              |
+| `--validate-exported-types <severity>` | `off` \| `warning` \| `error`                                                | —                        |
+| `--validation-invariants <severity>`   | `off` \| `warning` \| `error`                                                | `error`                  |
+| `--compiler <path>`                    | Compiler server executable (see [Choosing a compiler](#choosing-a-compiler)) | —                        |
 
 ```bash
 cem generate \

@@ -12,6 +12,9 @@ import { ensureFixtures } from "./fixtures.mjs";
  * Required: BENCH_BASELINE (entry file of the comparison build).
  * Optional: BENCH_CURRENT (default: this package's dist), BENCH_FIXTURES (comma separated),
  * BENCH_ITERATIONS, BENCH_ROUNDS, BENCH_FIXTURE_ROOT, BENCH_OUT_DIR.
+ *
+ * BENCH_BASELINE_COMPILER and BENCH_CURRENT_COMPILER set `CEM_GENERATOR_COMPILER` for one side
+ * only, which compares compiler servers on the same build (point both sides at the same dist).
  */
 const benchDirectory = path.dirname(fileURLToPath(import.meta.url));
 const currentEntry = path.resolve(
@@ -29,10 +32,14 @@ const measureScript = path.join(benchDirectory, "measure.mjs");
 
 const entries = baselineEntry
   ? [
-      { key: "baseline", entry: baselineEntry },
-      { key: "current", entry: currentEntry },
+      {
+        key: "baseline",
+        entry: baselineEntry,
+        compiler: process.env.BENCH_BASELINE_COMPILER,
+      },
+      { key: "current", entry: currentEntry, compiler: process.env.BENCH_CURRENT_COMPILER },
     ]
-  : [{ key: "current", entry: currentEntry }];
+  : [{ key: "current", entry: currentEntry, compiler: process.env.BENCH_CURRENT_COMPILER }];
 
 const requested = process.env.BENCH_FIXTURES?.split(",").map((name) => name.trim());
 const fixtures = ensureFixtures(fixtureRoot, requested);
@@ -43,10 +50,11 @@ function median(values) {
   return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
 }
 
-function measure(entry, tsConfigPath) {
+function measure(entry, tsConfigPath, compiler) {
   const output = execFileSync(process.execPath, [measureScript], {
     env: {
       ...process.env,
+      ...(compiler ? { CEM_GENERATOR_COMPILER: path.resolve(compiler) } : {}),
       BENCH_ENTRY: entry,
       BENCH_FIXTURE: tsConfigPath,
       BENCH_ITERATIONS: String(iterations),
@@ -66,8 +74,8 @@ for (const fixture of fixtures) {
 
   for (let round = 0; round < rounds; round++) {
     const order = round % 2 === 0 ? entries : [...entries].reverse();
-    for (const { key, entry } of order) {
-      const result = measure(entry, fixture.tsConfigPath);
+    for (const { key, entry, compiler } of order) {
+      const result = measure(entry, fixture.tsConfigPath, compiler);
       samples.get(key).push(...result.timings);
       colds.get(key).push(result.coldMs);
       latest.set(key, result);

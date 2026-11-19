@@ -9,3 +9,14 @@ catalog:
 allowBuilds:
   esbuild: true
   sharp: true
+
+minimumReleaseAgeExclude:
+  - '@tsrs/darwin-arm64@7.1.0-beta.tsrs3'
+  - '@tsrs/darwin-x64@7.1.0-beta.tsrs3'
+  - '@tsrs/linux-arm64-gnu@7.1.0-beta.tsrs3'
+  - '@tsrs/linux-arm64-musl@7.1.0-beta.tsrs3'
+  - '@tsrs/linux-x64-gnu@7.1.0-beta.tsrs3'
+  - '@tsrs/linux-x64-musl@7.1.0-beta.tsrs3'
+  - '@tsrs/win32-arm64@7.1.0-beta.tsrs3'
+  - '@tsrs/win32-x64@7.1.0-beta.tsrs3'
+  - tsrs@7.1.0-beta.tsrs3

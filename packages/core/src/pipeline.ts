@@ -1,8 +1,12 @@
 import * as ts from "typescript/ast";
-import { API, type Checker, type CompilerOptions } from "typescript/sync";
+import type { API, Checker, CompilerOptions } from "typescript/sync";
 import path from "node:path";
 import fs from "node:fs";
-import { parseCustomTagValue } from "@wc-toolkit/cem-generator-utils";
+import {
+  createCompilerApi,
+  parseCustomTagValue,
+  withCompilerPath,
+} from "@wc-toolkit/cem-generator-utils";
 import {
   ClassFragment,
   InternalManifest,
@@ -135,15 +139,24 @@ export interface RunOptions {
   validation?: ManifestValidationOptions;
   /** Type expansion policy. @default "public" */
   typeParsing?: "none" | "public" | "all";
+  /**
+   * Override the compiler server executable. The generator uses `tsrs` by default and falls back
+   * to the server bundled with `typescript` when `tsrs` is unavailable. This option, the
+   * `CEM_GENERATOR_COMPILER` environment variable, and `withCompilerPath` all take precedence over
+   * the default.
+   */
+  compilerPath?: string;
 }
 
 export function generateCem(options: RunOptions = {}): CemPackage {
-  const api = new API();
-  try {
-    return generateCemWithApi(api, options);
-  } finally {
-    api.close();
-  }
+  return withCompilerPath(options.compilerPath, () => {
+    const api = createCompilerApi();
+    try {
+      return generateCemWithApi(api, options);
+    } finally {
+      api.close();
+    }
+  });
 }
 
 function generateCemWithApi(api: API, options: RunOptions): CemPackage {
@@ -351,6 +364,7 @@ function analyzeProgram(
     checker,
     [...sourceFiles, ...additionalFiles],
     validation,
+    programResult.program,
   );
   for (const plugin of allPlugins) {
     plugin.afterGenerate?.(cem);

@@ -1,7 +1,7 @@
 import * as ts from "typescript/ast";
 import { symbolDeclarationPaths, symbolDeclarations } from "@wc-toolkit/cem-generator-utils";
 import { SymbolFlags } from "typescript/sync";
-import type { Checker, Symbol as TsSymbol } from "typescript/sync";
+import type { Checker, Program, Symbol as TsSymbol } from "typescript/sync";
 import type { Package as CemPackage } from "custom-elements-manifest/schema";
 import type { ClassFragment, InternalManifest } from "./types.js";
 
@@ -40,6 +40,7 @@ export function validateGeneratedManifest(
   checker: Checker,
   sourceFiles: ts.SourceFile[],
   options: ManifestValidationOptions = {},
+  program?: Program,
 ): ValidationFailure[] {
   const failures: ValidationFailure[] = [];
   const invariants = options.invariants ?? "error";
@@ -49,7 +50,7 @@ export function validateGeneratedManifest(
     checkInvariants(manifest, invariants, failures);
   }
   if (exportTypes !== "off") {
-    checkExportedTypes(internal, checker, sourceFiles, exportTypes, failures);
+    checkExportedTypes(internal, checker, sourceFiles, exportTypes, failures, program);
   }
 
   const errors = failures.filter((failure) => failure.severity === "error");
@@ -130,6 +131,7 @@ function checkExportedTypes(
   sourceFiles: ts.SourceFile[],
   severity: Exclude<ValidationSeverity, "off">,
   failures: ValidationFailure[],
+  program?: Program,
 ) {
   const sourceByPath = new Map<string, ts.SourceFile>(
     sourceFiles.map((sourceFile) => [sourceFile.fileName, sourceFile]),
@@ -143,7 +145,7 @@ function checkExportedTypes(
       const typeNames = collectReferencedTypeNames(declaration);
       for (const typeName of typeNames) {
         const symbol = checker.resolveName(typeName, SymbolFlags.Type, sourceFile, false);
-        if (!symbol || isExportedFromSource(symbol, sourceFile, checker)) continue;
+        if (!symbol || isExportedFromSource(symbol, sourceFile, checker, program)) continue;
         addFailure(
           failures,
           "manifest.exportTypes",
@@ -182,9 +184,10 @@ function isExportedFromSource(
   symbol: TsSymbol,
   sourceFile: ts.SourceFile,
   checker: Checker,
+  program?: Program,
 ): boolean {
   const resolved = symbol.flags & SymbolFlags.Alias ? checker.getAliasedSymbol(symbol) : symbol;
-  if (symbolDeclarationPaths(resolved).some((path) => isStandardLibraryPath(path))) return true;
+  if (isStandardLibrarySymbol(resolved, program)) return true;
   const moduleSymbol = (sourceFile as ts.SourceFile & { symbol?: TsSymbol }).symbol;
   if (
     moduleSymbol &&
@@ -198,6 +201,22 @@ function isExportedFromSource(
     symbolDeclarations(resolved).some((declaration) => {
       return (ts.getCombinedModifierFlags(declaration) & ts.ModifierFlags.Export) !== 0;
     }) ?? false
+  );
+}
+
+const DECLARATION_FILE_PATH = /\.d\.([^/\\.]+\.)?[cm]?ts$/;
+
+/**
+ * Whether a symbol is declared in one of the program's default library files. The program knows
+ * which files those are, wherever the compiler keeps them; without a program the check falls back
+ * to the layout of the bundled TypeScript package.
+ */
+function isStandardLibrarySymbol(symbol: TsSymbol, program?: Program): boolean {
+  if (!program) return symbolDeclarationPaths(symbol).some(isStandardLibraryPath);
+  return symbol.declarations.some(
+    (handle) =>
+      DECLARATION_FILE_PATH.test(handle.path) &&
+      program.getSourceFileMetadataByPath(handle.path)?.isDefaultLibrary === true,
   );
 }
 

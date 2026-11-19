@@ -73,6 +73,10 @@ BENCH_CURRENT_LABEL="TypeScript 7.1" \
 pnpm bench:compare
 ```
 
+To compare compiler servers on the same build, point both sides at one `dist` and set
+`BENCH_BASELINE_COMPILER` and/or `BENCH_CURRENT_COMPILER` (each sets `CEM_GENERATOR_COMPILER` for
+that side only).
+
 Optional: `BENCH_FIXTURES` (comma-separated fixture names), `BENCH_ITERATIONS`, `BENCH_ROUNDS`,
 `BENCH_FIXTURE_ROOT` (reused between runs), and `BENCH_OUT_DIR` (writes a JSON report). Fixtures
 cover simple components, mixed component/model projects, template-heavy elements, ordinary CSS,

@@ -74,6 +74,9 @@ export class GeneratorRunner {
           delete (directOptions as CemGeneratorBuildOptions).config;
           delete (directOptions as CemGeneratorBuildOptions).output;
           delete (directOptions as CemGeneratorBuildOptions).debounceMs;
+          if (directOptions.compilerPath) {
+            directOptions.compilerPath = path.resolve(this.#root, directOptions.compilerPath);
+          }
           if (directOptions.tsConfigPath) {
             directOptions.tsConfigPath = path.resolve(this.#root, directOptions.tsConfigPath);
           } else {

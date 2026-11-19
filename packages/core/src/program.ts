@@ -1,12 +1,13 @@
 import * as ts from "typescript/ast";
 import {
-  API,
+  type API,
   type Checker,
   type CompilerOptions,
   type ParsedCommandLine,
   type Program,
 } from "typescript/sync";
 import path from "node:path";
+import { createCompilerApi } from "@wc-toolkit/cem-generator-utils";
 
 export interface ProgramResult {
   program: Program;
@@ -17,6 +18,8 @@ export interface ProgramResult {
 
 export interface CreateProgramOptions {
   tsConfigPath?: string;
+  /** Compiler server executable to spawn; overrides the default `tsrs` binary. */
+  compilerPath?: string;
 }
 
 const DEFAULT_TS_CONFIG_PATH = "./tsconfig.json";
@@ -93,7 +96,7 @@ export function createProgramFromTsConfig(
       ? { tsConfigPath: tsConfigPathOrOptions }
       : tsConfigPathOrOptions;
   const tsConfigPath = path.resolve(resolveTsConfigPath(options.tsConfigPath));
-  const api = new API();
+  const api = createCompilerApi(options.compilerPath);
   try {
     const parsed = readParsedConfig(api, tsConfigPath);
     if (!parsed) {

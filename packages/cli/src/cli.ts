@@ -84,6 +84,10 @@ program
   .command("generate")
   .description("Generate a Custom Elements Manifest")
   .option("--tsconfig <path>", "Path to tsconfig.json", "./tsconfig.json")
+  .option(
+    "--compiler <path>",
+    "Override the compiler server executable (default is tsrs, fallback is TypeScript's bundled server)",
+  )
   .option("-c, --config <path>", "Path to cem-generator config file (auto-detected if omitted)")
   .option("-o, --output <path>", "Output file path")
   .option("--include <patterns...>", "Glob patterns to include")
@@ -116,6 +120,10 @@ program
 
       if (options.deprecatedLast) {
         cliOptions.deprecatedLast = true;
+      }
+
+      if (options.compiler) {
+        cliOptions.compilerPath = path.resolve(options.compiler);
       }
 
       if (options.validateExportedTypes) {
